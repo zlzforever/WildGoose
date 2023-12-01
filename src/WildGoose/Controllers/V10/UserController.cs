@@ -1,0 +1,25 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using WildGoose.Application.User.V10;
+using WildGoose.Application.User.V10.Command;
+
+namespace WildGoose.Controllers.V10;
+
+[ApiController]
+[Route("api/v1.0/users")]
+[Authorize]
+public class UserController : ControllerBase
+{
+    private readonly UserService _userService;
+
+    public UserController(UserService userService)
+    {
+        _userService = userService;
+    }
+
+    [HttpPost("resetPasswordByCaptcha")]
+    public async Task ResetPasswordByCaptchaAsync([FromBody] ResetPasswordByCaptchaCommand command)
+    {
+        await _userService.ResetPasswordByCaptchaAsync(command);
+    }
+}
