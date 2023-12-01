@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\WildGoose.Infrastructure\WildGoose.Infrastructure.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Dapper" Version="2.1.21"/>
+        <PackageReference Include="MongoDB.Bson" Version="2.22.0"/>
+        <PackageReference Include="Dapr.AspNetCore" Version="1.9.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>WildGoose</_Parameter1> <!-- We use the value of AssemblyName to declare the value of the attribute -->
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Domain\Admin\" />
+      <Folder Include="Organization\Admin\" />
+      <Folder Include="Role\Admin\" />
+      <Folder Include="User\Admin\" />
+    </ItemGroup>
+</Project>
