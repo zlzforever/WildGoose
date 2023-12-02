@@ -3,81 +3,63 @@ import { Col, Form, Input, Modal, Row, Select, TreeSelect, TreeSelectProps, mess
 import TextArea from 'antd/es/input/TextArea'
 import { addOrganization, updateOrganization, getOrganization, getSubOrganizationList } from '../services/wildgoods/api'
 import { useEffect, useState } from 'react'
-import type { DefaultOptionType } from 'antd/es/select'
 
 export interface OrganizationModalProps {
   id?: string
-  parent?: {
-    id: string
-    name: string
-  }
+  parent?: OrganizationDto
   open?: boolean
   onClose?: () => void
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onOk?: (values: any, originParentId?: string) => void
+  onOk?: (values: OrganizationDto, originParentId?: string) => void
 }
 
 const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
-  const [form] = Form.useForm<{
-    id: string
-    name: string
-    code: string
-    address: string
-    description: string
-    parentId: string
-    scope: string[]
-    administrator: {
-      id: string
-      name: string
-    }[]
-  }>()
-  const [parentTreeData, setParentTreeData] = useState<Omit<DefaultOptionType, 'label'>[]>([])
+  const [form] = Form.useForm<Organization>()
+  const [parentTreeData, setParentTreeData] = useState<OrganizationTreeNode[]>([])
+  const [parentTreeDict, setParentTreeDict] = useState<Dictionary<OrganizationTreeNode>>({})
   const [originParentId, setOriginParentId] = useState<string>('')
-  const [parentId, setParentId] = useState('')
   const title = props.id ? '编辑机构' : '添加机构'
 
   // 初始化机构选择器
   useEffect(() => {
-    const init = async () => {
-      const res = await getSubOrganizationList('')
-      const parentOrganizations = res.data as { id: string; parentId: string; name: string; hasChild: boolean }[]
-      if (parentOrganizations) {
-        const data = [] as never[]
-        parentOrganizations.map((x) => {
-          data.push({
-            id: x.id,
-            pId: x.parentId,
-            value: x.id,
-            title: x.name,
-            isLeaf: !x.hasChild,
-            childrean: [],
-          } as never)
-        })
-        setParentTreeData(data)
-      } else {
-        setParentTreeData([])
-      }
+    if (!props.open) {
+      return
     }
-    init()
-  }, [])
 
-  useEffect(() => {
     const init = async () => {
       form.resetFields()
 
-      let data
+      const res = await getSubOrganizationList('')
+      const subOrganizations = (res.data as OrganizationDto[]) ?? []
+      const cache: Dictionary<OrganizationTreeNode> = {}
+      const organizations = subOrganizations.map((x) => {
+        const node: OrganizationTreeNode = {
+          id: x.id,
+          pId: x.parentId,
+          value: x.id,
+          title: x.name,
+          isLeaf: !x.hasChild,
+        }
+        cache[x.id] = node
+        return node
+      })
+
+      let data = { parentId: '' }
       // 创建
       if (!props.id) {
         // 上级机构初始化
-        if (props.parent && props.parent.id) {
-          data = {
-            parentId: props.parent.id,
-            parentName: props.parent.name,
-          }
-        } else {
-          data = {
-            parentId: '',
-            parentName: '',
+        if (props.parent) {
+          data.parentId = props.parent.id
+          let parent = cache[data.parentId]
+          if (!parent) {
+            parent = {
+              id: props.parent.id,
+              pId: props.parent.parentId,
+              title: props.parent.name,
+              value: props.parent.id,
+              isLeaf: !props.parent.hasChild,
+            }
+            cache[parent.id] = parent
+            organizations.push(parent)
           }
         }
       }
@@ -85,16 +67,38 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
       else {
         const res = await getOrganization(props.id)
         data = res.data
+        const serverParent = res.data.parent
+        if (serverParent) {
+          let parent = cache[serverParent.id]
+          if (!parent) {
+            parent = {
+              id: serverParent.id,
+              pId: serverParent.parentId,
+              title: serverParent.name,
+              value: serverParent.id,
+              isLeaf: !serverParent.hasChild,
+            }
+            cache[serverParent.id] = parent
+            organizations.push(parent)
+          } else {
+            parent.pId = serverParent.parentId
+            parent.title = serverParent.name
+            parent.isLeaf = !serverParent.hasChild
+          }
+          data.parentId = serverParent.id
+        } else {
+          data.parentId = ''
+        }
+        setOriginParentId(data.parentId)
       }
 
-      // 保留原始的级机构信息
-      setOriginParentId(data.parentId)
-      // 使用名称， 防止因为机构树未加载而显示 ID
-      data.parentId = data.parentName
       form.setFieldsValue(data)
+
+      setParentTreeDict(cache)
+      setParentTreeData(organizations)
     }
     init()
-  }, [props.id, props.parent, form])
+  }, [form, props.id, props.open, props.parent])
 
   const onOk = () => {
     form.validateFields().then(async () => {
@@ -105,19 +109,11 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
           message.error('上级机构不能为自身')
           return
         }
-        if (parentId) {
-          values.parentId = parentId
-        }
         res = await updateOrganization(props.id, values)
       } else {
-        if (parentId) {
-          values.parentId = parentId
-        }
         res = await addOrganization(values)
       }
-      if (props.onClose) {
-        props.onClose()
-      }
+
       if (props.onOk) {
         props.onOk(res.data, originParentId)
       }
@@ -126,24 +122,33 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
 
   const onParentTreeLoadData: TreeSelectProps['loadData'] = async ({ id }) => {
     const res = await getSubOrganizationList(id)
-    const subOrganizations = res.data as []
-    if (subOrganizations) {
-      const data = subOrganizations.map((x: { id: string; parentId: string; name: string; hasChild: boolean }) => {
-        const index = parentTreeData.findIndex((y) => y.id === x.id)
-        if (index === -1) {
-          return {
-            id: x.id,
-            pId: x.parentId,
-            value: x.id,
-            title: x.name,
-            isLeaf: !x.hasChild,
-          }
+    const subOrganizations = (res.data as OrganizationDto[]) ?? []
+    const data: OrganizationTreeNode[] = []
+    subOrganizations.map((x) => {
+      const orgin = parentTreeDict[x.id]
+      if (!orgin) {
+        const node: OrganizationTreeNode = {
+          id: x.id,
+          pId: x.parentId,
+          value: x.id,
+          title: x.name,
+          isLeaf: !x.hasChild,
         }
-      })
-      const value = parentTreeData.concat(data)
-      setParentTreeData(value)
+        parentTreeDict[x.id] = node
+        data.push(node)
+      } else {
+        orgin.pId = x.parentId
+        orgin.title = x.name
+        orgin.isLeaf = !x.hasChild
+      }
+    })
+
+    if (data.length) {
+      setParentTreeData(parentTreeData.concat(data))
+      setParentTreeDict(parentTreeDict)
     }
   }
+
   return (
     <>
       <Modal
@@ -186,9 +191,9 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
                   treeDataSimpleMode
                   dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
                   loadData={onParentTreeLoadData}
-                  onChange={(v) => {
-                    setParentId(v)
-                  }}
+                  // onChange={(v) => {
+                  //   setParentId(v)
+                  // }}
                   placeholder="请选择上级部门"
                 />
               </Form.Item>

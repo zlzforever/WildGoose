@@ -245,6 +245,7 @@ export interface ChangePasswordCommand {
   newPassword: string
   confirmPassword: string
 }
+
 export async function changePassword(id: string, command: ChangePasswordCommand) {
   const res = await request.request({
     url: `${DefaultSettings.backend}/admin/v1.0/users/${id}/password`,
@@ -252,4 +253,22 @@ export async function changePassword(id: string, command: ChangePasswordCommand)
     data: command,
   })
   return res.data
+}
+
+export async function deleteOrganizationAdministrator(id: string, userId: string) {
+  return (
+    await request.request({
+      url: `${DefaultSettings.backend}/admin/v1.0/organizations/${id}/administrators/${userId}`,
+      method: 'DELETE',
+    })
+  ).data
+}
+
+export async function addOrganizationAdministrator(id: string, userId: string) {
+  return (
+    await request.request({
+      url: `${DefaultSettings.backend}/admin/v1.0/organizations/${id}/administrators/${userId}`,
+      method: 'POST',
+    })
+  ).data
 }

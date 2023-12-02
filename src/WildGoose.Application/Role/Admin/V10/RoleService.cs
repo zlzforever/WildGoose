@@ -224,6 +224,7 @@ public class RoleService : BaseService
         {
             return DbContext.Set<WildGoose.Domain.Entity.Role>()
                 .AsNoTracking()
+                .Where(x => x.Name != Defaults.OrganizationAdmin)
                 .Select(x => new RoleBasicDto
                 {
                     Id = x.Id,
@@ -236,7 +237,7 @@ public class RoleService : BaseService
             join roleAssignableRole in DbContext.Set<RoleAssignableRole>() on userRole.RoleId equals roleAssignableRole
                 .RoleId
             join role in DbContext.Set<WildGoose.Domain.Entity.Role>() on roleAssignableRole.RoleId equals role.Id
-            where userRole.UserId == userId
+            where userRole.UserId == userId && role.Name != Defaults.OrganizationAdmin
             select new RoleBasicDto
             {
                 Id = userRole.RoleId,

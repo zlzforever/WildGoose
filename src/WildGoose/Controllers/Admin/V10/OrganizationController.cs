@@ -26,7 +26,7 @@ public class OrganizationController : ControllerBase
     /// </summary>
     /// <returns></returns>
     [HttpPost]
-    public async Task<OrganizationDetailDto> AddAsync([FromBody] AddOrganizationCommand command)
+    public async Task<OrganizationSimpleDto> AddAsync([FromBody] AddOrganizationCommand command)
     {
         return await _organizationService.AddAsync(command);
     }
@@ -44,7 +44,7 @@ public class OrganizationController : ControllerBase
     }
 
     [HttpPost("{id}")]
-    public async Task<OrganizationDetailDto> UpdateAsync([FromRoute, Required, StringLength(36)] string id,
+    public async Task<OrganizationSimpleDto> UpdateAsync([FromRoute, Required, StringLength(36)] string id,
         [FromBody] UpdateOrganizationCommand command)
     {
         command.Id = id;
@@ -55,5 +55,17 @@ public class OrganizationController : ControllerBase
     public async Task<List<SubOrganizationDto>> GetSubListAsync([FromQuery] GetSubListQuery query)
     {
         return await _organizationService.GetSubListAsync(query);
+    }
+
+    [HttpPost("{id}/administrators/{userId}")]
+    public async Task AddAdministratorAsync([FromRoute] AddAdministratorCommand command)
+    {
+        await _organizationService.AddAdministratorAsync(command);
+    }
+
+    [HttpDelete("{id}/administrators/{userId}")]
+    public async Task AddAdministratorAsync([FromRoute] DeleteAdministratorCommand command)
+    {
+        await _organizationService.DeleteAdministratorAsync(command);
     }
 }

@@ -30,12 +30,12 @@ public class HttpSession : ISession
 
     public bool IsSupperAdmin()
     {
-        return Roles.Contains("admin");
+        return Roles.Contains(Defaults.AdminRole);
     }
 
     public bool IsOrganizationAdmin()
     {
-        return Roles.Contains("organization-admin");
+        return Roles.Contains(Defaults.OrganizationAdmin);
     }
 
     private static readonly HashSet<string> ChineseCultures = new()
@@ -111,7 +111,7 @@ public class HttpSession : ISession
         return new HttpSession
         {
             HttpContext = accessor.HttpContext,
-            Roles = new[] { "admin" }, Subjects = new[] { "admin" }, PhoneNumber = "19900000000",
+            Roles = new[] { Defaults.AdminRole }, Subjects = new[] { "admin" }, PhoneNumber = "19900000000",
             UserDisplayName = "周正", UserId = "1", UserName = "zz", TraceIdentifier = ObjectId.GenerateNewId().ToString()
         };
     }

@@ -7,6 +7,7 @@ export interface ChangePasswordlProps {
   open?: boolean
   onClose?: () => void
 }
+
 const ChangePasswordModal: React.FC<ChangePasswordlProps> = (props) => {
   const [form] = Form.useForm<{
     newPassword: string

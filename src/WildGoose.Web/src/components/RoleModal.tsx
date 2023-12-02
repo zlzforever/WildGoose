@@ -19,7 +19,11 @@ const RoleModal: React.FC<RoleModalProps> = (props) => {
 
   useEffect(() => {
     const init = async () => {
+      if (!props.open) {
+        return
+      }
       form.resetFields()
+
       if (!props.id) {
         return
       }
@@ -37,9 +41,7 @@ const RoleModal: React.FC<RoleModalProps> = (props) => {
       } else {
         await addRole(values)
       }
-      if (props.onClose) {
-        props.onClose()
-      }
+
       if (props.onSuccess) {
         props.onSuccess()
       }

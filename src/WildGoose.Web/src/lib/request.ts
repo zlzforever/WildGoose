@@ -5,7 +5,7 @@ export interface ApiResult {
   code: number
   success: boolean
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: undefined | object | PageData
+  data: undefined | object | PageData<any>
   msg: string
   errors: ApiError[]
 }
@@ -13,14 +13,6 @@ export interface ApiResult {
 export interface ApiError {
   name: string
   messages: string[]
-}
-
-export interface PageData {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: any
-  limit: number
-  page: number
-  total: number
 }
 
 export interface Error {}
@@ -74,7 +66,7 @@ instance.interceptors.response.use(
       } else {
         if (result.errors) {
           const msg = result.errors.map((e) => {
-            return `${e.name}： ${e.message} `
+            return `${e.name}： ${e.messages} `
           })
           message.error(msg)
           throw msg

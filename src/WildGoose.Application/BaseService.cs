@@ -78,14 +78,14 @@ public abstract class BaseService
         }
     }
 
-    protected async Task VerifyRolePermissionAsync(params string[] roleIds)
+    protected async Task VerifyRolePermissionAsync(List<string> roleIds)
     {
         if (Session.IsSupperAdmin())
         {
             return;
         }
 
-        if (roleIds.Length == 0)
+        if (roleIds.Count == 0)
         {
             return;
         }

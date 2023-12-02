@@ -1,63 +1,51 @@
 import { PageContainer } from '@ant-design/pro-layout'
-import { Button, Card, Flex, Input, Menu, MenuProps, Modal, Popconfirm, Select, Table, Tag, Tooltip, Tree, message } from 'antd'
-import { getSubOrganizationList, deleteOrganization, getUsers, deleteUser, enableUser, disableUser } from '../services/wildgoods/api'
-import { useEffect, useState } from 'react'
+import { Button, Card, Flex, Input, Menu, MenuProps, Modal, Popconfirm, Select, Switch, Table, Tag, Tooltip, Tree, message } from 'antd'
+import { getSubOrganizationList, deleteOrganization, getUsers, deleteUser, enableUser, disableUser, addOrganizationAdministrator, deleteOrganizationAdministrator } from '../services/wildgoods/api'
+import { Key, useEffect, useState } from 'react'
 import OrganizationModal from '../components/OrganizationModal'
 import { AppstoreOutlined, MoreOutlined, SmileOutlined } from '@ant-design/icons'
 import UserModal from '../components/UserModal'
-import { PageData } from '../lib/request'
 import ChangePasswordModal from '../components/ChangePasswordModal'
 import { ObjectId } from 'bson'
+import { EventDataNode } from 'antd/es/tree'
+import { ColumnType } from 'antd/es/table'
 
 const { Search } = Input
 
-const DefaultPaginiation = {
-  current: 1,
-  pageSize: 10,
-  total: 0,
-}
 type MenuItem = Required<MenuProps>['items'][number]
 
 const UserPage = () => {
-  const [keyword] = useState('')
-  const [dataSource, setDataSource] = useState([])
-  const [pagination, setPagination] = useState(DefaultPaginiation)
+  const [keyword, setKeyword] = useState('')
+  const [status, setStatus] = useState('all')
+  const [dataSource, setDataSource] = useState<UserDto[]>([])
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: window.wildgoods.pageSize,
+    total: 0,
+  })
 
   const [userModalOpen, setUserModalOpen] = useState(false)
-  const [user, setUser] = useState<{
-    id: string
-    organization?: {
-      id: string
-      pId: string
-      value: string
-      title: string
-      isLeaf: boolean
-    }
-  }>({
-    id: '',
-    organization: undefined,
-  })
-  const [userSelectedKeys, setUserSelectedKeys] = useState<string[]>()
+  const [userProps, setUserProps] = useState<{
+    id?: string
+    organization?: OrganizationDto
+  }>()
 
-  const [organizationTreeData, setOrganizationTreeData] = useState<{ key: string; pId: string; title: string; isLeaf: boolean; children: [] }[]>([])
-  // eslint-disable-next-line react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any
-  const [organizationTreeDict, setOrganizationTreeDict] = useState({} as any)
+  const [userSelectedKeys, setUserSelectedKeys] = useState<string[]>([])
+  const [userSelected, setUserSelected] = useState<UserDto>()
+
+  const [organizationTreeData, setOrganizationTreeData] = useState<SimpleDataNode[]>([])
+  const [organizationTreeDict, setOrganizationTreeDict] = useState<Dictionary<SimpleDataNode>>({})
   const [organizationModalOpen, setOrganizationModalOpen] = useState(false)
   const [organizationTreeSelectedKeys, setOrganizationTreeSelectedKeys] = useState<string[]>([])
   const [organizationTreeExpandedKeys, setOrganizationTreeExpandedKeys] = useState<string[]>([])
   const [organizationModalParams, setOrganizationModalParams] = useState<{
     id: string
-    parentId: string
-    parentName: string
-  }>({
-    id: '',
-    parentId: '',
-    parentName: '',
-  })
+    parent: SimpleDataNode | undefined
+  }>()
 
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false)
 
-  const columns = [
+  const columns: ColumnType<UserDto>[] = [
     {
       title: '姓名',
       dataIndex: 'name',
@@ -74,34 +62,74 @@ const UserPage = () => {
       key: 'phoneNumber',
     },
     {
+      title: '管理员',
+      dataIndex: 'isAdministrator',
+      key: 'isAdministrator',
+      render: (_: unknown, record) => {
+        return (
+          <>
+            <Switch
+              checked={record.isAdministrator}
+              onChange={async () => {
+                if (organizationTreeSelectedKeys && organizationTreeSelectedKeys.length > 0) {
+                  if (record.isAdministrator) {
+                    Modal.confirm({
+                      title: '警告',
+                      content: '您确定要移除此管理员吗?',
+                      onOk: async () => {
+                        await deleteOrganizationAdministrator(organizationTreeSelectedKeys[0], record.id)
+                        record.isAdministrator = !record.isAdministrator
+                        setDataSource([...dataSource])
+                      },
+                    })
+                  } else {
+                    await addOrganizationAdministrator(organizationTreeSelectedKeys[0], record.id)
+                    record.isAdministrator = !record.isAdministrator
+                    setDataSource([...dataSource])
+                  }
+                }
+              }}
+            />
+          </>
+        )
+      },
+    },
+    {
       title: '启用',
       dataIndex: 'enabled',
       key: 'enabled',
-      render: (_: never, record: { enabled: boolean }) => {
-        if (record.enabled) {
-          return (
-            <>
-              <Tag key={new ObjectId().toHexString()} color="success">
-                启用
-              </Tag>
-            </>
-          )
-        } else {
-          return (
-            <>
-              <Tag key={new ObjectId().toHexString()} color="error">
-                禁用
-              </Tag>
-            </>
-          )
-        }
+      render: (_: unknown, record) => {
+        return (
+          <>
+            <Switch
+              checked={record.enabled}
+              onChange={async () => {
+                if (record.enabled) {
+                  Modal.confirm({
+                    title: '警告',
+                    content: '您确定要禁用此用户吗?',
+                    onOk: async () => {
+                      await disableUser(record.id)
+                      record.enabled = !record.enabled
+                      setDataSource([...dataSource])
+                    },
+                  })
+                } else {
+                  record.enabled = !record.enabled
+                  await enableUser(record.id)
+                  setDataSource([...dataSource])
+                }
+              }}
+            />
+          </>
+        )
       },
     },
     {
       title: '角色',
       dataIndex: 'roles',
       key: 'roles',
-      render: (_: never, record: { roles: string[] }) => {
+      render: (_: unknown, record) => {
         if (record.roles) {
           return (
             <>
@@ -119,7 +147,7 @@ const UserPage = () => {
       title: '所在机构',
       dataIndex: 'organizations',
       key: 'organizations',
-      render: (_: never, record: { organizations: string[] }) => {
+      render: (_: unknown, record: { organizations: string[] }) => {
         if (record.organizations) {
           return (
             <>
@@ -138,75 +166,48 @@ const UserPage = () => {
       dataIndex: 'creationTime',
       key: 'creationTime',
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ] as any
+  ]
 
   const clean = () => {
+    setKeyword('')
     setDataSource([])
-    setPagination(DefaultPaginiation)
+    setPagination({
+      current: 1,
+      pageSize: window.wildgoods.pageSize,
+      total: 0,
+    })
   }
 
   useEffect(() => {
     clean()
-    // loadData('', 'all', 1, 15)
     const init = async () => {
+      const dict: Dictionary<SimpleDataNode> = {}
       const res = await getSubOrganizationList()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = res.data as { id: string }[]
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const dict = {} as any
-      if (result && result.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const data = result.map((x: any) => {
-          const n = {
+      const organizations = res.data as OrganizationDto[]
+      if (organizations && organizations.length > 0) {
+        const data = organizations.map((x) => {
+          const node: SimpleDataNode = {
             key: x.id,
             title: x.name,
             pId: x.parentId,
             isLeaf: !x.hasChild,
             children: [],
           }
-          dict[x.id] = n
-          return n
-        }) as never[]
-        setOrganizationTreeDict(dict)
+          dict[x.id] = node
+          return node
+        })
         setOrganizationTreeData(data)
-        setOrganizationTreeSelectedKeys([result[0].id])
+        setOrganizationTreeSelectedKeys([organizations[0].id])
       } else {
         setOrganizationTreeData([])
         setOrganizationTreeSelectedKeys([])
       }
+      setOrganizationTreeDict(dict)
     }
     init()
   }, [])
 
-  // async function loadData(q: string, status: string, page: number | undefined, limit: number | undefined) {
-  //   const result = await getUsers({
-  //     q: q,
-  //     status: status,
-  //     page,
-  //     limit,
-  //   })
-  //   const data = result.data as PageData
-  //   if (data) {
-  //     setDataSource(data.data)
-  //     setPagination({
-  //       total: data.total,
-  //       pageSize: data.limit,
-  //       current: data.page,
-  //     })
-  //   }
-  // }
-
-  useEffect(() => {
-    if (organizationTreeSelectedKeys && organizationTreeSelectedKeys.length > 0) {
-      loadUsers(organizationTreeSelectedKeys[0], keyword, 'all', DefaultPaginiation.pageSize, DefaultPaginiation.current)
-    } else {
-      setDataSource([])
-    }
-    setUserSelectedKeys([])
-  }, [organizationTreeSelectedKeys])
-
-  const loadUsers = async (orgId: string, q: string, status: string, limit: number | undefined, page: number | undefined) => {
+  const loadUsers = async (orgId: string, q: string, status: string, limit: number, page: number) => {
     if (!orgId) {
       return
     }
@@ -217,92 +218,87 @@ const UserPage = () => {
       status: status,
       page: page,
     })
-    const result = res.data as PageData
+    const result = res.data as PageData<UserDto>
+    // 若正常返回分页数据
     if (result) {
       setDataSource(result.data)
+
+      setUserSelectedKeys([])
+      setUserSelected(undefined)
       setPagination({
         pageSize: result.limit,
         current: result.page,
         total: result.total,
       })
     }
+    // 若返回的数据不是标准分页数， 则状态保持不变
+    else {
+      message.error('数据格式异常')
+    }
   }
 
-  // // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  // function recursiveSearch(node: { key: string; children: [] }, id: string): any {
-  //   if (node.key === id) {
-  //     return node
-  //   }
-  //   if (node.children) {
-  //     for (let i = 0; i < node.children.length; i++) {
-  //       const result = recursiveSearch(node.children[i], id)
-  //       if (result) {
-  //         return result
-  //       }
-  //     }
-  //   }
-  //   return null
-  // }
-
-  // // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  // const findOrganization = (id: string): any => {
-  //   if (!id) {
-  //     return null
-  //   }
-  //   for (let i = 0; i < organizationTreeData.length; ++i) {
-  //     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  //     const node = organizationTreeData[i] as any
-  //     if (node.key === id) {
-  //       return node
-  //     }
-  //     const result = recursiveSearch(node, id)
-  //     if (result) {
-  //       return result
-  //     }
-  //   }
-  //   return null
-  // }
-
-  const onOrganizationTreeLoadData = async (node: { key: string; children: [] }) => {
-    if (node.children.length > 0) {
+  const onOrganizationTreeLoadData = async (node: EventDataNode<SimpleDataNode>) => {
+    // 如果 children 已经有值， 则不再需要请求新数据
+    if (node.children.length > 0 || !node.key) {
       return
     }
-    const res = await getSubOrganizationList(node.key)
-    const subOrganizations = res.data as []
-    if (subOrganizations && subOrganizations.length > 0) {
-      const data = subOrganizations.map((x: { id: string; parentId: string; name: string; hasChild: boolean }) => {
-        const n = {
-          key: x.id,
-          title: x.name,
-          pId: x.parentId,
-          isLeaf: !x.hasChild,
-          children: [],
-        }
-        organizationTreeDict[x.id] = n
-        return n
-      })
-      const parent = organizationTreeDict[node.key]
-      if (parent) {
-        parent.children = data
+    const key = node.key
+    const res = await getSubOrganizationList(key)
+    const subOrganizations = (res.data as OrganizationDto[]) ?? []
+    const data = subOrganizations.map((x) => {
+      const node: SimpleDataNode = {
+        key: x.id,
+        title: x.name,
+        pId: x.parentId,
+        isLeaf: !x.hasChild,
+        children: [],
       }
-      setOrganizationTreeDict(organizationTreeDict)
+      organizationTreeDict[x.id] = node
+      return node
+    })
+    if (data.length === 0) {
+      return
+    }
+    const parent = organizationTreeDict[key]
+    if (parent) {
+      parent.children = data
       setOrganizationTreeData([...organizationTreeData])
+    }
+    setOrganizationTreeDict(organizationTreeDict)
+  }
+
+  const onOrganizationSelect = async (keys: Key[]) => {
+    if (keys.length === 0) {
+      return
+    }
+    setKeyword('')
+    setStatus('all')
+    if (keys.length > 0) {
+      const key = keys[0] as string
+      setOrganizationTreeSelectedKeys(keys as string[])
+      loadUsers(key, '', 'all', window.wildgoods.pageSize, 1)
+    } else {
+      setDataSource([])
+      setUserSelectedKeys([])
+      setUserSelected(undefined)
+      setOrganizationTreeSelectedKeys([])
     }
   }
 
-  const onOrganizationModalOk = async (values: { id: string; name: string; parentId: string; hasChild: boolean }, originParentId?: string) => {
+  const onOrganizationModalOk = async (values: OrganizationDto, originParentId?: string) => {
     // 添加机构
-    if (!organizationModalParams.id) {
+    if (!organizationModalParams?.id) {
       onOrganizationAdd(values)
     }
     // 编辑机构
     else {
       onOrganizationUpdate(values, originParentId)
     }
+    setOrganizationModalOpen(false)
   }
 
-  const onOrganizationAdd = (values: { id: string; name: string; parentId: string; hasChild: boolean }) => {
-    const organization = {
+  const onOrganizationAdd = (values: OrganizationDto) => {
+    const organization: SimpleDataNode = {
       key: values.id,
       title: values.name,
       pId: values.parentId,
@@ -310,10 +306,10 @@ const UserPage = () => {
       children: [],
     }
 
-    // 添加了根机构
+    // 新添加了根机构
     if (!organization.pId) {
-      organizationTreeDict[organization.key] = organization
-      setOrganizationTreeData(organizationTreeData.concat(organization as never))
+      organizationTreeDict[values.id] = organization
+      setOrganizationTreeData(organizationTreeData.concat(organization))
       setOrganizationTreeDict(organizationTreeDict)
     } else {
       const parent = organizationTreeDict[organization.pId]
@@ -326,15 +322,15 @@ const UserPage = () => {
     }
   }
 
-  const onOrganizationUpdate = async (values: { id: string; name: string; parentId: string; hasChild: boolean }, originParentId?: string) => {
+  const onOrganizationUpdate = async (values: OrganizationDto, originParentId?: string) => {
     const key = values.id
     const pId = values.parentId
     const organization = organizationTreeDict[key]
     organization.title = values.name
     organization.pId = pId
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let data = [] as any[]
+    let data: SimpleDataNode[] = []
+
     // 原始为根级机构
     if (!originParentId) {
       // 依然为根级机构
@@ -364,7 +360,7 @@ const UserPage = () => {
         // 此时， 上级机构一定是已经被展开了， 不然无法被编辑到
         // 从原上级机构删除
         const originParent = organizationTreeDict[originParentId]
-        originParent.children = originParent.children.filter((item: { key: string }) => item.key !== key)
+        originParent.children = originParent.children.filter((item) => item.key !== key)
         originParent.isLeaf = originParent.children.length === 0
 
         // 添加至新机构
@@ -376,10 +372,11 @@ const UserPage = () => {
           if (organizationTreeExpandedKeys.indexOf(organization.pId) >= 0) {
             parent.children.push(organization)
           }
+          data = organizationTreeData
         }
         // 移动为根机构
         else {
-          data = organizationTreeData.concat(organization)
+          data = organizationTreeData.concat([organization])
         }
       }
     }
@@ -387,39 +384,37 @@ const UserPage = () => {
     setOrganizationTreeData([...data])
   }
 
-  const onOrganizationDelete = async (item: { pId: string; key: string }) => {
+  const onOrganizationDelete = async (item: SimpleDataNode) => {
     await deleteOrganization(item.key)
     if (item.pId) {
       const parent = organizationTreeDict[item.pId]
-      parent.children = parent.children.filter((y: { key: string }) => y.key !== item.key)
+      parent.children = parent.children.filter((y) => y.key !== item.key)
       parent.isLeaf = parent.children.length === 0
       setOrganizationTreeData([...organizationTreeData])
     } else {
-      setOrganizationTreeData((origin) => origin.filter((y: { key: string }) => y.key !== item.key))
+      setOrganizationTreeData((origin) => origin.filter((y) => y.key !== item.key))
     }
   }
 
   const onOrganizationModalClose = () => {
-    setOrganizationModalParams({
-      id: '',
-      parentId: '',
-      parentName: '',
-    })
+    setOrganizationModalParams(undefined)
     setOrganizationModalOpen(false)
   }
 
-  const organizationTreeTitleRender = (node: { key: string; pId: string; title: string; isLeaf: boolean }) => {
+  const organizationTreeTitleRender = (node: SimpleDataNode) => {
     const items: MenuItem[] = [
       {
         label: '编辑机构',
         key: 'a',
         icon: <AppstoreOutlined />,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onClick: () => {
+          if (organizationTreeSelectedKeys.length === 0) {
+            message.error('未选中机构')
+            return
+          }
           setOrganizationModalParams({
-            id: node.key,
-            parentId: '',
-            parentName: '',
+            id: organizationTreeSelectedKeys[0],
+            parent: undefined,
           })
           setOrganizationModalOpen(true)
         },
@@ -429,10 +424,15 @@ const UserPage = () => {
         key: 'b',
         icon: <AppstoreOutlined />,
         onClick: () => {
+          if (organizationTreeSelectedKeys.length === 0) {
+            message.error('未选中机构')
+            return
+          }
+
+          const org = organizationTreeDict[organizationTreeSelectedKeys[0]]
           setOrganizationModalParams({
             id: '',
-            parentId: node.key,
-            parentName: node.title,
+            parent: org,
           })
           setOrganizationModalOpen(true)
         },
@@ -479,27 +479,10 @@ const UserPage = () => {
       const key = userSelectedKeys[0]
       await deleteUser(key)
       message.success('操作成功')
-      await loadUsers(organizationTreeSelectedKeys[0], keyword, 'all', pagination.pageSize, pagination.current)
+      await loadUsers(organizationTreeSelectedKeys[0], keyword, status, pagination.pageSize, pagination.current)
     }
   }
 
-  const onUserEnable = async () => {
-    if (userSelectedKeys && userSelectedKeys.length > 0) {
-      const key = userSelectedKeys[0]
-      await enableUser(key)
-      message.success('操作成功')
-      await loadUsers(organizationTreeSelectedKeys[0], keyword, 'all', pagination.pageSize, pagination.current)
-    }
-  }
-
-  const onUserDisable = async () => {
-    if (userSelectedKeys && userSelectedKeys.length > 0) {
-      const key = userSelectedKeys[0]
-      await disableUser(key)
-      message.success('操作成功')
-      await loadUsers(organizationTreeSelectedKeys[0], keyword, 'all', pagination.pageSize, pagination.current)
-    }
-  }
   return (
     <>
       <PageContainer
@@ -514,19 +497,41 @@ const UserPage = () => {
             setChangePasswordModalOpen(false)
           }}></ChangePasswordModal>
         <UserModal
-          user={user}
+          id={userProps?.id}
+          organization={userProps?.organization}
           open={userModalOpen}
-          onClose={async () => {
-            await loadUsers(organizationTreeSelectedKeys[0], keyword, 'all', pagination.pageSize, pagination.current)
+          onOk={async (user: UserDto) => {
+            setUserModalOpen(false)
+
+            const record = dataSource.find((item) => item.id === user.id)
+            if (record) {
+              record.creationTime = user.creationTime
+              record.enabled = user.enabled
+              record.name = user.name
+              record.organizations = user.organizations
+              record.phoneNumber = user.phoneNumber
+              record.roles = user.roles
+              record.userName = user.userName
+              // record.isAdministrator = user.isAdministrator 是否管理员不会在编辑页面修改
+            }
+            setDataSource([...dataSource])
+          }}
+          onClose={() => {
             setUserModalOpen(false)
           }}></UserModal>
         <OrganizationModal
           open={organizationModalOpen}
-          id={organizationModalParams.id}
-          parent={{
-            id: organizationModalParams.parentId,
-            name: organizationModalParams.parentName,
-          }}
+          id={organizationModalParams?.id}
+          parent={
+            organizationModalParams && organizationModalParams.parent
+              ? {
+                  id: organizationModalParams.parent.key,
+                  name: organizationModalParams.parent.title,
+                  parentId: organizationModalParams.parent.pId,
+                  hasChild: !organizationModalParams.parent.isLeaf,
+                }
+              : undefined
+          }
           onClose={onOrganizationModalClose}
           onOk={onOrganizationModalOk}></OrganizationModal>
         <Flex gap="middle">
@@ -542,22 +547,15 @@ const UserPage = () => {
                 expandedKeys={organizationTreeExpandedKeys}
                 titleRender={organizationTreeTitleRender}
                 selectedKeys={organizationTreeSelectedKeys}
-                onSelect={(
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  key: any
-                ) => {
-                  setOrganizationTreeSelectedKeys(key)
-                }}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                onExpand={(v: any) => {
-                  setOrganizationTreeExpandedKeys(v)
+                onSelect={onOrganizationSelect}
+                onExpand={(keys: Key[]) => {
+                  setOrganizationTreeExpandedKeys(keys as string[])
                 }}></Tree>
               <Button
                 onClick={() => {
                   setOrganizationModalParams({
                     id: '',
-                    parentId: '',
-                    parentName: '',
+                    parent: undefined,
                   })
                   setOrganizationModalOpen(true)
                 }}>
@@ -571,48 +569,64 @@ const UserPage = () => {
                 <Select
                   defaultValue="all"
                   style={{ width: 120 }}
+                  onChange={(v) => {
+                    setStatus(v)
+                  }}
                   options={[
                     { value: 'all', label: '全部' },
-                    { value: 'inactive', label: '未激活' },
+                    { value: 'enabled', label: '已启用' },
                     { value: 'disabled', label: '已暂停' },
                   ]}
                 />
-                <Search placeholder="请输入用户名、手机号" allowClear style={{ width: 200 }} onClick={() => {}} />
+                <Search
+                  onChange={(e) => {
+                    setKeyword(e.target.value)
+                  }}
+                  placeholder="请输入用户名、手机号"
+                  allowClear
+                  style={{ width: 200 }}
+                  onSearch={() => {
+                    if (organizationTreeSelectedKeys && organizationTreeSelectedKeys[0]) {
+                      loadUsers(organizationTreeSelectedKeys[0], keyword, status, pagination.pageSize, pagination.current)
+                    }
+                  }}
+                />
                 <Flex justify="flex-end" align="flex-end">
                   <Button
                     type="primary"
                     onClick={() => {
+                      // 若有选中机构
                       if (organizationTreeSelectedKeys && organizationTreeSelectedKeys.length > 0) {
                         const key = organizationTreeSelectedKeys[0]
                         const organization = organizationTreeDict[key]
-                        setUser({
-                          id: '',
+                        setUserProps({
+                          id: undefined,
                           organization: {
                             id: organization.key,
-                            pId: organization.pId,
-                            value: organization.key,
-                            title: organization.title,
-                            isLeaf: organization.isLeaf,
+                            parentId: organization.pId,
+                            name: organization.title,
+                            hasChild: organization.isLeaf,
                           },
                         })
-                      } else {
-                        setUser({
-                          id: '',
+                      }
+                      // 未选中机构， 理论上不应该出现
+                      else {
+                        setUserProps({
+                          id: undefined,
                           organization: undefined,
                         })
                       }
-
                       setUserModalOpen(true)
                     }}>
                     添加
                   </Button>
                   <Button
-                    disabled={!(userSelectedKeys && userSelectedKeys.length === 1)}
+                    disabled={userSelected ? false : true}
                     type="primary"
                     onClick={() => {
-                      if (userSelectedKeys && userSelectedKeys.length > 0) {
-                        setUser({
-                          id: userSelectedKeys[0],
+                      if (userSelected) {
+                        setUserProps({
+                          id: userSelected.id,
                           organization: undefined,
                         })
                         setUserModalOpen(true)
@@ -628,33 +642,13 @@ const UserPage = () => {
                     }}
                     okText="确定"
                     cancelText="取消">
-                    <Button disabled={!(userSelectedKeys && userSelectedKeys.length === 1)} type="primary">
+                    <Button disabled={userSelected ? false : true} type="primary">
                       删除
                     </Button>
                   </Popconfirm>
                   <Button
-                    disabled={!(userSelectedKeys && userSelectedKeys.length === 1)}
                     type="primary"
-                    onClick={() => {
-                      onUserEnable()
-                    }}>
-                    启用
-                  </Button>
-                  <Popconfirm
-                    title="警告"
-                    description="您确定要禁用用户吗?"
-                    onConfirm={() => {
-                      onUserDisable()
-                    }}
-                    okText="确定"
-                    cancelText="取消">
-                    <Button disabled={!(userSelectedKeys && userSelectedKeys.length === 1)} type="primary">
-                      禁用
-                    </Button>
-                  </Popconfirm>
-                  <Button
-                    type="primary"
-                    disabled={!(userSelectedKeys && userSelectedKeys.length === 1)}
+                    disabled={userSelected ? false : true}
                     onClick={() => {
                       setChangePasswordModalOpen(true)
                     }}>
@@ -672,8 +666,13 @@ const UserPage = () => {
                 rowSelection={{
                   type: 'checkbox',
                   selectedRowKeys: userSelectedKeys,
-                  onChange: (selectedRowKeys: React.Key[]) => {
+                  onChange: (selectedRowKeys: React.Key[], selectedRows: UserDto[]) => {
                     setUserSelectedKeys(selectedRowKeys as string[])
+                    if (selectedRows && selectedRows.length === 1) {
+                      setUserSelected(selectedRows[0])
+                    } else {
+                      setUserSelected(undefined)
+                    }
                   },
                 }}
                 style={{ width: '100%' }}></Table>

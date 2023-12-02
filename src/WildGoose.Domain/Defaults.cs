@@ -2,6 +2,8 @@ namespace WildGoose.Domain;
 
 public class Defaults
 {
-    public const string AdminRole = "ADMIN";
-    public const string OrganizationAdmin = "ORGANIZATION-ADMIN";
+    public const string AdminRole = "admin";
+    public const string OrganizationAdmin = "organization-admin";
+    public static string AdminRoleId = "";
+    public static string OrganizationAdminRoleId = "";
 }

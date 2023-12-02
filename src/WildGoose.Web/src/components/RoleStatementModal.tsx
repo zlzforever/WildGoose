@@ -9,6 +9,7 @@ export interface RoleStatementModalProps {
   id: string
   open?: boolean
   onClose?: () => void
+  onOk?: () => void
 }
 
 const RoleStatementModal: React.FC<RoleStatementModalProps> = (props) => {
@@ -23,7 +24,6 @@ const RoleStatementModal: React.FC<RoleStatementModalProps> = (props) => {
         return
       }
       const res = await getRole(props.id)
-
       form.setFieldsValue({
         statement: JSON.stringify(JSON.parse(res.data.statement), null, '\t'),
       })
@@ -34,17 +34,16 @@ const RoleStatementModal: React.FC<RoleStatementModalProps> = (props) => {
   const onOk = () => {
     form.validateFields().then(async () => {
       const values = form.getFieldsValue()
-
       await updateRoleStatement(props.id, values)
-      if (props.onClose) {
-        props.onClose()
+      if (props.onOk) {
+        props.onOk()
       }
     })
   }
   return (
     <>
       <Modal
-        title="编辑权限策略"
+        title="角色权限"
         styles={{
           body: {
             paddingBottom: 80,

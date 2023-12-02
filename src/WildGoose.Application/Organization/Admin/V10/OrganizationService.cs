@@ -27,7 +27,7 @@ public class OrganizationService : BaseService
         _userManager = userManager;
     }
 
-    public async Task<OrganizationDetailDto> AddAsync(AddOrganizationCommand command)
+    public async Task<OrganizationSimpleDto> AddAsync(AddOrganizationCommand command)
     {
         var organization = Create(command);
 
@@ -41,7 +41,6 @@ public class OrganizationService : BaseService
         if (Session.IsSupperAdmin())
         {
             await SetParentAsync(organization, command.ParentId);
-
             await store.AddAsync(organization);
         }
         else
@@ -77,17 +76,12 @@ public class OrganizationService : BaseService
 
         await DbContext.SaveChangesAsync();
 
-        return new OrganizationDetailDto
+        return new OrganizationSimpleDto
         {
             Id = organization.Id,
             Name = organization.Name,
-            Code = organization.Code,
-            Address = organization.Address,
-            Description = organization.Description,
             ParentId = organization.Parent?.Id,
-            ParentName = organization.Parent?.Name,
-            Scope = command.Scope.ToList(),
-            Administrators = new List<UserDto>()
+            HasChild = false
         };
     }
 
@@ -155,7 +149,7 @@ public class OrganizationService : BaseService
         return organization.Id;
     }
 
-    public async Task<OrganizationDetailDto> UpdateAsync(UpdateOrganizationCommand command)
+    public async Task<OrganizationSimpleDto> UpdateAsync(UpdateOrganizationCommand command)
     {
         // await VerifyOrganizationPermissionAsync(command.Id, command.ParentId);
 
@@ -215,18 +209,17 @@ public class OrganizationService : BaseService
         }
 
         await DbContext.SaveChangesAsync();
-        return new OrganizationDetailDto
+        var dto = new OrganizationSimpleDto
         {
             Id = organization.Id,
             Name = organization.Name,
-            Code = organization.Code,
-            Address = organization.Address,
-            Description = organization.Description,
             ParentId = organization.Parent?.Id,
-            ParentName = organization.Parent?.Name,
-            Scope = command.Scope.ToList(),
-            Administrators = administrators
+            HasChild = DbContext
+                .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
+                .Any(x => x.Parent.Id == organization.Id)
         };
+
+        return dto;
     }
 
     public async Task AddAdministratorAsync(AddAdministratorCommand command)
@@ -297,24 +290,39 @@ public class OrganizationService : BaseService
     //     }).ToList();
     // }
 
-    public async Task<OrganizationDetailDto> GetAsync(string id)
-    {
-        await VerifyOrganizationPermissionAsync(id);
-
-        var organization = await DbContext.Set<WildGoose.Domain.Entity.Organization>()
-            .Include(x => x.Parent)
-            .AsNoTracking()
-            .Where(x => x.Id == id)
-            .FirstOrDefaultAsync();
-        return new OrganizationDetailDto
-        {
-            Id = organization.Id,
-            Name = organization.Name,
-            Code = organization.Code,
-            ParentId = organization.Parent?.Id,
-            ParentName = organization.Parent?.Name
-        };
-    }
+    // public async Task<OrganizationDetailDto> GetAsync(string id)
+    // {
+    //     await VerifyOrganizationPermissionAsync(id);
+    //
+    //     var organization = await DbContext.Set<WildGoose.Domain.Entity.Organization>()
+    //         .Include(x => x.Parent)
+    //         // .ThenInclude(x=>x.Parent)
+    //         .AsNoTracking()
+    //         .Where(x => x.Id == id)
+    //         .FirstOrDefaultAsync();
+    //     var dto = new OrganizationDetailDto
+    //     {
+    //         Id = organization.Id,
+    //         Name = organization.Name,
+    //         Code = organization.Code,
+    //         Address = organization.Address,
+    //         Description = organization.Description,
+    //     };
+    //     if (organization.Parent != null)
+    //     {
+    //         dto.Parent = new OrganizationSimpleDto
+    //         {
+    //             Id = organization.Parent.Id,
+    //             Name = organization.Parent.Name,
+    //             HasChild = DbContext
+    //                 .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
+    //                 .Any(x => x.Parent.Id == organization.Parent.Id),
+    //             ParentId = organization.Parent.Id
+    //         };
+    //     }
+    //
+    //     return dto;
+    // }
 
     public async Task<List<SubOrganizationDto>> GetSubListAsync(GetSubListQuery query)
     {
@@ -389,45 +397,85 @@ public class OrganizationService : BaseService
 
         var organization = await DbContext
             .Set<WildGoose.Domain.Entity.Organization>()
-            .Include(x => x.Parent)
             .AsNoTracking()
             .Where(x => x.Id == query.Id)
-            .Select(x => new OrganizationDetailDto
+            .Select(x => new
             {
-                // TODO: 更多属性
-                Id = x.Id,
-                Name = x.Name,
-                Code = x.Code,
+                x.Id, x.Name, x.Code, x.Address, x.Description,
                 ParentId = x.Parent.Id,
                 ParentName = x.Parent.Name,
-                Address = x.Address,
-                Description = x.Description
+                ParentParentId = x.Parent.Parent.Id
             })
             .FirstOrDefaultAsync();
-        if (organization != null)
-        {
-            organization.Scope = await DbContext
-                .Set<OrganizationScope>()
-                .AsNoTracking()
-                .Where(x => x.OrganizationId == organization.Id)
-                .Select(x => x.Scope)
-                .ToListAsync();
 
-            var t1 = DbContext
-                .Set<OrganizationAdministrator>();
-            var t2 = DbContext.Set<WildGoose.Domain.Entity.User>();
-            var administrators = await (from admin in t1
-                join user in t2 on admin.UserId equals user.Id
-                where admin.OrganizationId == organization.Id
-                select new UserDto
-                {
-                    Id = user.Id,
-                    Name = user.Name
-                }).AsNoTracking().ToListAsync();
-            organization.Administrators = administrators;
+        if (organization == null)
+        {
+            return null;
         }
 
-        return organization;
+        var dto = new OrganizationDetailDto
+        {
+            Id = organization.Id,
+            Name = organization.Name,
+            Code = organization.Code,
+            Address = organization.Address,
+            Description = organization.Description,
+        };
+        if (!string.IsNullOrEmpty(organization.ParentId))
+        {
+            dto.Parent = new OrganizationSimpleDto
+            {
+                Id = organization.ParentId,
+                Name = organization.ParentName,
+                HasChild = true,
+                ParentId = organization.ParentParentId
+            };
+        }
+
+        var scopeQueryable = DbContext
+            .Set<OrganizationScope>()
+            .AsNoTracking()
+            .Where(x => x.OrganizationId == organization.Id)
+            .Select(x => new
+            {
+                Id = "",
+                Value = x.Scope
+            });
+
+        var administratorQueryable = from admin in DbContext.Set<OrganizationAdministrator>()
+            join user in DbContext.Set<WildGoose.Domain.Entity.User>() on admin.UserId equals user.Id
+            where admin.OrganizationId == organization.Id
+            select new
+            {
+                Id = Convert.ToString(admin.UserId),
+                Value = user.Name
+            };
+        var unionList = await administratorQueryable.Union(scopeQueryable).AsNoTracking().ToListAsync();
+        dto.Scope = new List<string>();
+        dto.Administrators = new List<UserDto>();
+        foreach (var tmp in unionList)
+        {
+            if (string.IsNullOrEmpty(tmp.Id))
+            {
+                dto.Scope.Add(tmp.Value);
+            }
+            else
+            {
+                dto.Administrators.Add(new UserDto
+                {
+                    Id = tmp.Id,
+                    Name = tmp.Value
+                });
+            }
+        }
+
+        return dto;
+    }
+
+    class Tmp
+    {
+        public string Id { get; set; }
+        public string Value { get; set; }
     }
 
     // public async Task AddDefaultRoleAsync(AddDefaultRoleCommand command)

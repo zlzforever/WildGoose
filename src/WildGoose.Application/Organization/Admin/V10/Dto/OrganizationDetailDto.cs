@@ -11,12 +11,7 @@ public class OrganizationDetailDto
     /// <summary>
     /// 父新节点标识
     /// </summary>
-    public string ParentId { get; set; }
-
-    /// <summary>
-    /// 父亲节点名称
-    /// </summary>
-    public string ParentName { get; set; }
+    public OrganizationSimpleDto Parent { get; set; }
 
     public string Address { get; set; }
 

@@ -29,7 +29,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<string> AddAsync([FromBody] AddUserCommand command)
+    public async Task<UserDto> AddAsync([FromBody] AddUserCommand command)
     {
         return await _userService.AddAsync(command);
     }
@@ -78,11 +78,10 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("{id}")]
-    public async Task<string> UpdateAsync([FromRoute, StringLength(36), Required] string id,
+    public async Task<UserDto> UpdateAsync([FromRoute, StringLength(36), Required] string id,
         [FromBody] UpdateUserCommand command)
     {
         command.Id = id;
-        await _userService.UpdateAsync(command);
-        return command.Id;
+        return await _userService.UpdateAsync(command);
     }
 }

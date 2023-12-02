@@ -1,36 +1,31 @@
 import { PageContainer } from '@ant-design/pro-layout'
-import { Button, Card, Popconfirm, Select, Space, Table, TablePaginationConfig, Tag, message, theme, SelectProps, Modal } from 'antd'
+import { Button, Card, Popconfirm, Select, Space, Table, Tag, message, theme, SelectProps, Modal } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { addAssignableRole, deleteRole, getRoles, deleteAssignableRole } from '../services/wildgoods/api'
 import RoleModal from '../components/RoleModal'
 import RoleStatementModal from '../components/RoleStatementModal'
-import { PageData } from '../lib/request'
 import { FireOutlined, PlusOutlined } from '@ant-design/icons'
+import { ObjectId } from 'bson'
+import { ColumnType } from 'antd/es/table'
+
 const baseStyle: React.CSSProperties = {
   width: '100%',
   height: '100%',
 }
 
-const DefaultPaginiation = {
-  current: 1,
-  pageSize: 10,
-  total: 0,
-}
-
-interface RoleBasicDto {
-  id: string
-  name: string
-}
-
 const RolePage: React.FC = () => {
   const { token } = theme.useToken()
-  const [keyword] = useState('')
-  const [dataSource, setDataSource] = useState([])
-  const [pagination, setPagination] = useState(DefaultPaginiation)
+  const [keyword] = useState<string>('')
+  const [dataSource, setDataSource] = useState<RoleDto[]>([])
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: window.wildgoods.pageSize,
+    total: 0,
+  })
   const [roleModalOpen, setRoleModalOpen] = useState(false)
   const [roleStatementModalOpen, setRoleStatementModalOpen] = useState(false)
   const [id, setId] = useState<string>()
-  const [selectRoleData, setSelectRoleData] = useState<SelectProps['options']>([])
+  const [roleOptions, setRoleOptions] = useState<SelectProps['options']>([])
   const [selectedRoles, setSelectedRoles] = useState([])
 
   const tagPlusStyle: React.CSSProperties = {
@@ -39,7 +34,7 @@ const RolePage: React.FC = () => {
     borderStyle: 'dashed',
   }
 
-  const columns = [
+  const columns: ColumnType<RoleDto>[] = [
     {
       title: '名称',
       dataIndex: 'name',
@@ -54,29 +49,28 @@ const RolePage: React.FC = () => {
       title: '可授于角色',
       dataIndex: 'assignableRoles',
       key: 'assignableRoles',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      render: (_: any, record: any) => {
+      render: (_: string, record) => {
         if (record.name === 'admin') {
           return <></>
         }
         record.assignableRoles = record.assignableRoles ?? []
         return (
           <>
-            {record.assignableRoles.map((x: RoleBasicDto) => {
+            {record.assignableRoles.map((x) => {
               return (
                 <Tag
+                  key={new ObjectId().toHexString()}
                   closeIcon
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  onClose={(e: any) => {
+                  onClose={(e) => {
                     e.preventDefault() // 阻止默认关闭行为
-                    showConfirmDeleteAssignableRole(record.id, x.id)
+                    onAssignableRoleDelete(record.id, x.id)
                   }}>
                   {x.name}
                 </Tag>
               )
             })}
             <Popconfirm
-              title="搜索角色"
+              title="查找"
               description={() => {
                 return (
                   <>
@@ -90,8 +84,7 @@ const RolePage: React.FC = () => {
                       filterOption={false}
                       suffixIcon={null}
                       notFoundContent={null}
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      options={(selectRoleData || []).map((d: any) => ({
+                      options={(roleOptions || []).map((d) => ({
                         value: d.value,
                         label: d.label,
                       }))}
@@ -99,7 +92,7 @@ const RolePage: React.FC = () => {
                       onChange={(value) => {
                         setSelectedRoles(value)
                       }}
-                      onSearch={handleSearch}></Select>
+                      onSearch={onSearchRoleOptions}></Select>
                   </>
                 )
               }}
@@ -112,19 +105,24 @@ const RolePage: React.FC = () => {
                 })
                 await addAssignableRole(command)
                 message.success('修改成功')
-                setSelectRoleData([])
+                setRoleOptions([])
                 setSelectedRoles([])
-                await loadData(keyword, pagination.current, pagination.pageSize)
+                await loadRoles(keyword, pagination.pageSize, pagination.current)
               }}
               icon={<FireOutlined />}>
-              <Tag style={tagPlusStyle} icon={<PlusOutlined />}></Tag>
+              <Tag
+                style={tagPlusStyle}
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  onSearchRoleOptions('')
+                }}></Tag>
             </Popconfirm>
           </>
         )
       },
     },
     {
-      title: '策略版本',
+      title: '权限版本',
       dataIndex: 'version',
       key: 'version',
     },
@@ -136,8 +134,7 @@ const RolePage: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      render: (_: any, record: any) =>
+      render: (_: string, record) =>
         record.name === 'admin' ? (
           <></>
         ) : (
@@ -156,10 +153,10 @@ const RolePage: React.FC = () => {
                 setId(record.id)
                 setRoleStatementModalOpen(true)
               }}>
-              权限策略
+              权限
             </Button>
             <Popconfirm
-              title="删除角色"
+              title="警告"
               description="您确定要删除此角色吗?"
               onConfirm={() => {
                 onRoleDelete(record.id)
@@ -173,61 +170,65 @@ const RolePage: React.FC = () => {
     },
   ]
 
-  const handleSearch = async (newValue: string) => {
-    if (!newValue) {
-      setSelectRoleData([])
-      return
-    }
+  const onSearchRoleOptions = async (newValue: string) => {
     const res = await getRoles({
       q: newValue,
       page: 1,
       limit: 10,
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = res.data as any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = result.data.map((x: any) => {
-      return {
-        value: x.id,
-        label: x.name,
-      }
-    })
-    setSelectRoleData(data)
+
+    const result = res.data as PageData<RoleDto>
+    if (result) {
+      const data = result.data.map((x) => {
+        return {
+          value: x.id,
+          label: x.name,
+        }
+      })
+      setRoleOptions(data)
+    }
+    // 若返回的数据不是标准分页数， 则状态保持不变
+    else {
+      message.error('数据格式异常')
+    }
   }
 
-  const showConfirmDeleteAssignableRole = (id: string, assignableRoleId: string) => {
+  const onAssignableRoleDelete = (id: string, assignableRoleId: string) => {
     Modal.confirm({
       title: '警告',
-      content: '确认要删除这个角色吗？',
+      content: '确定要删除此角色吗？',
       onOk() {
         deleteAssignableRole(id, assignableRoleId).then(async () => {
-          await loadData(keyword, pagination.current, pagination.pageSize)
           message.success('删除成功')
+          await loadRoles(keyword, pagination.pageSize, pagination.current)
         })
       },
-      onCancel() {},
     })
   }
 
   const onRoleDelete = async (id: string) => {
     await deleteRole(id)
-    await loadData(keyword, pagination.current, pagination.pageSize)
     message.success('删除角色成功')
+    await loadRoles(keyword, pagination.pageSize, pagination.current)
   }
 
   const clean = () => {
     setDataSource([])
-    setPagination(DefaultPaginiation)
+    setPagination({
+      current: 1,
+      pageSize: window.wildgoods.pageSize,
+      total: 0,
+    })
   }
 
-  async function loadData(q: string, page: number | undefined, limit: number | undefined) {
+  async function loadRoles(q: string, limit: number, page: number) {
     const result = await getRoles({
       q: q,
       page,
       limit,
     })
 
-    const data = result.data as PageData
+    const data = result.data as PageData<RoleDto>
     if (data) {
       setDataSource(data.data)
       setPagination({
@@ -236,15 +237,19 @@ const RolePage: React.FC = () => {
         current: data.page,
       })
     }
+    // 若返回的数据不是标准分页数， 则状态保持不变
+    else {
+      message.error('数据格式异常')
+    }
   }
 
-  const onChange = async (p: TablePaginationConfig) => {
-    await loadData(keyword, p.current, p.pageSize)
-  }
+  // const onChange = async (p: TablePaginationConfig) => {
+  //   await loadRoles(keyword, p.current, p.pageSize)
+  // }
 
   useEffect(() => {
     clean()
-    loadData('', 1, 10)
+    loadRoles('', window.wildgoods.pageSize, 1)
   }, [])
 
   const onAdd = () => {
@@ -263,6 +268,9 @@ const RolePage: React.FC = () => {
           <RoleStatementModal
             open={roleStatementModalOpen}
             id={id}
+            onOk={() => {
+              setRoleStatementModalOpen(false)
+            }}
             onClose={() => {
               setRoleStatementModalOpen(false)
             }}></RoleStatementModal>
@@ -272,7 +280,8 @@ const RolePage: React.FC = () => {
         <RoleModal
           open={roleModalOpen}
           onSuccess={async () => {
-            await loadData(keyword, pagination.current, pagination.pageSize)
+            setRoleModalOpen(false)
+            await loadRoles(keyword, pagination.pageSize, pagination.current)
           }}
           id={id}
           onClose={() => {
@@ -282,7 +291,7 @@ const RolePage: React.FC = () => {
           <Button onClick={onAdd}>添加</Button>
         </Card>
         <Card style={{ ...baseStyle }}>
-          <Table rowKey="id" columns={columns} dataSource={dataSource} pagination={pagination} onChange={onChange}></Table>
+          <Table rowKey="id" columns={columns} dataSource={dataSource} pagination={pagination}></Table>
         </Card>
       </PageContainer>
     </>

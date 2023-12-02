@@ -34,5 +34,5 @@ public class AddUserCommand
     /// <summary>
     /// 角色
     /// </summary>
-    public string[] Roles { get; set; } = Array.Empty<string>();
+    public List<string> Roles { get; set; } = new();
 }
