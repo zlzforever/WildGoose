@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-layout'
-import { Button, Card, Popconfirm, Select, Space, Table, Tag, message, theme, SelectProps, Modal } from 'antd'
+import { Button, Card, Popconfirm, Select, Space, Table, Tag, message, theme, SelectProps, Modal, Divider } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { addAssignableRole, deleteRole, getRoles, deleteAssignableRole } from '../services/wildgoods/api'
 import RoleModal from '../components/RoleModal'
@@ -11,6 +11,7 @@ import { ColumnType } from 'antd/es/table'
 const baseStyle: React.CSSProperties = {
   width: '100%',
   height: '100%',
+  textAlign: 'left'
 }
 
 const RolePage: React.FC = () => {
@@ -134,11 +135,15 @@ const RolePage: React.FC = () => {
     {
       title: '操作',
       key: 'action',
+      width: 120,
       render: (_: string, record) =>
         record.name === 'admin' ? (
           <></>
         ) : (
-          <Space size="middle">
+          <Space size="middle" style={{
+            width: "100%",
+            justifyContent: "flex-end"
+          }}>
             <Button
               type="link"
               onClick={() => {
@@ -261,9 +266,9 @@ const RolePage: React.FC = () => {
     <>
       <PageContainer
         token={{
-          paddingInlinePageContainerContent: 40,
+          paddingInlinePageContainerContent: 20,
         }}
-        title="角色管理">
+        title={false}>
         {id ? (
           <RoleStatementModal
             open={roleStatementModalOpen}
@@ -289,9 +294,10 @@ const RolePage: React.FC = () => {
           }}></RoleModal>
         <Card style={{ ...baseStyle }}>
           <Button onClick={onAdd}>添加</Button>
-        </Card>
-        <Card style={{ ...baseStyle }}>
-          <Table rowKey="id" columns={columns} dataSource={dataSource} pagination={pagination}></Table>
+          <Divider></Divider>
+          <Table rowKey="id" columns={columns} dataSource={dataSource} pagination={pagination}
+            bordered
+          ></Table>
         </Card>
       </PageContainer>
     </>
