@@ -487,9 +487,9 @@ const UserPage = () => {
     <>
       <PageContainer
         token={{
-          paddingInlinePageContainerContent: 40,
+          paddingInlinePageContainerContent: 20,
         }}
-        title="用户管理">
+        title={false}>
         <ChangePasswordModal
           id={userSelectedKeys && userSelectedKeys.length === 1 ? userSelectedKeys[0] : ''}
           open={changePasswordModalOpen}
@@ -675,6 +675,7 @@ const UserPage = () => {
                     }
                   },
                 }}
+                bordered
                 style={{ width: '100%' }}></Table>
             </Flex>
           </Card>
