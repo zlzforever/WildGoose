@@ -44,15 +44,14 @@ const RoleStatementModal: React.FC<RoleStatementModalProps> = (props) => {
     <>
       <Modal
         title="角色权限"
-        styles={{
-          body: {
-            paddingBottom: 80,
-          },
+        width="70vw"
+        style={{
+          top: "8vh"
         }}
-        width={720}
         open={props.open}
         onOk={onOk}
         onCancel={() => {
+          form && form.resetFields()
           if (props.onClose) {
             props.onClose()
           }
@@ -61,7 +60,12 @@ const RoleStatementModal: React.FC<RoleStatementModalProps> = (props) => {
           <Row gutter={16}>
             <Col span={24}>
               <Form.Item name="statement" label="" rules={[{ max: 6000, message: '长度超限' }]}>
-                <AceEditor style={{ height: 100 }} mode="json" theme="monokai" />
+                <AceEditor style={{ 
+                  width: '100%',
+                  height: '70vh'
+                }}
+                mode="json" 
+                theme="monokai" />
               </Form.Item>
             </Col>
           </Row>
