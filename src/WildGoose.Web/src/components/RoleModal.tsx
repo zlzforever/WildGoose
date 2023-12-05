@@ -51,15 +51,11 @@ const RoleModal: React.FC<RoleModalProps> = (props) => {
     <>
       <Modal
         title={title}
-        styles={{
-          body: {
-            paddingBottom: 80,
-          },
-        }}
         width={720}
         open={props.open}
         onOk={onOk}
         onCancel={() => {
+          form && form.resetFields()
           if (props.onClose) {
             props.onClose()
           }

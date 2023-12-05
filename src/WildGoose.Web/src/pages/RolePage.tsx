@@ -1,10 +1,10 @@
 import { PageContainer } from '@ant-design/pro-layout'
-import { Button, Card, Popconfirm, Select, Space, Table, Tag, message, theme, SelectProps, Modal, Divider } from 'antd'
+import { Button, Card, Popconfirm, Select, Space, Table, Tag, message, theme, SelectProps, Modal } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { addAssignableRole, deleteRole, getRoles, deleteAssignableRole } from '../services/wildgoods/api'
 import RoleModal from '../components/RoleModal'
 import RoleStatementModal from '../components/RoleStatementModal'
-import { FireOutlined, PlusOutlined } from '@ant-design/icons'
+import { PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import { ObjectId } from 'bson'
 import { ColumnType } from 'antd/es/table'
 
@@ -33,6 +33,7 @@ const RolePage: React.FC = () => {
     height: 22,
     background: token.colorBgContainer,
     borderStyle: 'dashed',
+    cursor: 'pointer'
   }
 
   const columns: ColumnType<RoleDto>[] = [
@@ -57,67 +58,83 @@ const RolePage: React.FC = () => {
         record.assignableRoles = record.assignableRoles ?? []
         return (
           <>
-            {record.assignableRoles.map((x) => {
-              return (
-                <Tag
-                  key={new ObjectId().toHexString()}
-                  closeIcon
-                  onClose={(e) => {
-                    e.preventDefault() // 阻止默认关闭行为
-                    onAssignableRoleDelete(record.id, x.id)
-                  }}>
-                  {x.name}
-                </Tag>
-              )
-            })}
-            <Popconfirm
-              title="查找"
-              description={() => {
+            <Space 
+              size={[5, 10]}
+              style={{
+                flexWrap: "wrap",
+                justifyContent: "flex-start"
+              }}
+            >
+              {record.assignableRoles.map((x) => {
                 return (
-                  <>
-                    <Select
-                      style={{
-                        width: '140px',
-                      }}
-                      mode="multiple"
-                      showSearch
-                      defaultActiveFirstOption={false}
-                      filterOption={false}
-                      suffixIcon={null}
-                      notFoundContent={null}
-                      options={(roleOptions || []).map((d) => ({
-                        value: d.value,
-                        label: d.label,
-                      }))}
-                      value={selectedRoles}
-                      onChange={(value) => {
-                        setSelectedRoles(value)
-                      }}
-                      onSearch={onSearchRoleOptions}></Select>
-                  </>
+                  <Tag
+                    key={new ObjectId().toHexString()}
+                    closeIcon
+                    onClose={(e) => {
+                      e.preventDefault() // 阻止默认关闭行为
+                      onAssignableRoleDelete(record.id, x.id)
+                    }}>
+                    {x.name}
+                  </Tag>
                 )
-              }}
-              onConfirm={async () => {
-                const command = selectedRoles.map((x) => {
-                  return {
-                    id: record.id,
-                    assignableRoleId: x,
+              })}
+              <Popconfirm
+                title="查找"
+                description={() => {
+                  return (
+                    <>
+                      <Select
+                        style={{
+                          width: 200,
+                          marginTop: 10,
+                          marginBottom: 10,
+                        }}
+                        mode="multiple"
+                        showSearch
+                        defaultActiveFirstOption={false}
+                        filterOption={false}
+                        suffixIcon={null}
+                        notFoundContent={null}
+                        options={(roleOptions || []).map((d) => ({
+                          value: d.value,
+                          label: d.label,
+                        }))}
+                        popupMatchSelectWidth={false}
+                        value={selectedRoles}
+                        onChange={(value) => {
+                          setSelectedRoles(value)
+                        }}
+                        onSearch={onSearchRoleOptions}></Select>
+                    </>
+                  )
+                }}
+                onConfirm={async () => {
+                  const command = selectedRoles.map((x) => {
+                    return {
+                      id: record.id,
+                      assignableRoleId: x,
+                    }
+                  })
+                  await addAssignableRole(command)
+                  message.success('修改成功')
+                  setRoleOptions([])
+                  setSelectedRoles([])
+                  await loadRoles(keyword, pagination.pageSize, pagination.current)
+                }}
+                onOpenChange={(open:boolean)=>{
+                  if (!open) {
+                    setSelectedRoles([])
                   }
-                })
-                await addAssignableRole(command)
-                message.success('修改成功')
-                setRoleOptions([])
-                setSelectedRoles([])
-                await loadRoles(keyword, pagination.pageSize, pagination.current)
-              }}
-              icon={<FireOutlined />}>
-              <Tag
-                style={tagPlusStyle}
-                icon={<PlusOutlined />}
-                onClick={() => {
-                  onSearchRoleOptions('')
-                }}></Tag>
-            </Popconfirm>
+                }}
+                icon={<SearchOutlined />}>
+                <Tag
+                  style={tagPlusStyle}
+                  icon={<PlusOutlined />}
+                  onClick={() => {
+                    onSearchRoleOptions('')
+                  }}></Tag>
+              </Popconfirm>
+            </Space>
           </>
         )
       },
@@ -131,19 +148,24 @@ const RolePage: React.FC = () => {
       title: '修改时间',
       dataIndex: 'lastModificationTime',
       key: 'lastModificationTime',
+      width: 170,
     },
     {
       title: '操作',
       key: 'action',
-      width: 120,
+      fixed: 'right',
+      width: 70,
       render: (_: string, record) =>
         record.name === 'admin' ? (
           <></>
         ) : (
-          <Space size="middle" style={{
-            width: "100%",
-            justifyContent: "flex-end"
-          }}>
+          <Space 
+            size={0}
+            style={{
+              width: "100%",
+              justifyContent: "flex-end"
+            }}
+          >
             <Button
               type="link"
               onClick={() => {
@@ -266,7 +288,7 @@ const RolePage: React.FC = () => {
     <>
       <PageContainer
         token={{
-          paddingInlinePageContainerContent: 20,
+          paddingInlinePageContainerContent: 20
         }}
         title={false}>
         {id ? (
@@ -294,9 +316,10 @@ const RolePage: React.FC = () => {
           }}></RoleModal>
         <Card style={{ ...baseStyle }}>
           <Button onClick={onAdd}>添加</Button>
-          <Divider></Divider>
+          <p/>
           <Table rowKey="id" columns={columns} dataSource={dataSource} pagination={pagination}
             bordered
+            size='small'
           ></Table>
         </Card>
       </PageContainer>

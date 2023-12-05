@@ -4,3 +4,15 @@
   text-align: center;
   word-break: break-all;
 }
+
+/* #region 插件样式 */
+.ant-page-header-no-children {
+  height: 20px;
+}
+.ant-modal {
+  padding-bottom: 0;
+}
+.ant-modal .ant-modal-header {
+  padding-bottom: 10px;
+}
+/* #endregion */
