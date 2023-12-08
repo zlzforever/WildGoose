@@ -24,15 +24,15 @@ public class RoleController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<PagedResult<RoleDto>> GetAsync([FromQuery] GetRolesQuery query)
+    public Task<PagedResult<RoleDto>> GetAsync([FromQuery] GetRolesQuery query)
     {
-        return await _roleService.GetRolesAsync(query);
+        return _roleService.GetRolesAsync(query);
     }
 
     [HttpPost]
-    public async Task<string> CreateAsync([FromBody] AddRoleCommand command)
+    public Task<string> CreateAsync([FromBody] AddRoleCommand command)
     {
-        return await _roleService.AddAsync(command);
+        return _roleService.AddAsync(command);
     }
 
     [HttpDelete("{id}")]
@@ -43,9 +43,9 @@ public class RoleController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<RoleDto> GetAsync([FromRoute] GetRoleQuery query)
+    public Task<RoleDto> GetAsync([FromRoute] GetRoleQuery query)
     {
-        return await _roleService.GetAsync(query);
+        return _roleService.GetAsync(query);
     }
 
     [HttpPost("{id}")]
@@ -67,20 +67,20 @@ public class RoleController : ControllerBase
     }
 
     [HttpPost("assignableRoles")]
-    public async Task AddAssignableRoleAsync([FromBody] AddAssignableRoleCommand command)
+    public Task AddAssignableRoleAsync([FromBody] AddAssignableRoleCommand command)
     {
-        await _roleService.AddAssignableRoleAsync(command);
+        return _roleService.AddAssignableRoleAsync(command);
     }
 
     [HttpDelete("{id}/assignableRoles/{assignableRoleId}")]
-    public async Task AddAssignableRoleAsync([FromRoute] DeleteAssignableRoleCommand command)
+    public Task AddAssignableRoleAsync([FromRoute] DeleteAssignableRoleCommand command)
     {
-        await _roleService.DeleteAssignableRoleAsync(command);
+        return _roleService.DeleteAssignableRoleAsync(command);
     }
 
     [HttpGet("assignableRoles")]
-    public async Task<List<RoleBasicDto>> GetAssignableRolesAsync()
+    public Task<List<RoleBasicDto>> GetAssignableRolesAsync()
     {
-        return await _roleService.GetAssignableRolesAsync();
+        return _roleService.GetAssignableRolesAsync();
     }
 }

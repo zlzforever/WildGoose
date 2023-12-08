@@ -53,30 +53,30 @@ public abstract class BaseService
         throw new WildGooseFriendlyException(1, "权限不足");
     }
 
-    protected async Task VerifyOrganizationPermissionAsync(params string[] organizationIds)
-    {
-        // 要么 organizationIds 为空， 即用户无机构， 一般为系统帐户
-        // 若有设置机构， 则机构标识不能为空， 且机构必须存在
-        if (organizationIds.Any(string.IsNullOrEmpty) || !organizationIds.Any(x => ObjectId.TryParse(x, out _)))
-        {
-            throw new WildGooseFriendlyException(1, "数据校验失败");
-        }
-
-        if (Session.IsSupperAdmin())
-        {
-            return;
-        }
-
-        if (organizationIds.Length == 0)
-        {
-            throw new WildGooseFriendlyException(1, "权限不足");
-        }
-
-        if (!await DbContext.AllPermissionAsync(Session.UserId, organizationIds))
-        {
-            throw new WildGooseFriendlyException(1, "权限不足");
-        }
-    }
+    // protected async Task VerifyOrganizationPermissionAsync(params string[] organizationIds)
+    // {
+    //     // 要么 organizationIds 为空， 即用户无机构， 一般为系统帐户
+    //     // 若有设置机构， 则机构标识不能为空， 且机构必须存在
+    //     if (organizationIds.Any(string.IsNullOrEmpty) || !organizationIds.Any(x => ObjectId.TryParse(x, out _)))
+    //     {
+    //         throw new WildGooseFriendlyException(1, "数据校验失败");
+    //     }
+    //
+    //     if (Session.IsSupperAdmin())
+    //     {
+    //         return;
+    //     }
+    //
+    //     if (organizationIds.Length == 0)
+    //     {
+    //         throw new WildGooseFriendlyException(1, "权限不足");
+    //     }
+    //
+    //     if (!await DbContext.AllPermissionAsync(Session.UserId, organizationIds))
+    //     {
+    //         throw new WildGooseFriendlyException(1, "权限不足");
+    //     }
+    // }
 
     protected async Task VerifyRolePermissionAsync(List<string> roleIds)
     {

@@ -23,21 +23,21 @@ public class UserController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<PagedResult<UserDto>> GetAsync([FromQuery] GetUsersQuery query)
+    public Task<PagedResult<UserDto>> GetAsync([FromQuery] GetUsersQuery query)
     {
-        return await _userService.GetAsync(query);
+        return _userService.GetAsync(query);
     }
 
     [HttpPost]
-    public async Task<UserDto> AddAsync([FromBody] AddUserCommand command)
+    public Task<UserDto> AddAsync([FromBody] AddUserCommand command)
     {
-        return await _userService.AddAsync(command);
+        return _userService.AddAsync(command);
     }
 
     [HttpGet("{id}")]
-    public async Task<UserDetailDto> GetAsync([FromRoute] GetUserDetailQuery query)
+    public Task<UserDetailDto> GetAsync([FromRoute] GetUserDetailQuery query)
     {
-        return await _userService.GetAsync(query);
+        return _userService.GetAsync(query);
     }
 
     [HttpDelete("{id}")]
@@ -78,10 +78,10 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("{id}")]
-    public async Task<UserDto> UpdateAsync([FromRoute, StringLength(36), Required] string id,
+    public Task<UserDto> UpdateAsync([FromRoute, StringLength(36), Required] string id,
         [FromBody] UpdateUserCommand command)
     {
         command.Id = id;
-        return await _userService.UpdateAsync(command);
+        return _userService.UpdateAsync(command);
     }
 }

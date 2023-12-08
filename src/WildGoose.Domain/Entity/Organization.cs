@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace WildGoose.Domain.Entity;
 
 public class Organization : IDeletion
@@ -26,12 +28,8 @@ public class Organization : IDeletion
 
     public Organization Parent { get; set; }
 
+    public string Metadata { get; set; }
 
-    // /// <summary>
-    // /// 默认角色
-    // /// </summary>
-    // public virtual IReadOnlyCollection<IdentityRole> DefaultRoles { get; set; }
-    
     /// <summary>
     /// 创建时间
     /// </summary>
@@ -81,4 +79,16 @@ public class Organization : IDeletion
     /// 删除时间
     /// </summary>
     public DateTimeOffset? DeletionTime { get; set; }
+
+    public void SetMetadata(string metadata)
+    {
+        var value = string.IsNullOrEmpty(metadata)
+            ? string.Empty
+            : JsonSerializer.Serialize(JsonSerializer.Deserialize<JsonDocument>(metadata),
+                new JsonSerializerOptions
+                {
+                    WriteIndented = false
+                });
+        Metadata = value;
+    }
 }

@@ -4,6 +4,8 @@ public class WildGooseFriendlyException : Exception
 {
     public int Code { get; set; }
 
+    public string LogInfo { get; set; }
+
     public WildGooseFriendlyException(int code, string message, Exception innerException = null) : base(
         message,
         innerException)

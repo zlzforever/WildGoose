@@ -17,6 +17,8 @@ public class OrganizationDetailDto
 
     public string Description { get; set; }
 
+    public string Metadata { get; set; }
+
     public List<string> Scope { get; set; }
 
     public List<UserDto> Administrators { get; set; }

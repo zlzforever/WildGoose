@@ -12,7 +12,7 @@ using WildGoose.Infrastructure;
 namespace WildGoose.Infrastructure.Migrations
 {
     [DbContext(typeof(WildGooseDbContext))]
-    [Migration("20231201080602_Init")]
+    [Migration("20231207124420_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -170,28 +170,32 @@ namespace WildGoose.Infrastructure.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("code");
 
-                    b.Property<DateTimeOffset?>("CreationTime")
-                        .HasColumnType("timestamp with time zone")
+                    b.Property<long?>("CreationTime")
+                        .HasColumnType("bigint")
                         .HasColumnName("creation_time");
 
                     b.Property<string>("CreatorId")
-                        .HasColumnType("text")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)")
                         .HasColumnName("creator_id");
 
                     b.Property<string>("CreatorName")
-                        .HasColumnType("text")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("creator_name");
 
                     b.Property<string>("DeleterId")
-                        .HasColumnType("text")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)")
                         .HasColumnName("deleter_id");
 
                     b.Property<string>("DeleterName")
-                        .HasColumnType("text")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("deleter_name");
 
-                    b.Property<DateTimeOffset?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone")
+                    b.Property<long?>("DeletionTime")
+                        .HasColumnType("bigint")
                         .HasColumnName("deletion_time");
 
                     b.Property<string>("Description")
@@ -200,19 +204,23 @@ namespace WildGoose.Infrastructure.Migrations
                         .HasColumnName("description");
 
                     b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
+                        .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
-                    b.Property<DateTimeOffset?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone")
+                    b.Property<long?>("LastModificationTime")
+                        .HasColumnType("bigint")
                         .HasColumnName("last_modification_time");
 
                     b.Property<string>("LastModifierId")
-                        .HasColumnType("text")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)")
                         .HasColumnName("last_modifier_id");
 
                     b.Property<string>("LastModifierName")
-                        .HasColumnType("text")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("last_modifier_name");
 
                     b.Property<string>("Name")

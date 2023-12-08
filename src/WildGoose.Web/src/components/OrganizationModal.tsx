@@ -3,6 +3,9 @@ import { Col, Form, Input, Modal, Row, Select, TreeSelect, TreeSelectProps, mess
 import TextArea from 'antd/es/input/TextArea'
 import { addOrganization, updateOrganization, getOrganization, getSubOrganizationList } from '../services/wildgoods/api'
 import { useEffect, useState } from 'react'
+import AceEditor from 'react-ace'
+import 'ace-builds/src-noconflict/theme-monokai'
+import 'ace-builds/src-noconflict/mode-json'
 
 export interface OrganizationModalProps {
   id?: string
@@ -203,6 +206,20 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
             <Col span={24}>
               <Form.Item name="scope" label="数据范围">
                 <Select placeholder="请输入数据范围" mode="tags" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={24}>
+              <Form.Item name="metadata" label="元数据" rules={[{ max: 2000, message: '长度超限' }]}>
+                <AceEditor
+                  style={{
+                    width: '100%',
+                    height: '25vh',
+                  }}
+                  mode="json"
+                  theme="monokai"
+                />
               </Form.Item>
             </Col>
           </Row>

@@ -142,8 +142,20 @@ public class WildGooseDbContext : IdentityDbContext<User, Role, string>
             b.Property(x => x.Code).HasMaxLength(256);
             b.Property(x => x.Address).HasMaxLength(256);
             b.Property(x => x.Description).HasMaxLength(256);
+            b.Property(x => x.Metadata).HasMaxLength(2000);
 
             b.HasQueryFilter(x => !x.IsDeleted);
+
+            b.Property(x => x.CreationTime).UseUnixTime();
+            b.Property(x => x.CreatorId).HasMaxLength(36);
+            b.Property(x => x.CreatorName).HasMaxLength(256);
+            b.Property(x => x.LastModificationTime).UseUnixTime();
+            b.Property(x => x.LastModifierId).HasMaxLength(36);
+            b.Property(x => x.LastModifierName).HasMaxLength(256);
+            b.Property(x => x.IsDeleted).HasDefaultValue(false);
+            b.Property(x => x.DeletionTime).UseUnixTime();
+            b.Property(x => x.DeleterId).HasMaxLength(36);
+            b.Property(x => x.DeleterName).HasMaxLength(256);
         });
 
         builder.Entity<OrganizationUser>(b =>
@@ -234,11 +246,11 @@ public class WildGooseDbContext : IdentityDbContext<User, Role, string>
         }
     }
 
-    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess,
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess,
         CancellationToken cancellationToken = new())
     {
         ApplyConcepts();
-        return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)

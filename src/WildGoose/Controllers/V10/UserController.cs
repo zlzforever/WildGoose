@@ -18,8 +18,8 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("resetPasswordByCaptcha")]
-    public async Task ResetPasswordByCaptchaAsync([FromBody] ResetPasswordByCaptchaCommand command)
+    public Task ResetPasswordByCaptchaAsync([FromBody] ResetPasswordByCaptchaCommand command)
     {
-        await _userService.ResetPasswordByCaptchaAsync(command);
+        return _userService.ResetPasswordByCaptchaAsync(command);
     }
 }

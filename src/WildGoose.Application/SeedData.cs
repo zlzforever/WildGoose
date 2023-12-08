@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
 using WildGoose.Domain;
@@ -14,6 +15,12 @@ public class SeedData
     {
         var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
+        Defaults.OrganizationTableName =
+            dbContext.Set<WildGoose.Domain.Entity.Organization>().EntityType.GetTableName();
+        Defaults.OrganizationAdministratorTableName =
+            dbContext.Set<OrganizationAdministrator>().EntityType.GetTableName();
+        
+
         var defaultRoles = new List<(string Name, string Description, string Statement)>
         {
             new(Defaults.AdminRole, "超级管理员", JsonSerializer.Serialize(new List<Statement>

@@ -22,16 +22,16 @@ namespace WildGoose.Infrastructure.Migrations
                     address = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     description = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     parent_id = table.Column<string>(type: "character varying(36)", nullable: true),
-                    creation_time = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    creator_id = table.Column<string>(type: "text", nullable: true),
-                    creator_name = table.Column<string>(type: "text", nullable: true),
-                    last_modifier_id = table.Column<string>(type: "text", nullable: true),
-                    last_modifier_name = table.Column<string>(type: "text", nullable: true),
-                    last_modification_time = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    is_deleted = table.Column<bool>(type: "boolean", nullable: false),
-                    deleter_id = table.Column<string>(type: "text", nullable: true),
-                    deleter_name = table.Column<string>(type: "text", nullable: true),
-                    deletion_time = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                    creation_time = table.Column<long>(type: "bigint", nullable: true),
+                    creator_id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: true),
+                    creator_name = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    last_modifier_id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: true),
+                    last_modifier_name = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    last_modification_time = table.Column<long>(type: "bigint", nullable: true),
+                    is_deleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    deleter_id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: true),
+                    deleter_name = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    deletion_time = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {

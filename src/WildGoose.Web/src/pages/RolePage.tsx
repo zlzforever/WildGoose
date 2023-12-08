@@ -11,7 +11,7 @@ import { ColumnType } from 'antd/es/table'
 const baseStyle: React.CSSProperties = {
   width: '100%',
   height: '100%',
-  textAlign: 'left'
+  textAlign: 'left',
 }
 
 const RolePage: React.FC = () => {
@@ -33,7 +33,7 @@ const RolePage: React.FC = () => {
     height: 22,
     background: token.colorBgContainer,
     borderStyle: 'dashed',
-    cursor: 'pointer'
+    cursor: 'pointer',
   }
 
   const columns: ColumnType<RoleDto>[] = [
@@ -52,19 +52,18 @@ const RolePage: React.FC = () => {
       dataIndex: 'assignableRoles',
       key: 'assignableRoles',
       render: (_: string, record) => {
-        if (record.name === 'admin') {
+        if (record.name === 'admin' || record.name === 'organization-admin') {
           return <></>
         }
         record.assignableRoles = record.assignableRoles ?? []
         return (
           <>
-            <Space 
+            <Space
               size={[5, 10]}
               style={{
-                flexWrap: "wrap",
-                justifyContent: "flex-start"
-              }}
-            >
+                flexWrap: 'wrap',
+                justifyContent: 'flex-start',
+              }}>
               {record.assignableRoles.map((x) => {
                 return (
                   <Tag
@@ -121,7 +120,7 @@ const RolePage: React.FC = () => {
                   setSelectedRoles([])
                   await loadRoles(keyword, pagination.pageSize, pagination.current)
                 }}
-                onOpenChange={(open:boolean)=>{
+                onOpenChange={(open: boolean) => {
                   if (!open) {
                     setSelectedRoles([])
                   }
@@ -156,16 +155,15 @@ const RolePage: React.FC = () => {
       fixed: 'right',
       width: 70,
       render: (_: string, record) =>
-        record.name === 'admin' ? (
+        record.name === 'admin' || record.name === 'organization-admin' ? (
           <></>
         ) : (
-          <Space 
+          <Space
             size={0}
             style={{
-              width: "100%",
-              justifyContent: "flex-end"
-            }}
-          >
+              width: '100%',
+              justifyContent: 'flex-end',
+            }}>
             <Button
               type="link"
               onClick={() => {
@@ -288,7 +286,7 @@ const RolePage: React.FC = () => {
     <>
       <PageContainer
         token={{
-          paddingInlinePageContainerContent: 20
+          paddingInlinePageContainerContent: 20,
         }}
         title={false}>
         {id ? (
@@ -316,11 +314,8 @@ const RolePage: React.FC = () => {
           }}></RoleModal>
         <Card style={{ ...baseStyle }}>
           <Button onClick={onAdd}>添加</Button>
-          <p/>
-          <Table rowKey="id" columns={columns} dataSource={dataSource} pagination={pagination}
-            bordered
-            size='small'
-          ></Table>
+          <p />
+          <Table rowKey="id" columns={columns} dataSource={dataSource} pagination={pagination} bordered size="small"></Table>
         </Card>
       </PageContainer>
     </>

@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
 using WildGoose.Application.Extensions;
 using WildGoose.Domain;
@@ -108,11 +110,36 @@ public class HttpSession : ISession
 
     public static HttpSession CreateFake(IHttpContextAccessor accessor)
     {
-        return new HttpSession
+        switch (accessor.HttpContext?.RequestServices.GetRequiredService<IConfiguration>()["DebugSession"])
         {
-            HttpContext = accessor.HttpContext,
-            Roles = new[] { Defaults.AdminRole }, Subjects = new[] { "admin" }, PhoneNumber = "19900000000",
-            UserDisplayName = "周正", UserId = "1", UserName = "zz", TraceIdentifier = ObjectId.GenerateNewId().ToString()
-        };
+            case "admin":
+            {
+                return new HttpSession
+                {
+                    HttpContext = accessor.HttpContext,
+                    Roles = new[] { Defaults.AdminRole },
+                    Subjects = new[] { Defaults.AdminRole, "6571be3ec966a3562687ae05" },
+                    PhoneNumber = "",
+                    UserDisplayName = "周正", UserId = "6571be3ec966a3562687ae05", UserName = "zz",
+                    TraceIdentifier = ObjectId.GenerateNewId().ToString()
+                };
+            }
+            case "organization-admin":
+            {
+                return new HttpSession
+                {
+                    HttpContext = accessor.HttpContext,
+                    Roles = new[] { Defaults.OrganizationAdmin },
+                    Subjects = new[] { Defaults.OrganizationAdmin, "6571c63ddf028b057419206f" },
+                    PhoneNumber = "",
+                    UserDisplayName = "周正", UserId = "6571c63ddf028b057419206f", UserName = "zz",
+                    TraceIdentifier = ObjectId.GenerateNewId().ToString()
+                };
+            }
+            default:
+            {
+                return null;
+            }
+        }
     }
 }

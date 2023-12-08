@@ -22,6 +22,7 @@ public class GlobalExceptionFilter : IExceptionFilter
 
         if (context.Exception is WildGooseFriendlyException e)
         {
+            _logger.LogError("{LogInfo} {Exception}", e.LogInfo, e);
             context.Result = new BadRequestObjectResult(new
             {
                 Success = false,
@@ -31,6 +32,7 @@ public class GlobalExceptionFilter : IExceptionFilter
         }
         else
         {
+            _logger.LogError("{Exception}", context.Exception);
             context.HttpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
             context.Result =
                 new ObjectResult(new
@@ -42,6 +44,5 @@ public class GlobalExceptionFilter : IExceptionFilter
         }
 
         context.ExceptionHandled = true;
-        _logger.LogError("{Exception}", context.Exception);
     }
 }

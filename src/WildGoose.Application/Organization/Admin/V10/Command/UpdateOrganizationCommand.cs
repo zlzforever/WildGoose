@@ -37,7 +37,13 @@ public class UpdateOrganizationCommand
     [StringLength(256)]
     public string Description { get; set; }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    [StringLength(2000)]
+    public string Metadata { get; set; }
+
     public string[] Scope { get; set; } = Array.Empty<string>();
-    
-    public string[] Administrators { get; set; }= Array.Empty<string>();
+
+    public string[] Administrators { get; set; } = Array.Empty<string>();
 }
