@@ -1,0 +1,31 @@
+CPU
+内存
+硬盘： 云盘、IOPS、延迟丢，护容不方便、容量限制小。 100G 
+网络硬盘： NAS 100
+带宽
+OSS
+
+100 同时 100 * 300 * 10% = 30000 * 10K  
+300000 KB /1024
+
+识别 《》 训练   量级
+
+1. 摄像头（自已集成） ——>  推图片
+2. 摄像头流 ->  服务器   ffmpg -> 5 秒截个图  ->  AI 识别 ->  报系统
+
+WEB CLIENT  -> WAF  ->  SLB  ->   APISIX   ->   DAPR   ->  APP
+
+
+select geom, xxx  from tb1 where st_insetcts(geom, bbox)
+skia/swing/gdi+/unity
+
+部署方案（有没有理解）？
+扩容？
+
+
+|---------------
+
+计算密集型
+IO 密集型
+...
+

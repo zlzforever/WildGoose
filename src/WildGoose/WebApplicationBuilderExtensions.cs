@@ -3,6 +3,7 @@ using Serilog;
 using Serilog.Events;
 using WildGoose.Application;
 using WildGoose.Application.Organization.Admin.V10;
+using WildGoose.Application.Permission.Internal.V10;
 using WildGoose.Application.Role.Admin.V10;
 using WildGoose.Application.User.Admin.V10;
 using WildGoose.Domain;
@@ -60,6 +61,7 @@ public static class WebApplicationBuilderExtensions
         builder.Services.TryAddScoped<IObjectStorageService, ObjectStorageService>();
         builder.Services.TryAddScoped<Application.User.V10.UserService>();
         builder.Services.TryAddScoped<ISession, HttpSession>();
+        builder.Services.TryAddScoped<PermissionService>();
         builder.Services.TryAddScoped<HttpSession>(provider =>
             builder.Environment.IsProduction()
                 ? HttpSession.Create(provider.GetRequiredService<IHttpContextAccessor>())

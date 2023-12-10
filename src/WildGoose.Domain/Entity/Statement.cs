@@ -2,6 +2,10 @@ using System.Text.RegularExpressions;
 
 namespace WildGoose.Domain.Entity;
 
+/// <summary>
+/// *代表0个或多个任意的英文字母。 例如：ecs:Describe* 表示ECS的所有以Describe开头的操作
+/// ?代表1个任意的英文字母
+/// </summary>
 public class Statement
 {
     /// <summary>
@@ -23,7 +27,8 @@ public class Statement
     public string Assert(string action, string resource)
     {
         // 不包含 Action， 无法断言
-        var containAction = Action.Any(x => x == action || Regex.IsMatch(action, WildCardToRegex(x)));
+        var containAction = Action.Any(x => x == action
+                                            || Regex.IsMatch(action, WildCardToRegex(x)));
         if (!containAction)
         {
             return null;

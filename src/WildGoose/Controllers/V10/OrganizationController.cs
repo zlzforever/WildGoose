@@ -8,7 +8,9 @@ namespace WildGoose.Controllers.V10;
 
 [ApiController]
 [Route("api/v1.0/organizations")]
+#if !DEBUG
 [Authorize]
+#endif
 public class OrganizationController
 {
     private readonly OrganizationService _organizationService;

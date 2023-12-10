@@ -7,7 +7,9 @@ namespace WildGoose.Controllers.V10;
 
 [ApiController]
 [Route("api/v1.0/users")]
+#if !DEBUG
 [Authorize]
+#endif
 public class UserController : ControllerBase
 {
     private readonly UserService _userService;

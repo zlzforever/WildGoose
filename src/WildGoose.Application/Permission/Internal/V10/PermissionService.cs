@@ -12,15 +12,13 @@ namespace WildGoose.Application.Permission.Internal.V10;
 public class PermissionService : BaseService
 {
     private readonly IMemoryCache _memoryCache;
-    private readonly ILogger<PermissionService> _logger;
     private static readonly Random Random = new();
 
     public PermissionService(WildGooseDbContext dbContext, HttpSession session, IOptions<DbOptions> dbOptions,
-        ILogger logger, IMemoryCache memoryCache, ILogger<PermissionService> logger1) : base(dbContext, session,
+        IMemoryCache memoryCache, ILogger<PermissionService> logger) : base(dbContext, session,
         dbOptions, logger)
     {
         _memoryCache = memoryCache;
-        _logger = logger1;
     }
 
     public async Task<bool> EnforceAsync(EnforceQuery query)
@@ -38,7 +36,7 @@ public class PermissionService : BaseService
                 : null;
         if (string.IsNullOrEmpty(effect))
         {
-            _logger.LogError("PolicyEffect is invalid");
+            Logger.LogError("PolicyEffect {PolicyEffect} is invalid", effect);
             return false;
         }
 
