@@ -37,12 +37,8 @@ const ChangePasswordModal: React.FC<ChangePasswordlProps> = (props) => {
     <>
       <Modal
         title={'修改密码'}
-        styles={{
-          body: {
-            paddingBottom: 80,
-          },
-        }}
         width={720}
+        maskClosable={false}
         open={props.open}
         onOk={onOk}
         onCancel={() => {

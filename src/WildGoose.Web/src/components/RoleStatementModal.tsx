@@ -48,6 +48,7 @@ const RoleStatementModal: React.FC<RoleStatementModalProps> = (props) => {
         style={{
           top: "8vh"
         }}
+        maskClosable={false}
         open={props.open}
         onOk={onOk}
         onCancel={() => {
@@ -64,6 +65,7 @@ const RoleStatementModal: React.FC<RoleStatementModalProps> = (props) => {
                   width: '100%',
                   height: '70vh'
                 }}
+                showPrintMargin={false}
                 mode="json" 
                 theme="monokai" />
               </Form.Item>

@@ -52,6 +52,7 @@ const RoleModal: React.FC<RoleModalProps> = (props) => {
       <Modal
         title={title}
         width={720}
+        maskClosable={false}
         open={props.open}
         onOk={onOk}
         onCancel={() => {

@@ -156,12 +156,15 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
     <>
       <Modal
         title={title}
+        width={720}
         styles={{
           body: {
-            paddingBottom: 80,
-          },
+            height: "70vh",
+            overflowY: "auto",
+            overflowX: "hidden",
+          }
         }}
-        width={720}
+        maskClosable={false}
         open={props.open}
         onOk={onOk}
         onCancel={() => {
@@ -219,6 +222,7 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
                   }}
                   mode="json"
                   theme="monokai"
+                  showPrintMargin={false}
                 />
               </Form.Item>
             </Col>

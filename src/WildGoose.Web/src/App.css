@@ -16,3 +16,46 @@
   padding-bottom: 10px;
 }
 /* #endregion */
+
+/* #region 组织机构tree样式 */
+.ant-tree.organizationTree .ant-tree-treenode {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.ant-tree.organizationTree .ant-tree-treenode:hover {
+ background-color: rgba(0, 0, 0, 0.04);
+}
+.ant-tree.organizationTree .ant-tree-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ant-tree.organizationTree .ant-tree-node-content-wrapper {
+  width: 100%;
+  text-align: left;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.ant-tree.organizationTree .ant-tree-node-content-wrapper:hover{
+  background: transparent;
+}
+.ant-tree.organizationTree .ant-tree-node-content-wrapper .ant-tree-iconEle {
+  flex-shrink: 0;
+}
+.ant-tree.organizationTree .ant-tree-node-content-wrapper .ant-tree-title {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ant-tree.organizationTree .ant-tree-node-content-wrapper .ant-tree-title {
+}
+.ant-tree.organizationTree .ant-tree-treenode-selected {
+  background-color: var(--site-light-color);
+}
+/* #endregion */
