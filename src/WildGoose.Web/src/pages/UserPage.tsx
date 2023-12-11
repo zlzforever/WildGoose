@@ -1,9 +1,9 @@
 import { PageContainer } from '@ant-design/pro-layout'
-import { Button, Card, Flex, Input, Menu, MenuProps, Modal, Popconfirm, Select, Switch, Table, Tag, Tooltip, Tree, message } from 'antd'
+import { Button, Card, Flex, Input, Menu, MenuProps, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip, Tree, message } from 'antd'
 import { getSubOrganizationList, deleteOrganization, getUsers, deleteUser, enableUser, disableUser, addOrganizationAdministrator, deleteOrganizationAdministrator } from '../services/wildgoods/api'
 import { Key, useEffect, useState } from 'react'
 import OrganizationModal from '../components/OrganizationModal'
-import { AppstoreOutlined, MoreOutlined, SmileOutlined } from '@ant-design/icons'
+import { AppstoreAddOutlined, DeleteOutlined, FormOutlined, MoreOutlined, SmileOutlined } from '@ant-design/icons'
 import UserModal from '../components/UserModal'
 import ChangePasswordModal from '../components/ChangePasswordModal'
 import { ObjectId } from 'bson'
@@ -406,7 +406,7 @@ const UserPage = () => {
       {
         label: '编辑机构',
         key: 'a',
-        icon: <AppstoreOutlined />,
+        icon: <FormOutlined />,
         onClick: () => {
           if (organizationTreeSelectedKeys.length === 0) {
             message.error('未选中机构')
@@ -422,7 +422,7 @@ const UserPage = () => {
       {
         label: '添加下级机构',
         key: 'b',
-        icon: <AppstoreOutlined />,
+        icon: <AppstoreAddOutlined />,
         onClick: () => {
           if (organizationTreeSelectedKeys.length === 0) {
             message.error('未选中机构')
@@ -440,7 +440,7 @@ const UserPage = () => {
       {
         label: '删除',
         key: 'c',
-        icon: <AppstoreOutlined />,
+        icon: <DeleteOutlined />,
         onClick: () => {
           Modal.confirm({
             title: '警告',
@@ -461,10 +461,13 @@ const UserPage = () => {
           color="#ffffff"
           key={node.key + '_tooltip'}
           arrow={false}
+          zIndex={100}
           title={() => {
             return (
               <>
-                <Menu mode="inline" style={{ borderInlineEnd: 0 }} items={items} />
+                <Menu mode="inline" inlineIndent={10} style={{ borderInlineEnd: 0, width: 150 }} items={items} 
+                  selectedKeys={[]}
+                />
               </>
             )
           }}>
@@ -537,8 +540,24 @@ const UserPage = () => {
         <Flex gap="middle">
           <Card>
             <Flex vertical>
-              <Search placeholder="请输入机构名称" allowClear style={{ width: 200 }} />
+              <Flex >
+                <Search placeholder="请输入机构名称" allowClear style={{ width: 200, marginBottom: 20, marginRight: 10}} />
+                <Tooltip title="添加机构">
+                  <Button
+                    shape="circle"
+                    onClick={() => {
+                      setOrganizationModalParams({
+                        id: '',
+                        parent: undefined,
+                      })
+                      setOrganizationModalOpen(true)
+                    }}>
+                    <AppstoreAddOutlined />
+                  </Button>
+                </Tooltip>
+              </Flex>
               <Tree
+                className="organizationTree"
                 showLine
                 icon={<SmileOutlined />}
                 showIcon={true}
@@ -551,21 +570,12 @@ const UserPage = () => {
                 onExpand={(keys: Key[]) => {
                   setOrganizationTreeExpandedKeys(keys as string[])
                 }}></Tree>
-              <Button
-                onClick={() => {
-                  setOrganizationModalParams({
-                    id: '',
-                    parent: undefined,
-                  })
-                  setOrganizationModalOpen(true)
-                }}>
-                添加机构
-              </Button>
             </Flex>
           </Card>
           <Card style={{ width: '100%' }}>
             <Flex gap="middle" align="start" vertical>
               <Flex align="start">
+                <Space wrap>
                 <Select
                   defaultValue="all"
                   style={{ width: 120 }}
@@ -592,6 +602,7 @@ const UserPage = () => {
                   }}
                 />
                 <Flex justify="flex-end" align="flex-end">
+                  <Space wrap>
                   <Button
                     type="primary"
                     onClick={() => {
@@ -656,7 +667,9 @@ const UserPage = () => {
                   </Button>
                   <Button type="primary">导出</Button>
                   <Button type="primary">导入</Button>
+                  </Space>
                 </Flex>
+                </Space>
               </Flex>
               <Table
                 rowKey="id"

@@ -186,12 +186,8 @@ const UserModal: React.FC<UserModalProps> = (props) => {
     <>
       <Modal
         title={title}
-        styles={{
-          body: {
-            paddingBottom: 80,
-          },
-        }}
         width={720}
+        maskClosable={false}
         open={props.open}
         onOk={onOk}
         onCancel={() => {
