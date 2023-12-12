@@ -598,7 +598,7 @@ const UserPage = () => {
                   }}
                   placeholder="请输入用户名、手机号"
                   allowClear
-                  style={{ width: 200 }}
+                  style={{ width: 220 }}
                   onSearch={() => {
                     if (organizationTreeSelectedKeys && organizationTreeSelectedKeys[0]) {
                       loadUsers(organizationTreeSelectedKeys[0], keyword, status, pagination.pageSize, pagination.current)
