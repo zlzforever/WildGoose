@@ -3,12 +3,13 @@ import { Button, Card, Flex, Input, Menu, MenuProps, Modal, Popconfirm, Select, 
 import { getSubOrganizationList, deleteOrganization, getUsers, deleteUser, enableUser, disableUser, addOrganizationAdministrator, deleteOrganizationAdministrator } from '../services/wildgoods/api'
 import { Key, useEffect, useState } from 'react'
 import OrganizationModal from '../components/OrganizationModal'
-import { AppstoreAddOutlined, DeleteOutlined, FormOutlined, MoreOutlined, SmileOutlined } from '@ant-design/icons'
+import { AppstoreAddOutlined, CaretDownOutlined, DeleteOutlined, FormOutlined, MoreOutlined } from '@ant-design/icons'
 import UserModal from '../components/UserModal'
 import ChangePasswordModal from '../components/ChangePasswordModal'
 import { ObjectId } from 'bson'
 import { EventDataNode } from 'antd/es/tree'
 import { ColumnType } from 'antd/es/table'
+import IconFont from '../iconfont/IconFont'
 
 const { Search } = Input
 
@@ -462,16 +463,27 @@ const UserPage = () => {
           key={node.key + '_tooltip'}
           arrow={false}
           zIndex={100}
+          overlayInnerStyle={{
+            padding: 0
+          }}
           title={() => {
             return (
               <>
                 <Menu mode="inline" inlineIndent={10} style={{ borderInlineEnd: 0, width: 150 }} items={items} 
                   selectedKeys={[]}
+                  onClick={(ev: any) => {
+                    ev && ev.domEvent && ev.domEvent.stopPropagation();
+                  }}
                 />
               </>
             )
           }}>
-          <MoreOutlined />
+          <MoreOutlined 
+            style={{fontSize: 20}}
+            onClick={(ev: any) => {
+              ev.stopPropagation();
+            }}
+          />
         </Tooltip>
       </>
     )
@@ -559,8 +571,9 @@ const UserPage = () => {
               <Tree
                 className="organizationTree"
                 showLine
-                icon={<SmileOutlined />}
+                icon={<IconFont type="icon-zuzhijigou"/>}
                 showIcon={true}
+                switcherIcon={<CaretDownOutlined />}
                 treeData={organizationTreeData}
                 loadData={onOrganizationTreeLoadData}
                 expandedKeys={organizationTreeExpandedKeys}
