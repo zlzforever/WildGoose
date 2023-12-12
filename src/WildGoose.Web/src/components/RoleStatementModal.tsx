@@ -44,7 +44,7 @@ const RoleStatementModal: React.FC<RoleStatementModalProps> = (props) => {
     <>
       <Modal
         title="角色权限"
-        width="70vw"
+        width={600}
         style={{
           top: "8vh"
         }}
