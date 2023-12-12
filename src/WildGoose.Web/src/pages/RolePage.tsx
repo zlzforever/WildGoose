@@ -142,6 +142,7 @@ const RolePage: React.FC = () => {
       title: '权限版本',
       dataIndex: 'version',
       key: 'version',
+      width: 90
     },
     {
       title: '修改时间',
@@ -153,7 +154,7 @@ const RolePage: React.FC = () => {
       title: '操作',
       key: 'action',
       fixed: 'right',
-      width: 70,
+      width: 190,
       render: (_: string, record) =>
         record.name === 'admin' || record.name === 'organization-admin' ? (
           <></>
@@ -315,7 +316,7 @@ const RolePage: React.FC = () => {
         <Card style={{ ...baseStyle }}>
           <Button onClick={onAdd}>添加</Button>
           <p />
-          <Table rowKey="id" columns={columns} dataSource={dataSource} pagination={pagination} bordered size="small"></Table>
+          <Table rowKey="id" columns={columns} dataSource={dataSource} pagination={pagination} bordered size="small" scroll={{x: 'max-content'}}></Table>
         </Card>
       </PageContainer>
     </>
