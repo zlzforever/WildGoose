@@ -1,0 +1,16 @@
+{
+  "id": "4369309",
+  "name": "wildgoose-web",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "17710145",
+      "name": "组织机构",
+      "font_class": "zuzhijigou",
+      "unicode": "e7f1",
+      "unicode_decimal": 59377
+    }
+  ]
+}

@@ -1,14 +1,15 @@
 import { PageContainer } from '@ant-design/pro-layout'
-import { Button, Card, Flex, Input, Menu, MenuProps, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip, Tree, message } from 'antd'
+import { Button, Card, Dropdown, Flex, Input, MenuProps, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip, Tree, message } from 'antd'
 import { getSubOrganizationList, deleteOrganization, getUsers, deleteUser, enableUser, disableUser, addOrganizationAdministrator, deleteOrganizationAdministrator } from '../services/wildgoods/api'
 import { Key, useEffect, useState } from 'react'
 import OrganizationModal from '../components/OrganizationModal'
-import { AppstoreAddOutlined, DeleteOutlined, FormOutlined, MoreOutlined, SmileOutlined } from '@ant-design/icons'
+import { AppstoreAddOutlined, CaretDownOutlined, DeleteOutlined, FormOutlined, MoreOutlined } from '@ant-design/icons'
 import UserModal from '../components/UserModal'
 import ChangePasswordModal from '../components/ChangePasswordModal'
 import { ObjectId } from 'bson'
 import { EventDataNode } from 'antd/es/tree'
 import { ColumnType } from 'antd/es/table'
+import IconFont from '../iconfont/IconFont'
 
 const { Search } = Input
 
@@ -456,23 +457,25 @@ const UserPage = () => {
     return (
       <>
         {node.title}
-        <Tooltip
-          trigger="click"
-          color="#ffffff"
-          key={node.key + '_tooltip'}
+        <Dropdown 
+          trigger={["click"]}
+          key={node.key + '_dropdown'}
+          menu={{ 
+            items,
+            onClick: (ev: any) => {
+              ev && ev.domEvent && ev.domEvent.stopPropagation();
+            }
+          }}
+          placement="bottomLeft" 
           arrow={false}
-          zIndex={100}
-          title={() => {
-            return (
-              <>
-                <Menu mode="inline" inlineIndent={10} style={{ borderInlineEnd: 0, width: 150 }} items={items} 
-                  selectedKeys={[]}
-                />
-              </>
-            )
-          }}>
-          <MoreOutlined />
-        </Tooltip>
+        >
+          <MoreOutlined 
+            style={{fontSize: 20}}
+            onClick={(ev: any) => {
+              ev.stopPropagation();
+            }}
+          />
+        </Dropdown>
       </>
     )
   }
@@ -559,8 +562,9 @@ const UserPage = () => {
               <Tree
                 className="organizationTree"
                 showLine
-                icon={<SmileOutlined />}
+                icon={<IconFont type="icon-zuzhijigou"/>}
                 showIcon={true}
+                switcherIcon={<CaretDownOutlined />}
                 treeData={organizationTreeData}
                 loadData={onOrganizationTreeLoadData}
                 expandedKeys={organizationTreeExpandedKeys}
@@ -594,7 +598,7 @@ const UserPage = () => {
                   }}
                   placeholder="请输入用户名、手机号"
                   allowClear
-                  style={{ width: 200 }}
+                  style={{ width: 220 }}
                   onSearch={() => {
                     if (organizationTreeSelectedKeys && organizationTreeSelectedKeys[0]) {
                       loadUsers(organizationTreeSelectedKeys[0], keyword, status, pagination.pageSize, pagination.current)

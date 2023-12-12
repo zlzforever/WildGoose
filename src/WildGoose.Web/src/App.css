@@ -25,7 +25,7 @@
   justify-content: flex-start;
 }
 .ant-tree.organizationTree .ant-tree-treenode:hover {
- background-color: rgba(0, 0, 0, 0.04);
+  background-color: rgba(0, 0, 0, 0.04);
 }
 .ant-tree.organizationTree .ant-tree-switcher {
   display: flex;
@@ -41,7 +41,7 @@
   align-items: center;
   justify-content: flex-start;
 }
-.ant-tree.organizationTree .ant-tree-node-content-wrapper:hover{
+.ant-tree.organizationTree .ant-tree-node-content-wrapper:hover {
   background: transparent;
 }
 .ant-tree.organizationTree .ant-tree-node-content-wrapper .ant-tree-iconEle {
@@ -53,9 +53,17 @@
   align-items: center;
   justify-content: space-between;
 }
-.ant-tree.organizationTree .ant-tree-node-content-wrapper .ant-tree-title {
-}
-.ant-tree.organizationTree .ant-tree-treenode-selected {
+.ant-tree.organizationTree .ant-tree-treenode-selected,
+.ant-tree.organizationTree .ant-tree-treenode-selected:hover {
   background-color: var(--site-light-color);
+  color: var(--site-primary-color);
+}
+.ant-tree.organizationTree .ant-tree-indent,
+.ant-tree.organizationTree .ant-tree-switcher-leaf-line {
+  visibility: hidden;
+}
+.ant-tree.organizationTree:hover .ant-tree-indent,
+.ant-tree.organizationTree:hover .ant-tree-switcher-leaf-line {
+  visibility: visible;
 }
 /* #endregion */

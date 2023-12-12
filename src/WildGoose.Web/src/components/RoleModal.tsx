@@ -65,14 +65,14 @@ const RoleModal: React.FC<RoleModalProps> = (props) => {
           <Row gutter={16}>
             <Col span={24}>
               <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
-                <Input placeholder="请输入名称" />
+                <Input placeholder="请输入名称" maxLength={100}/>
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={24}>
-              <Form.Item name="description" label="备注" rules={[{ max: 256, message: '长度超限' }]}>
-                <TextArea style={{ height: 100 }} placeholder="请输入备注" />
+              <Form.Item name="description" label="备注">
+                <TextArea style={{ height: 100 }} placeholder="请输入备注" maxLength={512}/>
               </Form.Item>
             </Col>
           </Row>
