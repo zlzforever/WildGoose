@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-layout'
-import { Button, Card, Flex, Input, Menu, MenuProps, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip, Tree, message } from 'antd'
+import { Button, Card, Dropdown, Flex, Input, MenuProps, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip, Tree, message } from 'antd'
 import { getSubOrganizationList, deleteOrganization, getUsers, deleteUser, enableUser, disableUser, addOrganizationAdministrator, deleteOrganizationAdministrator } from '../services/wildgoods/api'
 import { Key, useEffect, useState } from 'react'
 import OrganizationModal from '../components/OrganizationModal'
@@ -457,34 +457,25 @@ const UserPage = () => {
     return (
       <>
         {node.title}
-        <Tooltip
-          trigger="click"
-          color="#ffffff"
-          key={node.key + '_tooltip'}
-          arrow={false}
-          zIndex={100}
-          overlayInnerStyle={{
-            padding: 0
+        <Dropdown 
+          trigger={["click"]}
+          key={node.key + '_dropdown'}
+          menu={{ 
+            items,
+            onClick: (ev: any) => {
+              ev && ev.domEvent && ev.domEvent.stopPropagation();
+            }
           }}
-          title={() => {
-            return (
-              <>
-                <Menu mode="inline" inlineIndent={10} style={{ borderInlineEnd: 0, width: 150 }} items={items} 
-                  selectedKeys={[]}
-                  onClick={(ev: any) => {
-                    ev && ev.domEvent && ev.domEvent.stopPropagation();
-                  }}
-                />
-              </>
-            )
-          }}>
+          placement="bottomLeft" 
+          arrow={false}
+        >
           <MoreOutlined 
             style={{fontSize: 20}}
             onClick={(ev: any) => {
               ev.stopPropagation();
             }}
           />
-        </Tooltip>
+        </Dropdown>
       </>
     )
   }
