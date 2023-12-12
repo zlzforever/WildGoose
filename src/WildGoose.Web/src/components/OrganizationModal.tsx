@@ -157,9 +157,12 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
       <Modal
         title={title}
         width={720}
+        style={{
+          top: 15
+        }}
         styles={{
           body: {
-            height: "70vh",
+            height: "80vh",
             overflowY: "auto",
             overflowX: "hidden",
           }
@@ -174,14 +177,12 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
         }}>
         <Form layout="vertical" form={form}>
           <Row gutter={16}>
-            <Col span={24}>
+            <Col span={12}>
               <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
                 <Input placeholder="请输入名称" maxLength={50} />
               </Form.Item>
             </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={24}>
+            <Col span={12}>
               <Form.Item name="code" label="编号">
                 <Input placeholder="请输入编号" maxLength={50} />
               </Form.Item>
@@ -218,7 +219,7 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
                 <AceEditor
                   style={{
                     width: '100%',
-                    height: '25vh',
+                    height: 'calc(80vh - 420px)',
                   }}
                   mode="json"
                   theme="monokai"
@@ -227,13 +228,13 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
               </Form.Item>
             </Col>
           </Row>
-          <Row gutter={16}>
+          {/* <Row gutter={16}>
             <Col span={24}>
               <Form.Item name="address" label="地址">
                 <Input placeholder="请输入地址" />
               </Form.Item>
             </Col>
-          </Row>
+          </Row> */}
           <Row gutter={16}>
             <Col span={24}>
               <Form.Item name="description" label="描述" >
