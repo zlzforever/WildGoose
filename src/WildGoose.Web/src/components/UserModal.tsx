@@ -208,61 +208,47 @@ const UserModal: React.FC<UserModalProps> = (props) => {
         }}>
         <Form layout="vertical" form={form}>
           <Row gutter={16}>
-            <Col span={24}>
+            <Col span={12}>
               <Form.Item name="userName" label="帐号" rules={[{ required: true, message: '请输入帐号' }]}>
                 <Input placeholder="请输入帐号" maxLength={36} />
               </Form.Item>
             </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={24}>
+            <Col span={12}>
               <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
                 <Input placeholder="请输入姓名" maxLength={256}/>
               </Form.Item>
             </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={24}>
+            <Col span={12}>
               <Form.Item name="phoneNumber" label="电话" rules={[{ validator: phoneValidator }]}>
                 <Input placeholder="请输入电话" maxLength={11} />
               </Form.Item>
             </Col>
-          </Row>
-          {props.id ? (
-            <>
-              <Row gutter={16}>
-                <Col span={24}>
+            {props.id ? (
+              <>
+                <Col span={12}>
                   <Form.Item name="code" label="编号">
                     <Input placeholder="请输入编号" maxLength={36} />
                   </Form.Item>
                 </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={24}>
+                <Col span={12}>
                   <Form.Item name="email" label="邮箱" rules={[{ type: 'email', message: '邮箱无效' }]} >
                     <Input placeholder="请输入邮箱" maxLength={256} />
                   </Form.Item>
                 </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={24}>
+                <Col span={12}>
                   <Form.Item name="title" label="职位">
                     <Input placeholder="请输入职位" maxLength={256} />
                   </Form.Item>
                 </Col>
-              </Row>
-            </>
-          ) : (
-            <Row gutter={16}>
-              <Col span={24}>
+              </>
+            ) : (
+              <Col span={12}>
                 <Form.Item name="password" label="密码" rules={[{ required: true, message: '请输入密码' }]}>
                   <Input placeholder="请输入密码" maxLength={32} />
                 </Form.Item>
               </Col>
-            </Row>
-          )}
-          <Row gutter={16}>
-            <Col span={24}>
+            )}
+            <Col span={12}>
               <Form.Item name="organizations" label="部门">
                 <TreeSelect
                   allowClear={true}
@@ -279,34 +265,28 @@ const UserModal: React.FC<UserModalProps> = (props) => {
                 />
               </Form.Item>
             </Col>
-          </Row>
-          {props.id ? (
-            <>
-              <Row gutter={16}>
-                <Col span={24}>
+            {props.id ? (
+              <>
+                <Col span={12}>
                   <Form.Item name="roles" label="角色">
                     <Select mode="multiple" options={roleOptions} />
                   </Form.Item>
                 </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={24}>
+                <Col span={12}>
                   <Form.Item name="departureTime" label="离职时间">
                     <DatePicker />
                   </Form.Item>
                 </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={24}>
+                <Col span={12}>
                   <Form.Item name="hiddenSensitiveData" label="隐藏敏感信息" valuePropName="checked">
                     <Checkbox />
                   </Form.Item>
                 </Col>
-              </Row>
-            </>
-          ) : (
-            <></>
-          )}
+              </>
+            ) : (
+              <></>
+            )}
+          </Row>
         </Form>
       </Modal>
     </>
