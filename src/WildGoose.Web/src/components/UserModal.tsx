@@ -3,6 +3,17 @@ import { useEffect, useState } from 'react'
 import { getSubOrganizationList, getUser, updateUser, addUser, getAssignableRoles } from '../services/wildgoods/api'
 import * as dayjs from 'dayjs'
 
+const phoneValidator = (_: any, value: any, callback: any) => {
+  if (value) {
+      const reg: any = /^(13[0-9]|14[01456879]|15[0-35-9]|16[2567]|17[0-8]|18[0-9]|19[0-35-9])\d{8}$/;
+      if (reg.test(value)) {
+          return callback();
+      }
+      return Promise.reject(new Error('手机号无效'));
+  }
+
+}
+
 export interface UserProps {
   id?: string
   organization?: OrganizationDto
@@ -199,21 +210,21 @@ const UserModal: React.FC<UserModalProps> = (props) => {
           <Row gutter={16}>
             <Col span={24}>
               <Form.Item name="userName" label="帐号" rules={[{ required: true, message: '请输入帐号' }]}>
-                <Input placeholder="请输入帐号" />
+                <Input placeholder="请输入帐号" maxLength={36} />
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={24}>
               <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
-                <Input placeholder="请输入姓名" />
+                <Input placeholder="请输入姓名" maxLength={256}/>
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={24}>
-              <Form.Item name="phoneNumber" label="电话">
-                <Input placeholder="请输入电话" />
+              <Form.Item name="phoneNumber" label="电话" rules={[{ validator: phoneValidator }]}>
+                <Input placeholder="请输入电话" maxLength={11} />
               </Form.Item>
             </Col>
           </Row>
@@ -222,21 +233,21 @@ const UserModal: React.FC<UserModalProps> = (props) => {
               <Row gutter={16}>
                 <Col span={24}>
                   <Form.Item name="code" label="编号">
-                    <Input placeholder="请输入编号" />
+                    <Input placeholder="请输入编号" maxLength={36} />
                   </Form.Item>
                 </Col>
               </Row>
               <Row gutter={16}>
                 <Col span={24}>
-                  <Form.Item name="email" label="邮箱">
-                    <Input placeholder="请输入邮箱" />
+                  <Form.Item name="email" label="邮箱" rules={[{ type: 'email', message: '邮箱无效' }]} >
+                    <Input placeholder="请输入邮箱" maxLength={256} />
                   </Form.Item>
                 </Col>
               </Row>
               <Row gutter={16}>
                 <Col span={24}>
                   <Form.Item name="title" label="职位">
-                    <Input placeholder="请输入职位" />
+                    <Input placeholder="请输入职位" maxLength={256} />
                   </Form.Item>
                 </Col>
               </Row>
@@ -245,7 +256,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
             <Row gutter={16}>
               <Col span={24}>
                 <Form.Item name="password" label="密码" rules={[{ required: true, message: '请输入密码' }]}>
-                  <Input placeholder="请输入密码" />
+                  <Input placeholder="请输入密码" maxLength={32} />
                 </Form.Item>
               </Col>
             </Row>
