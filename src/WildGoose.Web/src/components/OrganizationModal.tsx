@@ -69,8 +69,8 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
       // 编辑
       else {
         const res = await getOrganization(props.id)
-        data = res.data
-        const serverParent = res.data.parent
+        data = { ...data, ...res.data }
+        const serverParent = res.data?.parent
         if (serverParent) {
           let parent = cache[serverParent.id]
           if (!parent) {
@@ -176,14 +176,14 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
           <Row gutter={16}>
             <Col span={24}>
               <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
-                <Input placeholder="请输入名称" />
+                <Input placeholder="请输入名称" maxLength={50} />
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={24}>
               <Form.Item name="code" label="编号">
-                <Input placeholder="请输入编号" />
+                <Input placeholder="请输入编号" maxLength={50} />
               </Form.Item>
             </Col>
           </Row>
@@ -236,8 +236,8 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
           </Row>
           <Row gutter={16}>
             <Col span={24}>
-              <Form.Item name="description" label="描述">
-                <TextArea style={{ width: '100%' }} placeholder="请输入描述" />
+              <Form.Item name="description" label="描述" >
+                <TextArea style={{ width: '100%' }} placeholder="请输入描述" maxLength={256} showCount />
               </Form.Item>
             </Col>
           </Row>
