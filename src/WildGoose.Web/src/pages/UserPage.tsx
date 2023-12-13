@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-layout'
-import { Button, Card, Dropdown, Flex, Input, MenuProps, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip, Tree, message } from 'antd'
+import { Breadcrumb, Button, Card, Dropdown, Flex, Input, MenuProps, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip, Tree, message } from 'antd'
 import { getSubOrganizationList, deleteOrganization, getUsers, deleteUser, enableUser, disableUser, addOrganizationAdministrator, deleteOrganizationAdministrator } from '../services/wildgoods/api'
 import { Key, useEffect, useState } from 'react'
 import OrganizationModal from '../components/OrganizationModal'
@@ -495,7 +495,25 @@ const UserPage = () => {
         token={{
           paddingInlinePageContainerContent: 20,
         }}
-        title={false}>
+        title={false}
+        breadcrumbRender={() => {
+          return (
+            <Breadcrumb
+              style={{
+                marginTop: 10
+              }}
+              items={[
+                {
+                  title: '首页',
+                },
+                {
+                  title: "用户管理",
+                },
+              ]}
+            />
+          ) 
+        }}
+      >
         <ChangePasswordModal
           id={userSelectedKeys && userSelectedKeys.length === 1 ? userSelectedKeys[0] : ''}
           open={changePasswordModalOpen}
@@ -576,7 +594,7 @@ const UserPage = () => {
                 }}></Tree>
             </Flex>
           </Card>
-          <Card style={{ width: '100%' }}>
+          <Card style={{ width: '100%', overflow: 'hidden' }}>
             <Flex gap="middle" align="start" vertical>
               <Flex align="start">
                 <Space wrap>
@@ -693,6 +711,7 @@ const UserPage = () => {
                   },
                 }}
                 bordered
+                scroll={{x: 'max-content'}}
                 style={{ width: '100%' }}></Table>
             </Flex>
           </Card>

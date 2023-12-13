@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-layout'
-import { Button, Card, Popconfirm, Select, Space, Table, Tag, message, theme, SelectProps, Modal } from 'antd'
+import { Button, Card, Popconfirm, Select, Space, Table, Tag, message, theme, SelectProps, Modal, Breadcrumb } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { addAssignableRole, deleteRole, getRoles, deleteAssignableRole } from '../services/wildgoods/api'
 import RoleModal from '../components/RoleModal'
@@ -289,7 +289,25 @@ const RolePage: React.FC = () => {
         token={{
           paddingInlinePageContainerContent: 20,
         }}
-        title={false}>
+        title={false}
+        breadcrumbRender={() => {
+          return (
+            <Breadcrumb
+              style={{
+                marginTop: 10
+              }}
+              items={[
+                {
+                  title: '首页',
+                },
+                {
+                  title: "角色管理",
+                },
+              ]}
+            />
+          ) 
+        }}
+      >
         {id ? (
           <RoleStatementModal
             open={roleStatementModalOpen}
