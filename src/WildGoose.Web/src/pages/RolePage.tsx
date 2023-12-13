@@ -289,7 +289,23 @@ const RolePage: React.FC = () => {
         token={{
           paddingInlinePageContainerContent: 20,
         }}
-        title={false}>
+        title={false}
+        breadcrumbRender={() => {
+          return (
+            <nav className="ant-breadcrumb ant-page-header-breadcrumb">
+              <ol>
+                <li>
+                  <span>首页</span>
+                </li>
+                <li className="ant-breadcrumb-separator" aria-hidden="true">/</li>
+                <li>
+                  <span>角色管理</span>
+                </li>
+              </ol>
+            </nav>
+          ) 
+        }}
+      >
         {id ? (
           <RoleStatementModal
             open={roleStatementModalOpen}

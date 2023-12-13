@@ -495,7 +495,23 @@ const UserPage = () => {
         token={{
           paddingInlinePageContainerContent: 20,
         }}
-        title={false}>
+        title={false}
+        breadcrumbRender={() => {
+          return (
+            <nav className="ant-breadcrumb ant-page-header-breadcrumb">
+              <ol>
+                <li>
+                  <span>首页</span>
+                </li>
+                <li className="ant-breadcrumb-separator" aria-hidden="true">/</li>
+                <li>
+                  <span>用户管理</span>
+                </li>
+              </ol>
+            </nav>
+          ) 
+        }}
+      >
         <ChangePasswordModal
           id={userSelectedKeys && userSelectedKeys.length === 1 ? userSelectedKeys[0] : ''}
           open={changePasswordModalOpen}
