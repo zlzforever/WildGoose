@@ -594,7 +594,7 @@ const UserPage = () => {
                 }}></Tree>
             </Flex>
           </Card>
-          <Card style={{ width: '100%' }}>
+          <Card style={{ width: '100%', overflow: 'hidden' }}>
             <Flex gap="middle" align="start" vertical>
               <Flex align="start">
                 <Space wrap>
@@ -711,6 +711,7 @@ const UserPage = () => {
                   },
                 }}
                 bordered
+                scroll={{x: 'max-content'}}
                 style={{ width: '100%' }}></Table>
             </Flex>
           </Card>
