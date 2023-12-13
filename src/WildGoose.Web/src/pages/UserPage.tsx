@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-layout'
-import { Button, Card, Dropdown, Flex, Input, MenuProps, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip, Tree, message } from 'antd'
+import { Breadcrumb, Button, Card, Dropdown, Flex, Input, MenuProps, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip, Tree, message } from 'antd'
 import { getSubOrganizationList, deleteOrganization, getUsers, deleteUser, enableUser, disableUser, addOrganizationAdministrator, deleteOrganizationAdministrator } from '../services/wildgoods/api'
 import { Key, useEffect, useState } from 'react'
 import OrganizationModal from '../components/OrganizationModal'
@@ -498,17 +498,19 @@ const UserPage = () => {
         title={false}
         breadcrumbRender={() => {
           return (
-            <nav className="ant-breadcrumb ant-page-header-breadcrumb">
-              <ol>
-                <li>
-                  <span>首页</span>
-                </li>
-                <li className="ant-breadcrumb-separator" aria-hidden="true">/</li>
-                <li>
-                  <span>用户管理</span>
-                </li>
-              </ol>
-            </nav>
+            <Breadcrumb
+              style={{
+                marginTop: 10
+              }}
+              items={[
+                {
+                  title: '首页',
+                },
+                {
+                  title: "用户管理",
+                },
+              ]}
+            />
           ) 
         }}
       >
