@@ -5,12 +5,12 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /workspace
-COPY "src/WildGoose/WildGoose.csproj" "./src/WildGoose/"
-COPY "src/WildGoose.Application/WildGoose.Application.csproj" "./src/WildGoose.Application/"
-COPY "src/WildGoose.Domain/WildGoose.Domain.csproj" "./src/WildGoose.Domain/"
-COPY "src/WildGoose.Infrastructure/WildGoose.Infrastructure.csproj" "./src/WildGoose.Infrastructure/"
-COPY "src/WildGoose.Tests/WildGoose.Tests.csproj" "./src/WildGoose.Tests/"
-COPY "WildGoose.sln" "./WildGoose.sln"
+COPY "./src/WildGoose/WildGoose.csproj" "./src/WildGoose/"
+COPY "./src/WildGoose.Application/WildGoose.Application.csproj" "./src/WildGoose.Application/"
+COPY "./src/WildGoose.Domain/WildGoose.Domain.csproj" "./src/WildGoose.Domain/"
+COPY "./src/WildGoose.Infrastructure/WildGoose.Infrastructure.csproj" "./src/WildGoose.Infrastructure/"
+COPY "./src/WildGoose.Tests/WildGoose.Tests.csproj" "./src/WildGoose.Tests/"
+COPY "./WildGoose.sln" "./WildGoose.sln"
 RUN dotnet restore .
 COPY . .
 RUN dotnet build -c Release
