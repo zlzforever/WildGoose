@@ -1,15 +1,13 @@
-FROM node:18.19.0-alpine as base
-WORKDIR /app
+FROM node:18.19.0-alpine as build
+WORKDIR /workspace
 ENV NODE_ENV production
-COPY ./src/WildGoose.Web/package.json /app
-RUN npm install
-
-FROM base AS build
-WORKDIR /app
-COPY ./src/WildGoose.Web/ /app/
+RUN npm install -g typescript 
+COPY ./src/WildGoose.Web/ /workspace/
+COPY ./src/WildGoose.Web/tsconfig.build.json /workspace/tsconfig.json
+RUN npm install && ls -l
 RUN npm run build
 
-FROM nginx:alpine3.18 as final
+FROM nginx:alpine3.18
 WORKDIR /app
 COPY --from=build /app/dist .
 RUN gzip -k /app/*
