@@ -15,4 +15,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build the Docker image
-      run: docker build . --file web.Dockerfile --tag zlzforever/wildgoose
+      run: docker build . --file web.Dockerfile --tag zlzforever/wildgoose-web
+    - name: Publish the Docker image
+      run: docker push zlzforever/wildgoose-web      
