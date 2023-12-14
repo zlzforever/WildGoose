@@ -4,6 +4,7 @@ ENV NODE_ENV production
 RUN npm install -g typescript 
 COPY ./src/WildGoose.Web/ /workspace/
 COPY ./src/WildGoose.Web/tsconfig.build.json /workspace/tsconfig.json
+RUN npm install @types/react
 RUN npm install && ls -l
 RUN npm run build
 
