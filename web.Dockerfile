@@ -12,4 +12,4 @@ FROM nginx:alpine3.18 as final
 WORKDIR /app
 COPY --from=build /app/dist .
 RUN gzip -k /app/*
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY ./src/WildGoose.Web/nginx.conf /etc/nginx/nginx.conf
