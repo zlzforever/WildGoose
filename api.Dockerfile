@@ -10,7 +10,7 @@ COPY ["src/WildGoose.Application/WildGoose.Application.csproj", "src/WildGoose.A
 COPY ["src/WildGoose.Domain/WildGoose.Domain.csproj", "src/WildGoose.Domain/"]
 COPY ["src/WildGoose.Infrastructure/WildGoose.Infrastructure.csproj", "src/WildGoose.Infrastructure/"]
 RUN ls src
-RUN dotnet restore "src/WildGoose/WildGoose.csproj"
+RUN dotnet restore .
 COPY . .
 RUN dotnet build -c Release
 
