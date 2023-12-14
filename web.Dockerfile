@@ -1,4 +1,4 @@
-FROM nodejs:18 as base
+FROM node:18.19.0-alpine as base
 WORKDIR /app
 COPY ./src/WildGoose.Web/package.json /app
 RUN npm install
@@ -8,7 +8,7 @@ WORKDIR /app
 COPY ./src/WildGoose.Web/ /app/
 RUN npm run build
 
-FROM nginx as final
+FROM nginx:alpine3.18 as final
 WORKDIR /app
 COPY --from=build /app/dist .
 RUN gzip -k /app/*
