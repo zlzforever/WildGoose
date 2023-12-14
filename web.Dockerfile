@@ -3,7 +3,7 @@ WORKDIR /workspace
 ENV NODE_ENV production
 RUN npm install -g typescript 
 COPY ./src/WildGoose.Web/ /workspace/
-RUN npm install && ll
+RUN npm install && ls -l
 RUN npm run build
 
 FROM nginx:alpine3.18
