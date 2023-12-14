@@ -3,6 +3,7 @@ WORKDIR /workspace
 ENV NODE_ENV production
 RUN npm install -g typescript 
 COPY ./src/WildGoose.Web/ /workspace/
+RUN ./src/WildGoose.Web/tsconfig.build.json /workspace/tsconfig.json
 RUN npm install && ls -l
 RUN npm run build
 
