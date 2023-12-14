@@ -12,7 +12,7 @@ namespace WildGoose.Controllers.Admin.V10;
 [ApiController]
 [Route("api/admin/v1.0/roles")]
 #if !DEBUG
-[Authorize(Roles = "admin")]
+[Microsoft.AspNetCore.Authorization.Authorize(Roles = "admin")]
 #endif
 public class RoleController : ControllerBase
 {

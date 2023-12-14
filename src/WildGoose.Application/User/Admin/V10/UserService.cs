@@ -113,7 +113,7 @@ public class UserService : BaseService
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
 
-        await VerifyUserPermissionAsync(user.Id);
+        await CheckUserPermissionAsync(user.Id);
 
         var relationship = new IdentityUserRole<string>
         {
@@ -134,7 +134,7 @@ public class UserService : BaseService
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
 
-        await VerifyUserPermissionAsync(command.UserId);
+        await CheckUserPermissionAsync(command.UserId);
 
         var relationship = await DbContext.Set<IdentityUserRole<string>>()
             .FirstOrDefaultAsync(x => x.RoleId == command.RoleId && x.UserId == command.UserId);
@@ -212,7 +212,7 @@ public class UserService : BaseService
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
 
-        await VerifyUserPermissionAsync(user.Id);
+        await CheckUserPermissionAsync(user.Id);
         DbContext.Remove(user);
         await DbContext.SaveChangesAsync();
 
@@ -466,7 +466,7 @@ public class UserService : BaseService
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
 
-        await VerifyUserPermissionAsync(user.Id);
+        await CheckUserPermissionAsync(user.Id);
 
         var extension = await DbContext.Set<UserExtension>()
             .FirstOrDefaultAsync(x => x.Id == user.Id);
@@ -494,7 +494,7 @@ public class UserService : BaseService
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
 
-        await VerifyUserPermissionAsync(user.Id);
+        await CheckUserPermissionAsync(user.Id);
 
         await _userManager.SetLockoutEnabledAsync(user, true);
         await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
@@ -519,7 +519,7 @@ public class UserService : BaseService
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
 
-        await VerifyUserPermissionAsync(user.Id);
+        await CheckUserPermissionAsync(user.Id);
 
         await _userManager.SetLockoutEnabledAsync(user, false);
         await _userManager.SetLockoutEndDateAsync(user, null);
@@ -545,7 +545,7 @@ public class UserService : BaseService
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
 
-        await VerifyUserPermissionAsync(user.Id);
+        await CheckUserPermissionAsync(user.Id);
         // 图片的文件名称会固定，每个用户会不一样，避免产生垃圾文件
         var key = $"/user/picture/{user.Id}{tuple.Type}";
 

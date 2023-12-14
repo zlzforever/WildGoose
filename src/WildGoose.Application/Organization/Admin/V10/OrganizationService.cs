@@ -19,44 +19,6 @@ public class OrganizationService : BaseService
 {
     private readonly UserManager<WildGoose.Domain.Entity.User> _userManager;
 
-    private static readonly Lazy<string> QueryAdminOrganizationSql = new(() =>
-    {
-        var sql = $$"""
-                    WITH RECURSIVE recursion AS
-                                       (SELECT t1.id, t1.name, t1.parent_id, true as leaf
-                                        from {{Defaults.OrganizationTableName}} t1
-                                        where t1.id in (select distinct organization_id
-                                                        from {{Defaults.OrganizationAdministratorTableName}}
-                                                        where user_id = @UserId) and t1.is_deleted <> true
-                                        UNION ALL
-                                        SELECT t2.id, t2.name, t2.parent_id, false
-                                        from {{Defaults.OrganizationTableName}} t2,
-                                             recursion t3
-                                        WHERE t2.id = t3.parent_id)
-                    SELECT distinct *
-                    FROM recursion order by leaf desc
-                    """;
-        return sql;
-    });
-
-    private static readonly Lazy<string> QuerySingleOrganizationSql = new(() =>
-    {
-        var sql = $$"""
-                    WITH RECURSIVE recursion AS
-                                       (SELECT t1.id, t1.name, t1.parent_id, true as leaf
-                                        from {{Defaults.OrganizationTableName}} t1
-                                        where t1.id = @OrganizationId and t1.is_deleted <> true
-                                        UNION ALL
-                                        SELECT t2.id, t2.name, t2.parent_id, false
-                                        from {{Defaults.OrganizationTableName}} t2,
-                                             recursion t3
-                                        WHERE t2.id = t3.parent_id)
-                    SELECT distinct *
-                    FROM recursion order by leaf desc
-                    """;
-        return sql;
-    });
-
     public OrganizationService(WildGooseDbContext dbContext, HttpSession session, IOptions<DbOptions> dbOptions,
         ILogger<OrganizationService> logger, UserManager<WildGoose.Domain.Entity.User> userManager) : base(dbContext,
         session, dbOptions,
@@ -80,7 +42,7 @@ public class OrganizationService : BaseService
         }
         else
         {
-            if (!await HasPermissionAsync(command.ParentId))
+            if (!await HasOrganizationPermissionAsync(command.ParentId))
             {
                 throw new WildGooseFriendlyException(1, "权限不足");
             }
@@ -147,7 +109,7 @@ public class OrganizationService : BaseService
         }
         else
         {
-            if (!await HasPermissionAsync(organization.Parent?.Id))
+            if (!await HasOrganizationPermissionAsync(organization.Parent?.Id))
             {
                 throw new WildGooseFriendlyException(1, "权限不足");
             }
@@ -211,7 +173,7 @@ public class OrganizationService : BaseService
 
     public async Task<OrganizationSimpleDto> UpdateAsync(UpdateOrganizationCommand command)
     {
-        if (!await HasPermissionAsync(command.Id) || !await HasPermissionAsync(command.ParentId))
+        if (!await HasOrganizationPermissionAsync(command.Id) || !await HasOrganizationPermissionAsync(command.ParentId))
         {
             throw new WildGooseFriendlyException(1, "权限不足");
         }
@@ -400,14 +362,7 @@ public class OrganizationService : BaseService
         // 查询管理的机构
         if (string.IsNullOrEmpty(query.ParentId))
         {
-            var sql = QueryAdminOrganizationSql.Value;
-            var enumerable = await DbContext.Database.GetDbConnection().QueryAsync<OrganizationEntity>(
-                sql, new
-                {
-                    Session.UserId
-                });
-
-            var organizations = Build(enumerable);
+            var organizations = await GetAdminOrganizationsAsync();
             var idList = organizations.Select(x => x.Id);
             return await DbContext
                 .Set<WildGoose.Domain.Entity.Organization>()
@@ -427,7 +382,7 @@ public class OrganizationService : BaseService
                 }).ToListAsync();
         }
 
-        if (await HasPermissionAsync(query.ParentId))
+        if (await HasOrganizationPermissionAsync(query.ParentId))
         {
             return await DbContext
                 .Set<WildGoose.Domain.Entity.Organization>()
@@ -453,7 +408,7 @@ public class OrganizationService : BaseService
 
     public async Task AddAdministratorAsync(AddAdministratorCommand command)
     {
-        if (!await HasPermissionAsync(command.Id))
+        if (!await HasOrganizationPermissionAsync(command.Id))
         {
             throw new WildGooseFriendlyException(1, "权限不足");
         }
@@ -477,7 +432,7 @@ public class OrganizationService : BaseService
 
     public async Task DeleteAdministratorAsync(DeleteAdministratorCommand command)
     {
-        if (!await HasPermissionAsync(command.Id))
+        if (!await HasOrganizationPermissionAsync(command.Id))
         {
             throw new WildGooseFriendlyException(1, "权限不足");
         }
@@ -488,7 +443,7 @@ public class OrganizationService : BaseService
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
 
-        if (!await HasPermissionAsync(command.Id))
+        if (!await HasOrganizationPermissionAsync(command.Id))
         {
             throw new WildGooseFriendlyException(1, "权限不足");
         }
@@ -512,84 +467,6 @@ public class OrganizationService : BaseService
         await DbContext.SaveChangesAsync();
     }
 
-    private async ValueTask<bool> HasPermissionAsync(string organizationId)
-    {
-        if (Session.IsSupperAdmin())
-        {
-            return true;
-        }
-
-        var sql = $"""
-                   {QuerySingleOrganizationSql.Value};
-                   {QueryAdminOrganizationSql.Value};
-                   """;
-        var gridReader = await DbContext.Database.GetDbConnection()
-            .QueryMultipleAsync(sql, new { Session.UserId, OrganizationId = organizationId });
-        var entityEnumerable1 = await gridReader.ReadAsync<OrganizationEntity>();
-        var checkOrganization = Build(entityEnumerable1).First();
-        var entityEnumerable2 = await gridReader.ReadAsync<OrganizationEntity>();
-        var organizations = Build(entityEnumerable2);
-        return organizations.Any(x => checkOrganization.Path.StartsWith(x.Path));
-    }
-
-    /// <summary>
-    /// 查询机构，若机构有上级机构，会被忽略
-    /// 如，若查出
-    /// /A/B/C
-    /// /A/B
-    /// 因为 /A/B 包含 /A/B/C， 所以 /A/B/C 会成结果数组中删除
-    /// </summary>
-    /// <returns></returns>
-    private List<OrganizationEntity> Build(IEnumerable<OrganizationEntity> enumerable)
-    {
-        var organizations = new List<OrganizationEntity>();
-        var entityDict = new Dictionary<string, OrganizationEntity>();
-        foreach (var entity in enumerable)
-        {
-            if (entity.Leaf)
-            {
-                organizations.Add(entity);
-            }
-
-            entityDict.TryAdd(entity.Id, entity);
-        }
-
-        foreach (var kv in entityDict)
-        {
-            kv.Value.BuildPath(entityDict);
-        }
-
-        var result = new List<OrganizationEntity>();
-        // 5/2/1
-        foreach (var entity in organizations)
-        {
-            var remove = false;
-
-            // 5/2
-            foreach (var organization in organizations)
-            {
-                if (organization == entity)
-                {
-                    continue;
-                }
-
-                if (!entity.Path.StartsWith(organization.Path))
-                {
-                    continue;
-                }
-
-                remove = true;
-                break;
-            }
-
-            if (!remove)
-            {
-                result.Add(entity);
-            }
-        }
-
-        return result;
-    }
 
     private WildGoose.Domain.Entity.Organization Create(
         AddOrganizationCommand command)
@@ -757,27 +634,4 @@ public class OrganizationService : BaseService
     //
     //     return dto;
     // }
-
-
-    class OrganizationEntity
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string ParentId { get; set; }
-        public bool Leaf { get; set; }
-        public string Path { get; set; }
-
-        public void BuildPath(Dictionary<string, OrganizationEntity> dict)
-        {
-            if (string.IsNullOrEmpty(ParentId))
-            {
-                Path = Id;
-                return;
-            }
-
-            var parent = dict[ParentId];
-            parent.BuildPath(dict);
-            Path = $"{parent.Path}/{Id}";
-        }
-    }
 }

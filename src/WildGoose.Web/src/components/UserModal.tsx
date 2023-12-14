@@ -5,13 +5,12 @@ import * as dayjs from 'dayjs'
 
 const phoneValidator = (_: any, value: any, callback: any) => {
   if (value) {
-      const reg: any = /^(13[0-9]|14[01456879]|15[0-35-9]|16[2567]|17[0-8]|18[0-9]|19[0-35-9])\d{8}$/;
-      if (reg.test(value)) {
-          return callback();
-      }
-      return Promise.reject(new Error('手机号无效'));
+    const reg: any = /^(13[0-9]|14[01456879]|15[0-35-9]|16[2567]|17[0-8]|18[0-9]|19[0-35-9])\d{8}$/
+    if (reg.test(value)) {
+      return callback()
+    }
+    return Promise.reject(new Error('手机号无效'))
   }
-
 }
 
 export interface UserProps {
@@ -67,14 +66,6 @@ const UserModal: React.FC<UserModalProps> = (props) => {
         organizations.push(node)
       }
 
-      const res1 = await getAssignableRoles()
-      const roles = (res1.data as RoleBasicDto[]).map((x) => {
-        return {
-          value: x.id,
-          label: x.name,
-        }
-      })
-
       form.resetFields()
 
       // 创建
@@ -95,6 +86,14 @@ const UserModal: React.FC<UserModalProps> = (props) => {
       }
       // 编辑
       else {
+        const res1 = await getAssignableRoles()
+        const roles = (res1.data as RoleBasicDto[]).map((x) => {
+          return {
+            value: x.id,
+            label: x.name,
+          }
+        })
+
         const values: UpdateUserDto = {
           organizations: [],
           roles: [],
@@ -135,9 +134,10 @@ const UserModal: React.FC<UserModalProps> = (props) => {
         values.roles = d.roles.map((x) => x.id)
 
         form.setFieldsValue(values)
+
+        setRoleOptions(roles)
       }
 
-      setRoleOptions(roles)
       setOrganizationTreeData(organizations)
       setOrganizationTreeDict(cache)
     }
@@ -176,8 +176,9 @@ const UserModal: React.FC<UserModalProps> = (props) => {
     }
   }
 
-  const onOk = () => {
-    form.validateFields().then(async () => {
+  const onOk = async () => {
+    const result = await form.validateFields()
+    if (result) {
       const values = form.getFieldsValue()
       let user
       // 编辑
@@ -191,7 +192,8 @@ const UserModal: React.FC<UserModalProps> = (props) => {
       if (props.onOk) {
         props.onOk(user)
       }
-    })
+    }
+    form.validateFields().then(async () => {})
   }
   return (
     <>
@@ -215,7 +217,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
             </Col>
             <Col span={12}>
               <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
-                <Input placeholder="请输入姓名" maxLength={256}/>
+                <Input placeholder="请输入姓名" maxLength={256} />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -231,7 +233,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="email" label="邮箱" rules={[{ type: 'email', message: '邮箱无效' }]} >
+                  <Form.Item name="email" label="邮箱" rules={[{ type: 'email', message: '邮箱无效' }]}>
                     <Input placeholder="请输入邮箱" maxLength={256} />
                   </Form.Item>
                 </Col>

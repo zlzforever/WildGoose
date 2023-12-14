@@ -24,12 +24,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\WildGoose.Application\WildGoose.Application.csproj" />
     </ItemGroup>
 
