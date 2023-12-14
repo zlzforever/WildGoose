@@ -1,0 +1,48 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WildGoose", "src\WildGoose\WildGoose.csproj", "{857A5E67-4B5A-4409-A353-F8297688DFD7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WildGoose.Domain", "src\WildGoose.Domain\WildGoose.Domain.csproj", "{06398A90-CEF5-4118-A9F9-3DFC0A957CF6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WildGoose.Infrastructure", "src\WildGoose.Infrastructure\WildGoose.Infrastructure.csproj", "{D74F3C2A-5284-4C68-945C-2B6A59C7EF26}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WildGoose.Application", "src\WildGoose.Application\WildGoose.Application.csproj", "{2C5363FB-EEC8-4166-86DC-4B4A85AB5F0B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{AC29513B-C255-4FD0-A22D-D1FD01B8EEE7}"
+	ProjectSection(SolutionItems) = preProject
+		readme.md = readme.md
+		.gitignore = .gitignore
+		api.Dockerfile = api.Dockerfile
+		src\.dockerignore = src\.dockerignore
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WildGoose.Tests", "src\WildGoose.Tests\WildGoose.Tests.csproj", "{05A68C09-9301-477B-B318-43F9DB9CA9A3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{857A5E67-4B5A-4409-A353-F8297688DFD7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{857A5E67-4B5A-4409-A353-F8297688DFD7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{857A5E67-4B5A-4409-A353-F8297688DFD7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{857A5E67-4B5A-4409-A353-F8297688DFD7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06398A90-CEF5-4118-A9F9-3DFC0A957CF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06398A90-CEF5-4118-A9F9-3DFC0A957CF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06398A90-CEF5-4118-A9F9-3DFC0A957CF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06398A90-CEF5-4118-A9F9-3DFC0A957CF6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D74F3C2A-5284-4C68-945C-2B6A59C7EF26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D74F3C2A-5284-4C68-945C-2B6A59C7EF26}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D74F3C2A-5284-4C68-945C-2B6A59C7EF26}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D74F3C2A-5284-4C68-945C-2B6A59C7EF26}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C5363FB-EEC8-4166-86DC-4B4A85AB5F0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C5363FB-EEC8-4166-86DC-4B4A85AB5F0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C5363FB-EEC8-4166-86DC-4B4A85AB5F0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C5363FB-EEC8-4166-86DC-4B4A85AB5F0B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05A68C09-9301-477B-B318-43F9DB9CA9A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05A68C09-9301-477B-B318-43F9DB9CA9A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05A68C09-9301-477B-B318-43F9DB9CA9A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05A68C09-9301-477B-B318-43F9DB9CA9A3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
