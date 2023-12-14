@@ -1,12 +1,11 @@
-FROM node:18.19.0-alpine as build
+FROM node:18-alpine as build
 WORKDIR /workspace
 ENV NODE_ENV production
-RUN npm install -g typescript 
 COPY ./src/WildGoose.Web/ /workspace/
 COPY ./src/WildGoose.Web/tsconfig.build.json /workspace/tsconfig.json
-RUN npm install @types/react
-RUN npm install && ls -l
-RUN npm run build
+RUN yarn add typescript --dev 
+RUN yarn install
+RUN yarn run build
 
 FROM nginx:alpine3.18
 WORKDIR /app
