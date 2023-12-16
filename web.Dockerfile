@@ -8,6 +8,6 @@ RUN yarn run build
 
 FROM nginx:alpine3.18
 WORKDIR /app
-COPY --from=build /app/dist .
+COPY --from=build /workspace/dist .
 RUN gzip -k /app/*
 COPY ./src/WildGoose.Web/nginx.conf /etc/nginx/nginx.conf
