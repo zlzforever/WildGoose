@@ -6,6 +6,7 @@ declare global {
       backend: string
       pageSize: number
       applicationId: string
+      oidc: any
     }
   }
 

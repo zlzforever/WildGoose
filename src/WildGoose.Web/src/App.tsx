@@ -5,13 +5,10 @@ import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import ProLayout, { ProSettings } from '@ant-design/pro-layout'
 import { LogoutOutlined } from '@ant-design/icons'
 import { useState } from 'react'
-import defaultSettings from '../config/defaultSettings'
 import defaultLayoutSettings from '../config/layoutSettings'
 import routes from '../config/routes'
 import RolePage from './pages/RolePage'
 import UserPage from './pages/UserPage'
-
-window.wildgoods = defaultSettings
 
 function App() {
   const navigate = useNavigate()

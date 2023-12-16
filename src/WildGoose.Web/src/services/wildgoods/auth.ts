@@ -1,6 +1,9 @@
 import type { User, SignoutResponse } from 'oidc-client'
 import { Log, UserManager } from 'oidc-client'
-import oidcSettings from '../../../config/oidcSettings'
+import oidc from 'oidc-client'
+
+const oidcSettings = window.wildgoods.oidc
+oidcSettings.userStore = new oidc.WebStorageStateStore({ store: window.localStorage })
 
 const userManager = new UserManager(oidcSettings)
 Log.logger = console
