@@ -13,10 +13,10 @@ COPY "./src/WildGoose.Tests/WildGoose.Tests.csproj" "/workspace/src/WildGoose.Te
 COPY "./WildGoose.sln" "/workspace/WildGoose.sln"
 RUN dotnet restore .
 COPY . .
-RUN dotnet build -c Release
+RUN dotnet build -c Debug
 
 FROM build AS publish
-RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish -c Debug -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
