@@ -26,7 +26,12 @@ public static class IdentityServerExtensions
                 options.Authority = configuration["Authority"];
                 options.RequireHttpsMetadata = "true".Equals(configuration["RequireHttpsMetadata"],
                     StringComparison.OrdinalIgnoreCase);
-                options.TokenValidationParameters = new TokenValidationParameters { ValidateAudience = false };
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateAudience =
+                        "true".Equals(configuration["ValidateAudience"], StringComparison.OrdinalIgnoreCase),
+                    ValidateIssuer = "true".Equals(configuration["ValidateIssuer"], StringComparison.OrdinalIgnoreCase),
+                };
             });
 
         // adds an authorization policy to make sure the token is for scope 'api1'
