@@ -9,9 +9,7 @@ namespace WildGoose.Controllers.Admin.V10;
 
 [ApiController]
 [Route("api/admin/v1.0/organizations")]
-#if !DEBUG
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "admin, organization-admin")]
-#endif
 public class OrganizationController : ControllerBase
 {
     private readonly OrganizationService _organizationService;

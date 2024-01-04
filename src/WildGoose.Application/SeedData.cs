@@ -11,7 +11,7 @@ namespace WildGoose.Application;
 
 public class SeedData
 {
-    public static void Init(IServiceProvider serviceProvider)
+    public static async Task Init(IServiceProvider serviceProvider)
     {
         var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
@@ -19,7 +19,6 @@ public class SeedData
             dbContext.Set<WildGoose.Domain.Entity.Organization>().EntityType.GetTableName();
         Defaults.OrganizationAdministratorTableName =
             dbContext.Set<OrganizationAdministrator>().EntityType.GetTableName();
-        
 
         var defaultRoles = new List<(string Name, string Description, string Statement)>
         {
@@ -63,7 +62,7 @@ public class SeedData
         }
 
         var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<WildGoose.Domain.Entity.User>>();
-        var admin = userMgr.Users.FirstOrDefault(x => x.UserName == Defaults.AdminRole);
+        var admin = userMgr.Users.FirstOrDefault(x => x.UserName == "admin");
         if (admin == null)
         {
             admin = new WildGoose.Domain.Entity.User
@@ -72,9 +71,10 @@ public class SeedData
                 UserName = "admin",
                 EmailConfirmed = true
             };
-            userMgr.CreateAsync(admin, "Admin@2023").Wait();
+            await userMgr.CreateAsync(admin, "Admin@2023");
+            await userMgr.AddToRoleAsync(admin, "admin");
         }
 
-        dbContext.SaveChanges();
+        await dbContext.SaveChangesAsync();
     }
 }

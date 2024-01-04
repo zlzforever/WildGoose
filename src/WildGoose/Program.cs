@@ -41,6 +41,7 @@ if (!builder.Environment.IsDevelopment())
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.ConfigureIdentityServer(builder.Configuration);
 
 builder.Services.Configure<DbOptions>(builder.Configuration.GetSection("DbContext"));
 builder.Services.Configure<IdentityExtensionOptions>(builder.Configuration.GetSection("Identity"));
@@ -105,7 +106,7 @@ if (migrations.Any())
     await dbContext.Database.MigrateAsync();
 }
 
-SeedData.Init(app.Services);
+SeedData.Init(app.Services).GetAwaiter().GetResult();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

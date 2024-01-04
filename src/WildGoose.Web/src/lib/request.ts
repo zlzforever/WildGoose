@@ -1,5 +1,6 @@
 import { message } from 'antd'
 import axios, { AxiosError, AxiosResponse } from 'axios'
+import { getUser, signinRedirect, signinSilent } from './auth'
 
 export interface ApiResult {
   code: number
@@ -24,29 +25,31 @@ const instance = axios.create({
 })
 
 // Request interceptor
-instance.interceptors.request.use((requestConfig) => {
+instance.interceptors.request.use(async (requestConfig) => {
   requestConfig.headers['z-application-id'] = 'wildgoods-web'
-  requestConfig.headers['z-user-id'] = '6526b85d74727cbf608de79b'
-  requestConfig.headers['z-user-name'] = 'Lewis Zou'
-  // requestConfig.headers['z-trace-id'] = new ObjectId()
+  const user = await getUser()
+  if (user) {
+    requestConfig.headers['z-user-id'] = user.profile.sub
+    let displayName = `${user.profile.family_name}${user.profile.given_name}`
+    if (!displayName && user.profile.name) {
+      displayName = user.profile.name
+    }
+    if (!displayName && user.profile.nickname) {
+      displayName = user.profile.nickname
+    }
+    requestConfig.headers['z-user-name'] = displayName
+    if (user.access_token) {
+      requestConfig.headers['Authorization'] = `Bearer ${user.access_token}`
+    }
+  }
 
   return requestConfig
-  // }
 })
 
 // Response interceptor
 instance.interceptors.response.use(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (response: AxiosResponse<ApiResult | any, any>) => {
-    if (response.status === 401) {
-      // localStorage.setItem(E_Storage.LOGOUT_PAGE, window && window.location && window.location.pathname)
-      // localStorage.removeItem(E_Storage.USER)
-      // localStorage.removeItem(E_Storage.EXPIRE_TIME)
-      // localStorage.removeItem(E_Storage.USER_PASSWORD_STRENGTH)
-      // window.location.href = `${config.pathPrefix}/`
-      throw '401'
-    }
-
     const result = response.data as ApiResult
     if (!result) {
       // 1. 若没有返回数据，则根据 statusCode 来判断
@@ -79,6 +82,23 @@ instance.interceptors.response.use(
     return response
   },
   (error: AxiosError) => {
+    // localStorage.setItem(E_Storage.LOGOUT_PAGE, window && window.location && window.location.pathname)
+    // localStorage.removeItem(E_Storage.USER)
+    // localStorage.removeItem(E_Storage.EXPIRE_TIME)
+    // localStorage.removeItem(E_Storage.USER_PASSWORD_STRENGTH)
+    // window.location.href = `${config.pathPrefix}/`
+    if (error.response?.status === 401) {
+      const handle401 = async () => {
+        const user = await getUser()
+        if (user && user.refresh_token) {
+          await signinSilent()
+        } else {
+          await signinRedirect()
+        }
+      }
+      handle401()
+    }
+
     const apiResult = error.response?.data as ApiResult
     if (!apiResult) {
       message.error('未知错误')
@@ -96,7 +116,7 @@ instance.interceptors.response.use(
         }
       }
     }
-    throw ''
+    return error
   }
 )
 

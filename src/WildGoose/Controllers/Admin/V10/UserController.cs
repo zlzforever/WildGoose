@@ -10,9 +10,7 @@ namespace WildGoose.Controllers.Admin.V10;
 
 [ApiController]
 [Route("api/admin/v1.0/users")]
-#if !DEBUG
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "admin, organization-admin")]
-#endif
 public class UserController : ControllerBase
 {
     private readonly UserService _userService;

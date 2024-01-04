@@ -4,7 +4,7 @@ import { ConfigProvider, Dropdown } from 'antd'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import ProLayout, { ProSettings } from '@ant-design/pro-layout'
 import { LogoutOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import defaultLayoutSettings from '../config/layoutSettings'
 import routes from '../config/routes'
 import RolePage from './pages/RolePage'
@@ -19,7 +19,6 @@ function App() {
     splitMenus: false,
   })
   const [pathname, setPathname] = useState(location.pathname)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
   if (typeof document === 'undefined') {
     return <div />
