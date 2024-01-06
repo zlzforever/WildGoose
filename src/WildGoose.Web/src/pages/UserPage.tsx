@@ -80,12 +80,14 @@ const UserPage = () => {
                       onOk: async () => {
                         await deleteOrganizationAdministrator(organizationTreeSelectedKeys[0], record.id)
                         record.isAdministrator = !record.isAdministrator
+                        record.roles = record.roles.filter((item) => item !== 'organization-admin')
                         setDataSource([...dataSource])
                       },
                     })
                   } else {
                     await addOrganizationAdministrator(organizationTreeSelectedKeys[0], record.id)
                     record.isAdministrator = !record.isAdministrator
+                    record.roles.push('organization-admin')
                     setDataSource([...dataSource])
                   }
                 }
