@@ -159,13 +159,19 @@ public class UserService : BaseService
         // await VerifyOrganizationPermissionAsync(command.Organizations);
         await VerifyRolePermissionAsync(command.Roles);
 
+        var normalizedUserName = _userManager.NormalizeName(command.UserName);
+        if (await _userManager.Users.AnyAsync(x => x.NormalizedUserName == normalizedUserName))
+        {
+            throw new WildGooseFriendlyException(1, "用户名已经存在");
+        }
+
         var user = new WildGoose.Domain.Entity.User
         {
             Id = ObjectId.GenerateNewId().ToString(),
             PhoneNumber = command.PhoneNumber,
             UserName = command.UserName,
             Name = command.Name,
-            NormalizedUserName = command.UserName.ToUpperInvariant()
+            NormalizedUserName = normalizedUserName
         };
 
         var organizations = await SetOrganizationsAsync(user.Id, command.Organizations);
@@ -245,8 +251,9 @@ public class UserService : BaseService
             }
         }
 
-        if (DbContext.Set<WildGoose.Domain.Entity.User>()
-            .AnyAsync(x => x.Id != command.Id && x.UserName == command.UserName).Result)
+        var normalizedUserName = _userManager.NormalizeName(command.UserName);
+        if (await DbContext.Set<WildGoose.Domain.Entity.User>()
+                .AnyAsync(x => x.Id != command.Id && x.NormalizedUserName == normalizedUserName))
         {
             throw new WildGooseFriendlyException(1, "用户名已经存在");
         }
@@ -262,7 +269,7 @@ public class UserService : BaseService
         await _userManager.SetEmailAsync(user, command.Email);
         await _userManager.SetPhoneNumberAsync(user, command.PhoneNumber);
         await _userManager.SetUserNameAsync(user, command.UserName);
-
+        await _userManager.UpdateNormalizedUserNameAsync(user);
         var organizationIds = await UpdateOrganizationsAsync(user.Id, command.Organizations);
         var roleIds = await UpdateRolesAsync(user.Id, command.Roles);
 

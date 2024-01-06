@@ -24,8 +24,10 @@ const ChangePasswordModal: React.FC<ChangePasswordlProps> = (props) => {
     }
     await form.validateFields()
     const values = form.getFieldsValue()
-    await changePassword(props.id, values)
-    message.success('操作成功')
+    if (await changePassword(props.id, values)) {
+      message.success('操作成功')
+    }
+
     form.resetFields()
 
     if (props.onClose) {
@@ -56,7 +58,21 @@ const ChangePasswordModal: React.FC<ChangePasswordlProps> = (props) => {
           </Row>
           <Row gutter={16}>
             <Col span={24}>
-              <Form.Item name="confirmPassword" label="重复密码" rules={[{ required: true, message: '请输入重复密码' }]}>
+              <Form.Item
+                name="confirmPassword"
+                dependencies={['newPassword']}
+                label="重复密码"
+                rules={[
+                  { required: true, message: '请输入重复密码' },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue('newPassword') === value) {
+                        return Promise.resolve()
+                      }
+                      return Promise.reject(new Error('重复密码不匹配'))
+                    },
+                  }),
+                ]}>
                 <Input placeholder="请输入重复密码" />
               </Form.Item>
             </Col>
