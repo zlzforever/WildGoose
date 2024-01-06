@@ -297,7 +297,6 @@ const UserPage = () => {
     else {
       onOrganizationUpdate(values, originParentId)
     }
-    await loadUsers(organizationTreeSelectedKeys[0], keyword, status, pagination.pageSize, pagination.current)
     setOrganizationModalOpen(false)
   }
 
@@ -525,21 +524,22 @@ const UserPage = () => {
           id={userProps?.id}
           organization={userProps?.organization}
           open={userModalOpen}
-          onOk={async (user: UserDto) => {
+          onOk={async () => {
             setUserModalOpen(false)
 
-            const record = dataSource.find((item) => item.id === user.id)
-            if (record) {
-              record.creationTime = user.creationTime
-              record.enabled = user.enabled
-              record.name = user.name
-              record.organizations = user.organizations
-              record.phoneNumber = user.phoneNumber
-              record.roles = user.roles
-              record.userName = user.userName
-              // record.isAdministrator = user.isAdministrator 是否管理员不会在编辑页面修改
-            }
-            setDataSource([...dataSource])
+            // const record = dataSource.find((item) => item.id === user.id)
+            // if (record) {
+            //   record.creationTime = user.creationTime
+            //   record.enabled = user.enabled
+            //   record.name = user.name
+            //   record.organizations = user.organizations
+            //   record.phoneNumber = user.phoneNumber
+            //   record.roles = user.roles
+            //   record.userName = user.userName
+            //   // record.isAdministrator = user.isAdministrator 是否管理员不会在编辑页面修改
+            // }
+            // setDataSource([...dataSource])
+            await loadUsers(organizationTreeSelectedKeys[0], keyword, status, pagination.pageSize, pagination.current)
           }}
           onClose={() => {
             setUserModalOpen(false)
