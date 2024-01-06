@@ -120,17 +120,26 @@ public class RoleService : BaseService
             queryable = queryable.Where(x => x.Name.Contains(query.Q));
         }
 
-        var result = await queryable.Select(x => new RoleDto
+        var result = await queryable.Select(x => new
             {
-                Id = x.Id,
-                Name = x.Name,
-                Version = x.Version,
-                Description = x.Description,
-                LastModificationTime = x.LastModificationTime.HasValue
-                    ? x.LastModificationTime.Value.ToString("yyyy-MM-dd HH:mm:ss")
-                    : "-"
+                x.Id,
+                x.Name,
+                x.Version,
+                x.Description,
+                x.LastModificationTime
             }).OrderByDescending(x => x.Id)
             .PagedQueryAsync(query.Page, query.Limit);
+        var list = result.Data.ToList();
+        var data = list.Select(x => new RoleDto
+        {
+            Id = x.Id,
+            Name = x.Name,
+            Version = x.Version,
+            Description = x.Description,
+            LastModificationTime = x.LastModificationTime.HasValue
+                ? x.LastModificationTime.Value.ToString("yyyy-MM-dd HH:mm:ss")
+                : "-"
+        }).ToList();
         var roleIds = result.Data.Select(x => x.Id).ToList();
         var t1 = DbContext.Set<RoleAssignableRole>();
         var t2 = DbContext.Set<WildGoose.Domain.Entity.Role>();
@@ -143,7 +152,7 @@ public class RoleService : BaseService
                 relationship.AssignableId,
                 AssignableName = role.Name
             }).ToListAsync();
-        var data = result.Data.ToList();
+
         foreach (var roleDto in data)
         {
             roleDto.AssignableRoles = assignableRoles.Where(x => x.RoleId == roleDto.Id)

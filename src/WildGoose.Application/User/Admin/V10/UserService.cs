@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using WildGoose.Application.Extensions;
-using WildGoose.Application.Role.Admin.V10.Dto;
 using WildGoose.Application.User.Admin.V10.Command;
 using WildGoose.Application.User.Admin.V10.Dto;
 using WildGoose.Application.User.Admin.V10.IntegrationEvents;
@@ -59,18 +58,31 @@ public class UserService : BaseService
             queryable = queryable.Where(x => !x.LockoutEnabled);
         }
 
-        var result = await queryable.OrderByDescending(x => x.CreationTime).Select(x => new UserDto
+        var result = await queryable.OrderByDescending(x => x.CreationTime).Select(x => new
         {
-            Id = x.Id,
-            UserName = x.UserName,
-            PhoneNumber = x.PhoneNumber,
-            Name = x.Name,
+            x.Id,
+            x.UserName,
+            x.PhoneNumber,
+            x.Name,
             Enabled = !x.LockoutEnabled,
             IsAdministrator = DbContext.Set<OrganizationAdministrator>()
                 .AsNoTracking().Any(y => y.UserId == x.Id && y.OrganizationId == query.OrganizationId),
-            CreationTime = x.CreationTime.HasValue ? x.CreationTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") : "-"
+            x.CreationTime
         }).PagedQueryAsync(query.Page, query.Limit);
-        var data = result.Data.ToList();
+
+        var list = result.Data.ToList();
+        var data = list.Select(x => new UserDto
+        {
+            Id = x.Id,
+            UserName = x.UserName,
+            Name = x.Name,
+            Enabled = x.Enabled,
+            PhoneNumber = x.PhoneNumber,
+            IsAdministrator = x.IsAdministrator,
+            CreationTime = x.CreationTime.HasValue
+                ? x.CreationTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                : "-"
+        }).ToList();
         var userIds = data.Select(x => x.Id).ToList();
         var organizationUserList = await (from organizationUser in DbContext.Set<OrganizationUser>()
             join organization in DbContext.Set<WildGoose.Domain.Entity.Organization>() on organizationUser
@@ -205,7 +217,9 @@ public class UserService : BaseService
             PhoneNumber = user.PhoneNumber,
             Roles = roles,
             IsAdministrator = false,
-            CreationTime = user.CreationTime.HasValue ? user.CreationTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") : "-"
+            CreationTime = user.CreationTime.HasValue
+                ? user.CreationTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                : "-"
         };
     }
 
@@ -301,7 +315,9 @@ public class UserService : BaseService
             PhoneNumber = user.PhoneNumber,
             Roles = roles,
             IsAdministrator = null,
-            CreationTime = user.CreationTime.HasValue ? user.CreationTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") : "-"
+            CreationTime = user.CreationTime.HasValue
+                ? user.CreationTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                : "-"
         };
 
 //         await using var transaction = await DbContext.Database.BeginTransactionAsync();
