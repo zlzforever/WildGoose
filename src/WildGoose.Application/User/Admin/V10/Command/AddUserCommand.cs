@@ -4,7 +4,11 @@ namespace WildGoose.Application.User.Admin.V10.Command;
 
 public class AddUserCommand
 {
-    public string[] Organizations { get; set; } = Array.Empty<string>();
+    /// <summary>
+    /// 
+    /// </summary>
+    [MinLength(1)]
+    public string[] Organizations { get; set; }
 
     /// <summary>
     /// 电话
@@ -18,7 +22,7 @@ public class AddUserCommand
     [Required, StringLength(36), RegularExpression(NameLimiter.Pattern, ErrorMessage = NameLimiter.Message)]
     public string UserName { get; set; }
 
-  
+
     /// <summary>
     /// 名
     /// </summary>
