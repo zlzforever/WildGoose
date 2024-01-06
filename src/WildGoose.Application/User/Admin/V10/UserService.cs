@@ -68,7 +68,7 @@ public class UserService : BaseService
             Enabled = !x.LockoutEnabled,
             IsAdministrator = DbContext.Set<OrganizationAdministrator>()
                 .AsNoTracking().Any(y => y.UserId == x.Id && y.OrganizationId == query.OrganizationId),
-            CreationTime = x.CreationTime.HasValue ? x.CreationTime.Value.ToString("yyyy-MM-dd HH:mm:ss") : "-"
+            CreationTime = x.CreationTime.HasValue ? x.CreationTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") : "-"
         }).PagedQueryAsync(query.Page, query.Limit);
         var data = result.Data.ToList();
         var userIds = data.Select(x => x.Id).ToList();
@@ -361,7 +361,7 @@ public class UserService : BaseService
             UserName = user.UserName,
             PhoneNumber = user.PhoneNumber,
             Title = userExtension?.Title,
-            DepartureTime = userExtension?.DepartureTime?.ToUnixTimeSeconds(),
+            DepartureTime = userExtension?.DepartureTime?.ToLocalTime().ToUnixTimeSeconds(),
             Email = user.Email,
             Code = user.Code,
             HiddenSensitiveData = userExtension?.HiddenSensitiveData ?? false
