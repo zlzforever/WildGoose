@@ -11,6 +11,7 @@ const phoneValidator = (_: any, value: any, callback: any) => {
     }
     return Promise.reject(new Error('手机号无效'))
   }
+  return callback()
 }
 
 export interface UserProps {
