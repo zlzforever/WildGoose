@@ -252,7 +252,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
               </Col>
             )}
             <Col span={12}>
-              <Form.Item name="organizations" label="部门">
+              <Form.Item name="organizations" label="部门" rules={[{ required: true, message: '至少需要一个部门' }]}>
                 <TreeSelect
                   allowClear={true}
                   treeLine
