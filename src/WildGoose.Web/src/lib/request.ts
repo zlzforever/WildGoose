@@ -105,7 +105,7 @@ instance.interceptors.response.use(
     } else {
       if (apiResult.errors || message.error.length > 0) {
         const msg = apiResult.errors.map((x) => {
-          return '<br/>'.concat(...x.messages)
+          return '\n'.concat(...x.messages)
         })
         message.error(msg)
       } else {

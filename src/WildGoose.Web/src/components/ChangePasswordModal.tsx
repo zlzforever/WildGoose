@@ -52,7 +52,7 @@ const ChangePasswordModal: React.FC<ChangePasswordlProps> = (props) => {
           <Row gutter={16}>
             <Col span={24}>
               <Form.Item name="newPassword" label="新密码" rules={[{ required: true, message: '请输入新密码' }]}>
-                <Input placeholder="请输入新密码" />
+                <Input.Password type="password" placeholder="请输入新密码" />
               </Form.Item>
             </Col>
           </Row>
@@ -73,7 +73,7 @@ const ChangePasswordModal: React.FC<ChangePasswordlProps> = (props) => {
                     },
                   }),
                 ]}>
-                <Input placeholder="请输入重复密码" />
+                <Input.Password placeholder="请输入重复密码" />
               </Form.Item>
             </Col>
           </Row>

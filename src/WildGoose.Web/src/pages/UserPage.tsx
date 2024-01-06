@@ -295,6 +295,7 @@ const UserPage = () => {
     else {
       onOrganizationUpdate(values, originParentId)
     }
+    await loadUsers(organizationTreeSelectedKeys[0], keyword, status, pagination.pageSize, pagination.current)
     setOrganizationModalOpen(false)
   }
 
@@ -457,22 +458,21 @@ const UserPage = () => {
     return (
       <>
         {node.title}
-        <Dropdown 
-          trigger={["click"]}
+        <Dropdown
+          trigger={['click']}
           key={node.key + '_dropdown'}
-          menu={{ 
+          menu={{
             items,
             onClick: (ev: any) => {
-              ev && ev.domEvent && ev.domEvent.stopPropagation();
-            }
+              ev && ev.domEvent && ev.domEvent.stopPropagation()
+            },
           }}
-          placement="bottomLeft" 
-          arrow={false}
-        >
-          <MoreOutlined 
-            style={{fontSize: 20}}
+          placement="bottomLeft"
+          arrow={false}>
+          <MoreOutlined
+            style={{ fontSize: 20 }}
             onClick={(ev: any) => {
-              ev.stopPropagation();
+              ev.stopPropagation()
             }}
           />
         </Dropdown>
@@ -500,20 +500,19 @@ const UserPage = () => {
           return (
             <Breadcrumb
               style={{
-                marginTop: 10
+                marginTop: 10,
               }}
               items={[
                 {
                   title: '首页',
                 },
                 {
-                  title: "用户管理",
+                  title: '用户管理',
                 },
               ]}
             />
-          ) 
-        }}
-      >
+          )
+        }}>
         <ChangePasswordModal
           id={userSelectedKeys && userSelectedKeys.length === 1 ? userSelectedKeys[0] : ''}
           open={changePasswordModalOpen}
@@ -561,8 +560,8 @@ const UserPage = () => {
         <Flex gap="middle">
           <Card>
             <Flex vertical>
-              <Flex >
-                <Search placeholder="请输入机构名称" allowClear style={{ width: 200, marginBottom: 20, marginRight: 10}} />
+              <Flex>
+                <Search placeholder="请输入机构名称" allowClear style={{ width: 200, marginBottom: 20, marginRight: 10 }} />
                 <Tooltip title="添加机构">
                   <Button
                     shape="circle"
@@ -580,7 +579,7 @@ const UserPage = () => {
               <Tree
                 className="organizationTree"
                 showLine
-                icon={<IconFont type="icon-zuzhijigou"/>}
+                icon={<IconFont type="icon-zuzhijigou" />}
                 showIcon={true}
                 switcherIcon={<CaretDownOutlined />}
                 treeData={organizationTreeData}
@@ -598,99 +597,99 @@ const UserPage = () => {
             <Flex gap="middle" align="start" vertical>
               <Flex align="start">
                 <Space wrap>
-                <Select
-                  defaultValue="all"
-                  style={{ width: 120 }}
-                  onChange={(v) => {
-                    setStatus(v)
-                  }}
-                  options={[
-                    { value: 'all', label: '全部' },
-                    { value: 'enabled', label: '已启用' },
-                    { value: 'disabled', label: '已暂停' },
-                  ]}
-                />
-                <Search
-                  onChange={(e) => {
-                    setKeyword(e.target.value)
-                  }}
-                  placeholder="请输入用户名、手机号"
-                  allowClear
-                  style={{ width: 220 }}
-                  onSearch={() => {
-                    if (organizationTreeSelectedKeys && organizationTreeSelectedKeys[0]) {
-                      loadUsers(organizationTreeSelectedKeys[0], keyword, status, pagination.pageSize, pagination.current)
-                    }
-                  }}
-                />
-                <Flex justify="flex-end" align="flex-end">
-                  <Space wrap>
-                  <Button
-                    type="primary"
-                    onClick={() => {
-                      // 若有选中机构
-                      if (organizationTreeSelectedKeys && organizationTreeSelectedKeys.length > 0) {
-                        const key = organizationTreeSelectedKeys[0]
-                        const organization = organizationTreeDict[key]
-                        setUserProps({
-                          id: undefined,
-                          organization: {
-                            id: organization.key,
-                            parentId: organization.pId,
-                            name: organization.title,
-                            hasChild: organization.isLeaf,
-                          },
-                        })
-                      }
-                      // 未选中机构， 理论上不应该出现
-                      else {
-                        setUserProps({
-                          id: undefined,
-                          organization: undefined,
-                        })
-                      }
-                      setUserModalOpen(true)
-                    }}>
-                    添加
-                  </Button>
-                  <Button
-                    disabled={userSelected ? false : true}
-                    type="primary"
-                    onClick={() => {
-                      if (userSelected) {
-                        setUserProps({
-                          id: userSelected.id,
-                          organization: undefined,
-                        })
-                        setUserModalOpen(true)
-                      }
-                    }}>
-                    查看
-                  </Button>
-                  <Popconfirm
-                    title="警告"
-                    description="您确定要删除此用户吗?"
-                    onConfirm={() => {
-                      onUserDelete()
+                  <Select
+                    defaultValue="all"
+                    style={{ width: 120 }}
+                    onChange={(v) => {
+                      setStatus(v)
                     }}
-                    okText="确定"
-                    cancelText="取消">
-                    <Button disabled={userSelected ? false : true} type="primary">
-                      删除
-                    </Button>
-                  </Popconfirm>
-                  <Button
-                    type="primary"
-                    disabled={userSelected ? false : true}
-                    onClick={() => {
-                      setChangePasswordModalOpen(true)
-                    }}>
-                    修改密码
-                  </Button>
-                  <Button type="primary">导出</Button>
-                  <Button type="primary">导入</Button>
-                  </Space>
-                </Flex>
+                    options={[
+                      { value: 'all', label: '全部' },
+                      { value: 'enabled', label: '已启用' },
+                      { value: 'disabled', label: '已暂停' },
+                    ]}
+                  />
+                  <Search
+                    onChange={(e) => {
+                      setKeyword(e.target.value)
+                    }}
+                    placeholder="请输入用户名、手机号"
+                    allowClear
+                    style={{ width: 220 }}
+                    onSearch={() => {
+                      if (organizationTreeSelectedKeys && organizationTreeSelectedKeys[0]) {
+                        loadUsers(organizationTreeSelectedKeys[0], keyword, status, pagination.pageSize, pagination.current)
+                      }
+                    }}
+                  />
+                  <Flex justify="flex-end" align="flex-end">
+                    <Space wrap>
+                      <Button
+                        type="primary"
+                        onClick={() => {
+                          // 若有选中机构
+                          if (organizationTreeSelectedKeys && organizationTreeSelectedKeys.length > 0) {
+                            const key = organizationTreeSelectedKeys[0]
+                            const organization = organizationTreeDict[key]
+                            setUserProps({
+                              id: undefined,
+                              organization: {
+                                id: organization.key,
+                                parentId: organization.pId,
+                                name: organization.title,
+                                hasChild: organization.isLeaf,
+                              },
+                            })
+                          }
+                          // 未选中机构， 理论上不应该出现
+                          else {
+                            setUserProps({
+                              id: undefined,
+                              organization: undefined,
+                            })
+                          }
+                          setUserModalOpen(true)
+                        }}>
+                        添加
+                      </Button>
+                      <Button
+                        disabled={userSelected ? false : true}
+                        type="primary"
+                        onClick={() => {
+                          if (userSelected) {
+                            setUserProps({
+                              id: userSelected.id,
+                              organization: undefined,
+                            })
+                            setUserModalOpen(true)
+                          }
+                        }}>
+                        查看
+                      </Button>
+                      <Popconfirm
+                        title="警告"
+                        description="您确定要删除此用户吗?"
+                        onConfirm={() => {
+                          onUserDelete()
+                        }}
+                        okText="确定"
+                        cancelText="取消">
+                        <Button disabled={userSelected ? false : true} type="primary">
+                          删除
+                        </Button>
+                      </Popconfirm>
+                      <Button
+                        type="primary"
+                        disabled={userSelected ? false : true}
+                        onClick={() => {
+                          setChangePasswordModalOpen(true)
+                        }}>
+                        修改密码
+                      </Button>
+                      <Button type="primary">导出</Button>
+                      <Button type="primary">导入</Button>
+                    </Space>
+                  </Flex>
                 </Space>
               </Flex>
               <Table
@@ -711,7 +710,7 @@ const UserPage = () => {
                   },
                 }}
                 bordered
-                scroll={{x: 'max-content'}}
+                scroll={{ x: 'max-content' }}
                 style={{ width: '100%' }}></Table>
             </Flex>
           </Card>

@@ -193,7 +193,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
         props.onOk(user)
       }
     }
-    form.validateFields().then(async () => {})
+    // form.validateFields().then(async () => {})
   }
   return (
     <>
