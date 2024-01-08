@@ -52,7 +52,10 @@ var connectionString = builder.Configuration["DbContext:ConnectionString"] ??
 var tablePrefix = builder.Configuration["DbContext:TablePrefix"] ?? string.Empty;
 builder.Services.AddDbContext<WildGooseDbContext>(options =>
 {
-    options.UseNpgsql(connectionString, b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
+    options.UseNpgsql(connectionString, b =>
+    {
+        b.MigrationsHistoryTable($"{tablePrefix}migrations_history");
+    });
 });
 builder.RegisterServices();
 

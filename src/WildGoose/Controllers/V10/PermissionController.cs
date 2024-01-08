@@ -8,9 +8,7 @@ namespace WildGoose.Controllers.V10;
 
 [Route("api/v1.0/permissions")]
 [ApiController]
-#if !DEBUG
 [Authorize]
-#endif
 public class PermissionController : ControllerBase
 {
     private readonly PermissionService _permissionService;

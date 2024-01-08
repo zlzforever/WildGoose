@@ -137,7 +137,7 @@ public class RoleService : BaseService
             Version = x.Version,
             Description = x.Description,
             LastModificationTime = x.LastModificationTime.HasValue
-                ? x.LastModificationTime.Value.ToString("yyyy-MM-dd HH:mm:ss")
+                ? x.LastModificationTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
                 : "-"
         }).ToList();
         var roleIds = result.Data.Select(x => x.Id).ToList();

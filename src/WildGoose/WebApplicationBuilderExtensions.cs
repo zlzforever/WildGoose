@@ -56,6 +56,7 @@ public static class WebApplicationBuilderExtensions
     {
         // builder.Services.TryAddScoped<DomainService>();
         builder.Services.TryAddScoped<OrganizationService>();
+        builder.Services.TryAddScoped<WildGoose.Application.Organization.V10.OrganizationService>();
         builder.Services.TryAddScoped<UserService>();
         builder.Services.TryAddScoped<RoleService>();
         builder.Services.TryAddScoped<IObjectStorageService, ObjectStorageService>();
@@ -63,8 +64,6 @@ public static class WebApplicationBuilderExtensions
         builder.Services.TryAddScoped<ISession, HttpSession>();
         builder.Services.TryAddScoped<PermissionService>();
         builder.Services.TryAddScoped<HttpSession>(provider =>
-            builder.Environment.IsProduction()
-                ? HttpSession.Create(provider.GetRequiredService<IHttpContextAccessor>())
-                : HttpSession.CreateFake(provider.GetRequiredService<IHttpContextAccessor>()));
+            HttpSession.Create(provider.GetRequiredService<IHttpContextAccessor>()));
     }
 }
