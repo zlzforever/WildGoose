@@ -33,10 +33,8 @@ mvcBuilder.ConfigureApiBehaviorOptions(x =>
 {
     x.InvalidModelStateResponseFactory = InvalidModelStateResponseFactory.Instance;
 });
-if (!builder.Environment.IsDevelopment())
-{
-    mvcBuilder.AddDapr(_ => { });
-}
+
+mvcBuilder.AddDapr(_ => { });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -52,10 +50,7 @@ var connectionString = builder.Configuration["DbContext:ConnectionString"] ??
 var tablePrefix = builder.Configuration["DbContext:TablePrefix"] ?? string.Empty;
 builder.Services.AddDbContext<WildGooseDbContext>(options =>
 {
-    options.UseNpgsql(connectionString, b =>
-    {
-        b.MigrationsHistoryTable($"{tablePrefix}migrations_history");
-    });
+    options.UseNpgsql(connectionString, b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
 });
 builder.RegisterServices();
 

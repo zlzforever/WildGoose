@@ -41,11 +41,11 @@ public static class WebApplicationBuilderExtensions
                 .MinimumLevel.Information()
                 .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
                 .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Information)
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-                .MinimumLevel.Override("System", LogEventLevel.Warning)
+                // .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+                // .MinimumLevel.Override("System", LogEventLevel.Warning)
                 .MinimumLevel.Override("Microsoft.AspNetCore.Authentication", LogEventLevel.Warning)
                 .Enrich.FromLogContext()
-                .WriteTo.Console().WriteTo.RollingFile(logFile)
+                .WriteTo.Console().WriteTo.Async(x => x.File(logFile, rollingInterval: RollingInterval.Day))
                 .CreateLogger();
         }
 
