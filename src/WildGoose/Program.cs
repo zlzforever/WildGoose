@@ -118,6 +118,9 @@ app.UseRouting();
 app.UseCors(corsPolicyName);
 
 app.UseAuthorization();
+
+app.UseCloudEvents();
+app.MapSubscribeHandler();
 app.MapControllers().RequireCors(corsPolicyName);
 app.Run();
 
