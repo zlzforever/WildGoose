@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WildGoose;
 using WildGoose.Application;
+using WildGoose.Domain;
 using WildGoose.Domain.Entity;
 using WildGoose.Filters;
 using WildGoose.Infrastructure;
@@ -36,6 +37,7 @@ mvcBuilder.ConfigureApiBehaviorOptions(x =>
 
 mvcBuilder.AddDapr(_ => { });
 
+builder.Services.AddOptions();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -43,6 +45,7 @@ builder.Services.ConfigureIdentityServer(builder.Configuration);
 
 builder.Services.Configure<DbOptions>(builder.Configuration.GetSection("DbContext"));
 builder.Services.Configure<IdentityExtensionOptions>(builder.Configuration.GetSection("Identity"));
+builder.Services.Configure<DaprOptions>(builder.Configuration.GetSection("Dapr"));
 
 // Add services to the container.
 var connectionString = builder.Configuration["DbContext:ConnectionString"] ??

@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace WildGoose.Application.Organization.V10.Dto;
 
 public class SubOrganizationDto
@@ -7,5 +9,6 @@ public class SubOrganizationDto
     public string ParentId { get; set; }
     public string ParentName { get; set; }
     public bool HasChild { get; set; }
-    public string Metadata { get; set; }
+    public JsonDocument Metadata { get; set; }
+    public List<string> Scope { get; set; }
 }

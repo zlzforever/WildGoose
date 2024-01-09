@@ -23,14 +23,14 @@ public static class IdentityServerExtensions
                         return Task.CompletedTask;
                     }
                 };
-                options.Authority = configuration["Authority"];
-                options.RequireHttpsMetadata = "true".Equals(configuration["RequireHttpsMetadata"],
+                options.Authority = configuration["JwtBearer:Authority"];
+                options.RequireHttpsMetadata = "true".Equals(configuration["JwtBearer:RequireHttpsMetadata"],
                     StringComparison.OrdinalIgnoreCase);
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateAudience =
-                        "true".Equals(configuration["ValidateAudience"], StringComparison.OrdinalIgnoreCase),
-                    ValidateIssuer = "true".Equals(configuration["ValidateIssuer"], StringComparison.OrdinalIgnoreCase),
+                        "true".Equals(configuration["JwtBearer:ValidateAudience"], StringComparison.OrdinalIgnoreCase),
+                    ValidateIssuer = "true".Equals(configuration["JwtBearer:ValidateIssuer"], StringComparison.OrdinalIgnoreCase),
                 };
             });
 

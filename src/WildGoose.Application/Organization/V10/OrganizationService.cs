@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WildGoose.Application.Organization.V10.Dto;
 using WildGoose.Application.Organization.V10.Queries;
+using WildGoose.Domain.Entity;
 using WildGoose.Infrastructure;
 
 namespace WildGoose.Application.Organization.V10;
@@ -21,44 +22,72 @@ public class OrganizationService : BaseService
     /// </summary>
     /// <param name="query"></param>
     /// <returns></returns>
-    public Task<List<SubOrganizationDto>> GetSubListAsync(GetSubListQuery query)
+    public async Task<List<SubOrganizationDto>> GetSubListAsync(GetSubListQuery query)
     {
-        return DbContext
+        if (string.IsNullOrEmpty(query.ParentId))
+        {
+            return await GetMyListAsync();
+        }
+
+        var result = await DbContext
             .Set<WildGoose.Domain.Entity.Organization>()
             .Include(x => x.Parent)
             .AsNoTracking()
             .Where(x => x.Parent.Id == query.ParentId)
             .OrderBy(x => x.Code)
-            .Select(organization => new SubOrganizationDto
+            .Select(organization => new
             {
-                Id = organization.Id,
-                Name = organization.Name,
+                organization.Id,
+                organization.Name,
                 ParentId = organization.Parent.Id,
                 ParentName = organization.Parent.Name,
-                Metadata = organization.Metadata,
+                organization.Metadata,
+                Scope = DbContext.Set<OrganizationScope>().AsNoTracking()
+                    .Where(y => y.OrganizationId == organization.Id).Select(z => z.Scope).ToList(),
                 HasChild = DbContext
                     .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
                     .Any(x => x.Parent.Id == organization.Id)
             }).ToListAsync();
+        return result.Select(x => new SubOrganizationDto
+        {
+            Id = x.Id,
+            Name = x.Name,
+            ParentId = x.ParentId,
+            ParentName = x.ParentName,
+            Scope = x.Scope,
+            HasChild = x.HasChild,
+            Metadata = string.IsNullOrEmpty(x.Metadata) ? default : JsonDocument.Parse(x.Metadata)
+        }).ToList();
     }
 
-    public async Task<List<OrganizationDto>> GetMyListAsync()
+    private async Task<List<SubOrganizationDto>> GetMyListAsync()
     {
         var organizationTable = DbContext
             .Set<WildGoose.Domain.Entity.Organization>()
             .EntityType.GetTableName();
         var organizationUserTable = DbContext
-            .Set<WildGoose.Domain.Entity.OrganizationUser>()
+            .Set<OrganizationUser>()
             .EntityType.GetTableName();
         var organizationScopeTableName = DbContext
-            .Set<WildGoose.Domain.Entity.OrganizationScope>()
+            .Set<OrganizationScope>()
             .EntityType.GetTableName();
         var sql = $$"""
-                    SELECT t1.id, t1.name, t1.metadata, t3.scope
-                      FROM {{organizationTable}} t1 LEFT JOIN {{organizationUserTable}} t2
-                      ON t1.id = t2.organization_id LEFT JOIN {{organizationScopeTableName}} t3
-                      ON t1.id = t3.organization_id
-                      WHERE NOT(t1.is_deleted) AND t2.user_id = @Id
+                    SELECT t1.id,
+                           t1.name,
+                           t1.metadata,
+                           t3.scope,
+                           t4.id     as parent_id,
+                           t4.name   as parent_name,
+                           (SELECT true
+                            FROM {{organizationTable}} AS child
+                            WHERE child.parent_id = t1.id
+                            limit 1) as has_children
+                    FROM {{organizationTable}} t1
+                             JOIN {{organizationUserTable}} t2 ON t1.id = t2.organization_id
+                             JOIN {{organizationTable}} t4 ON t1.parent_id = t4.id
+                             LEFT JOIN {{organizationScopeTableName}} t3 ON t1.id = t3.organization_id
+                    WHERE NOT (t1.is_deleted)
+                      AND t2.user_id = @Id
                     """;
         if (DbOptions.EnableSensitiveDataLogging)
         {
@@ -71,19 +100,22 @@ public class OrganizationService : BaseService
             .ToList();
         if (entities.Count == 0)
         {
-            return new List<OrganizationDto>();
+            return new List<SubOrganizationDto>();
         }
 
-        var dict = new Dictionary<string, OrganizationDto>();
+        var dict = new Dictionary<string, SubOrganizationDto>();
         foreach (var entity in entities)
         {
-            OrganizationDto dto;
+            SubOrganizationDto dto;
             if (!dict.ContainsKey(entity.Id))
             {
-                dto = new OrganizationDto
+                dto = new SubOrganizationDto
                 {
                     Id = entity.Id,
                     Name = entity.Name,
+                    HasChild = entity.HasChild,
+                    ParentId = entity.ParentId,
+                    ParentName = entity.ParentName,
                     Metadata = string.IsNullOrEmpty(entity.Metadata) ? default : JsonDocument.Parse(entity.Metadata),
                     Scope = string.IsNullOrEmpty(entity.Scope)
                         ? new List<string>()
@@ -115,5 +147,8 @@ public class OrganizationService : BaseService
         public string Name { get; set; }
         public string Metadata { get; set; }
         public string Scope { get; set; }
+        public string ParentId { get; set; }
+        public string ParentName { get; set; }
+        public bool HasChild { get; set; }
     }
 }

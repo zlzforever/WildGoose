@@ -24,9 +24,9 @@ public class OrganizationController
         return _organizationService.GetSubListAsync(query);
     }
 
-    [HttpGet("my")]
-    public async Task<List<OrganizationDto>> GetMyListAsync()
-    {
-        return await _organizationService.GetMyListAsync();
-    }
+    // [HttpGet("my")]
+    // public async Task<List<OrganizationDto>> GetMyListAsync()
+    // {
+    //     return await _organizationService.GetMyListAsync();
+    // }
 }

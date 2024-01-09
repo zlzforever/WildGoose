@@ -24,15 +24,18 @@ public class UserService : BaseService
     private readonly UserManager<WildGoose.Domain.Entity.User> _userManager;
     private readonly IdentityExtensionOptions _identityExtensionOptions;
     private readonly IObjectStorageService _objectStorageService;
+    private readonly DaprOptions _daprOptions;
 
     public UserService(WildGooseDbContext dbContext, HttpSession session, IOptions<DbOptions> dbOptions,
         ILogger<UserService> logger, IPasswordValidator<WildGoose.Domain.Entity.User> passwordValidator,
         UserManager<WildGoose.Domain.Entity.User> userManager,
+        IOptions<DaprOptions> dapOptions,
         IOptions<IdentityExtensionOptions> identityExtensionOptions, IObjectStorageService objectStorageService) : base(
         dbContext, session, dbOptions, logger)
     {
         _passwordValidator = passwordValidator;
         _userManager = userManager;
+        _daprOptions = dapOptions.Value;
         _objectStorageService = objectStorageService;
         _identityExtensionOptions = identityExtensionOptions.Value;
     }
@@ -198,9 +201,9 @@ public class UserService : BaseService
         result.CheckErrors();
 
         var daprClient = GetDaprClient();
-        if (daprClient != null)
+        if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
         {
-            await daprClient.PublishEventAsync("pubsub", nameof(UserAddedEvent),
+            await daprClient.PublishEventAsync(_daprOptions.Pubsub, nameof(UserAddedEvent),
                 new UserAddedEvent
                 {
                     UserId = user.Id
@@ -237,9 +240,9 @@ public class UserService : BaseService
         await DbContext.SaveChangesAsync();
 
         var daprClient = GetDaprClient();
-        if (daprClient != null)
+        if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
         {
-            await daprClient.PublishEventAsync("pubsub", nameof(UserDeletedEvent),
+            await daprClient.PublishEventAsync(_daprOptions.Pubsub, nameof(UserDeletedEvent),
                 new UserDeletedEvent
                 {
                     UserId = user.Id
@@ -523,9 +526,9 @@ public class UserService : BaseService
         await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
 
         var daprClient = GetDaprClient();
-        if (daprClient != null)
+        if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
         {
-            await daprClient.PublishEventAsync("pubsub", nameof(UserDisabledEvent),
+            await daprClient.PublishEventAsync(_daprOptions.Pubsub, nameof(UserDisabledEvent),
                 new UserDisabledEvent
                 {
                     UserId = user.Id
@@ -548,9 +551,9 @@ public class UserService : BaseService
         await _userManager.SetLockoutEndDateAsync(user, null);
 
         var daprClient = GetDaprClient();
-        if (daprClient != null)
+        if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
         {
-            await daprClient.PublishEventAsync("pubsub", nameof(UserEnabledEvent),
+            await daprClient.PublishEventAsync(_daprOptions.Pubsub, nameof(UserEnabledEvent),
                 new UserEnabledEvent
                 {
                     UserId = user.Id
