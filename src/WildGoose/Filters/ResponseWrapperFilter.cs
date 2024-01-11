@@ -20,7 +20,8 @@ public sealed class ResponseWrapperFilter : IAsyncResultFilter
 
         // dapr 调用不包装 APIResult
         var invokeFromDapr = !string.IsNullOrEmpty(context.HttpContext.Request.Headers["Pubsubname"])
-                             || !string.IsNullOrEmpty(context.HttpContext.Request.Headers["Dapr-App-Id"]);
+                             || !string.IsNullOrEmpty(context.HttpContext.Request.Headers["Dapr-App-Id"])
+                             || string.IsNullOrEmpty(context.HttpContext.Request.Headers["Dapr-Callee-App-Id"]);
         if (invokeFromDapr)
         {
             await next();
