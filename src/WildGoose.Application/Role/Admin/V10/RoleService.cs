@@ -63,13 +63,39 @@ public class RoleService : BaseService
             throw new WildGooseFriendlyException(1, "角色不存在");
         }
 
-        if (role.NormalizedName == "ADMIN")
+        if ("admin".Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            "organization-admin".Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw new WildGooseFriendlyException(1, "系统角色， 禁止删除");
         }
 
         DbContext.Remove(role);
-        await DbContext.SaveChangesAsync();
+        await using var transaction = await DbContext.Database.BeginTransactionAsync();
+        try
+        {
+            var tableName = DbContext.Set<IdentityUserRole<string>>()
+                .EntityType.GetTableName();
+            await DbContext.Database.ExecuteSqlRawAsync(
+                $$"""
+                  DELETE FROM {{tableName}} WHERE role_id = '{{role.Id}}'
+                  """);
+            await DbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "删除角色失败");
+            try
+            {
+                await transaction.RollbackAsync();
+            }
+            catch (Exception e2)
+            {
+                Logger.LogError(e2, "删除角色回滚失败");
+            }
+
+            throw new WildGooseFriendlyException(1, "删除角色失败");
+        }
     }
 
     public async Task UpdateAsync(UpdateRoleCommand command)

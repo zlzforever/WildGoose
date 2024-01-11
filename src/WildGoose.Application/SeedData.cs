@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Dapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -75,6 +76,10 @@ public class SeedData
             await userMgr.AddToRoleAsync(admin, "admin");
         }
 
+        // var conn = dbContext.Database.GetDbConnection();
+        // await conn.ExecuteAsync("");
+        // TODO: 
+        // 删除用户的索一索引
         await dbContext.SaveChangesAsync();
     }
 }
