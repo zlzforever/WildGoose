@@ -16,20 +16,9 @@ public sealed class ResponseWrapperFilter : IAsyncResultFilter
     public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
     {
         _logger.LogDebug("开始执行返回结果过滤器");
-        _logger.LogInformation($"Headers: {JsonSerializer.Serialize(context.HttpContext.Request.Headers)}");
-
-        // dapr 调用不包装 APIResult
-        var invokeFromDapr = !string.IsNullOrEmpty(context.HttpContext.Request.Headers["Pubsubname"])
-                             || !string.IsNullOrEmpty(context.HttpContext.Request.Headers["Dapr-App-Id"])
-                             || string.IsNullOrEmpty(context.HttpContext.Request.Headers["Dapr-Callee-App-Id"]);
-        if (invokeFromDapr)
-        {
-            await next();
-            return;
-        }
 
         // 服务调用不做 APIResult 包装
-        if (context.HttpContext.Request.Headers.TryGetValue("service-invocation", out var value))
+        if (context.HttpContext.Request.Headers.TryGetValue("Internal-Caller", out var value))
         {
             if ("true".Equals(value, StringComparison.OrdinalIgnoreCase))
             {
