@@ -52,7 +52,10 @@ public class PermissionService : BaseService
                         .Where(x => x.NormalizedName == role.ToUpperInvariant())
                         .Select(x => x.Statement)
                         .FirstOrDefaultAsync();
-                    var statements = JsonSerializer.Deserialize<List<Statement>>(json);
+                    var statements = !string.IsNullOrEmpty(json)
+                        ? JsonSerializer.Deserialize<List<Statement>>(json)
+                        : new List<Statement>();
+
                     entry.SetValue(statements);
                     entry.SetAbsoluteExpiration(TimeSpan.FromSeconds(Random.Next(60, 120)));
                     return statements;
