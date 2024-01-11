@@ -38,7 +38,8 @@ public sealed class ResponseWrapperFilter : IAsyncResultFilter
                 var success = IsSuccessStatusCode(num);
                 if (success)
                 {
-                    context.Result = new ObjectResult(new { Code = 0, Data = objectResult.Value, Msg = string.Empty });
+                    context.Result = new ObjectResult(new
+                        { Success = true, Code = 0, Data = objectResult.Value, Msg = string.Empty });
                 }
                 else
                 {
@@ -55,7 +56,12 @@ public sealed class ResponseWrapperFilter : IAsyncResultFilter
             }
             else
             {
-                context.Result = new ObjectResult(new { Code = 0, Data = objectResult.Value, Msg = string.Empty });
+                context.Result = new ObjectResult(new
+                {
+                    Code = 0,
+                    Success = true,
+                    Data = objectResult.Value, Msg = string.Empty
+                });
             }
         }
         else if (context.Result is EmptyResult)
