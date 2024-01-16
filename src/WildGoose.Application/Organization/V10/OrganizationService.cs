@@ -17,6 +17,23 @@ public class OrganizationService : BaseService
     {
     }
 
+    public async Task<OrganizationSummaryDto> GetSummaryAsync(GetSummaryQuery query)
+    {
+        var organization = await DbContext
+            .Set<WildGoose.Domain.Entity.Organization>()
+            .Include(x => x.Parent)
+            .AsNoTracking()
+            .Where(x => x.Id == query.Id)
+            .Select(x => new OrganizationSummaryDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                ParentId = x.Parent.Id,
+                ParentName = x.Parent.Name
+            }).FirstOrDefaultAsync();
+        return organization;
+    }
+
     /// <summary>
     /// 只返回了机构信息，不含敏感信息，只要登录的就能访问
     /// </summary>

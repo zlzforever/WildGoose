@@ -24,6 +24,12 @@ public class OrganizationController
         return _organizationService.GetSubListAsync(query);
     }
 
+    [HttpGet("{id}/summary")]
+    public Task<OrganizationSummaryDto> GetSummaryAsync([FromRoute] GetSummaryQuery query)
+    {
+        return _organizationService.GetSummaryAsync(query);
+    }
+
     // [HttpGet("my")]
     // public async Task<List<OrganizationDto>> GetMyListAsync()
     // {
