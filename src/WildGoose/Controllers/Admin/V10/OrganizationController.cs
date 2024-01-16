@@ -10,15 +10,8 @@ namespace WildGoose.Controllers.Admin.V10;
 [ApiController]
 [Route("api/admin/v1.0/organizations")]
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "admin, organization-admin")]
-public class OrganizationController : ControllerBase
+public class OrganizationController(OrganizationService organizationService) : ControllerBase
 {
-    private readonly OrganizationService _organizationService;
-
-    public OrganizationController(OrganizationService organizationService)
-    {
-        _organizationService = organizationService;
-    }
-
     /// <summary>
     /// 添加机构
     /// </summary>
@@ -26,19 +19,19 @@ public class OrganizationController : ControllerBase
     [HttpPost]
     public Task<OrganizationSimpleDto> AddAsync([FromBody] AddOrganizationCommand command)
     {
-        return _organizationService.AddAsync(command);
+        return organizationService.AddAsync(command);
     }
 
     [HttpGet("{id}")]
     public Task<OrganizationDetailDto> GetAsync([FromRoute] GetDetailQuery query)
     {
-        return _organizationService.GetAsync(query);
+        return organizationService.GetAsync(query);
     }
 
     [HttpDelete("{id}")]
     public Task<string> DeleteAsync([FromRoute] DeleteOrganizationCommand command)
     {
-        return _organizationService.DeleteAsync(command.Id);
+        return organizationService.DeleteAsync(command.Id);
     }
 
     [HttpPost("{id}")]
@@ -46,24 +39,24 @@ public class OrganizationController : ControllerBase
         [FromBody] UpdateOrganizationCommand command)
     {
         command.Id = id;
-        return _organizationService.UpdateAsync(command);
+        return organizationService.UpdateAsync(command);
     }
 
     [HttpGet("subList")]
     public Task<List<SubOrganizationDto>> GetSubListAsync([FromQuery] GetSubListQuery query)
     {
-        return _organizationService.GetSubListAsync(query);
+        return organizationService.GetSubListAsync(query);
     }
 
     [HttpPost("{id}/administrators/{userId}")]
     public Task AddAdministratorAsync([FromRoute] AddAdministratorCommand command)
     {
-        return _organizationService.AddAdministratorAsync(command);
+        return organizationService.AddAdministratorAsync(command);
     }
 
     [HttpDelete("{id}/administrators/{userId}")]
     public Task AddAdministratorAsync([FromRoute] DeleteAdministratorCommand command)
     {
-        return _organizationService.DeleteAdministratorAsync(command);
+        return organizationService.DeleteAdministratorAsync(command);
     }
 }

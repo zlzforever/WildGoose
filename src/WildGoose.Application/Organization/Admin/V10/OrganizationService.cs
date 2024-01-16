@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Dapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -15,18 +14,16 @@ using WildGoose.Infrastructure;
 
 namespace WildGoose.Application.Organization.Admin.V10;
 
-public class OrganizationService : BaseService
-{
-    private readonly UserManager<WildGoose.Domain.Entity.User> _userManager;
-
-    public OrganizationService(WildGooseDbContext dbContext, HttpSession session, IOptions<DbOptions> dbOptions,
-        ILogger<OrganizationService> logger, UserManager<WildGoose.Domain.Entity.User> userManager) : base(dbContext,
+public class OrganizationService(
+    WildGooseDbContext dbContext,
+    HttpSession session,
+    IOptions<DbOptions> dbOptions,
+    ILogger<OrganizationService> logger,
+    UserManager<WildGoose.Domain.Entity.User> userManager)
+    : BaseService(dbContext,
         session, dbOptions,
         logger)
-    {
-        _userManager = userManager;
-    }
-
+{
     public async Task<OrganizationSimpleDto> AddAsync(AddOrganizationCommand command)
     {
         // 只有超级管理员可以创建一级机构
@@ -413,7 +410,7 @@ public class OrganizationService : BaseService
             throw new WildGooseFriendlyException(1, "权限不足");
         }
 
-        var user = await _userManager.FindByIdAsync(command.UserId);
+        var user = await userManager.FindByIdAsync(command.UserId);
         if (user == null)
         {
             throw new WildGooseFriendlyException(1, "用户不存在");
@@ -425,7 +422,7 @@ public class OrganizationService : BaseService
             UserId = command.UserId
         };
         // TODO: 如果多次添加是报异常还是？
-        await _userManager.AddToRoleAsync(user, Defaults.OrganizationAdmin);
+        await userManager.AddToRoleAsync(user, Defaults.OrganizationAdmin);
         await DbContext.AddAsync(relationship);
         await DbContext.SaveChangesAsync();
     }
@@ -437,7 +434,7 @@ public class OrganizationService : BaseService
             throw new WildGooseFriendlyException(1, "权限不足");
         }
 
-        var user = await _userManager.FindByIdAsync(command.UserId);
+        var user = await userManager.FindByIdAsync(command.UserId);
         if (user == null)
         {
             throw new WildGooseFriendlyException(1, "用户不存在");
@@ -460,7 +457,7 @@ public class OrganizationService : BaseService
             // 若用户没有作为机构管理员， 则删除对应的角色
             if (relationships.Count == 1)
             {
-                await _userManager.RemoveFromRoleAsync(user, Defaults.OrganizationAdmin);
+                await userManager.RemoveFromRoleAsync(user, Defaults.OrganizationAdmin);
             }
         }
 

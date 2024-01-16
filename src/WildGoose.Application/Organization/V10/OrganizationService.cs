@@ -10,13 +10,13 @@ using WildGoose.Infrastructure;
 
 namespace WildGoose.Application.Organization.V10;
 
-public class OrganizationService : BaseService
+public class OrganizationService(
+    WildGooseDbContext dbContext,
+    HttpSession session,
+    IOptions<DbOptions> dbOptions,
+    ILogger<OrganizationService> logger)
+    : BaseService(dbContext, session, dbOptions, logger)
 {
-    public OrganizationService(WildGooseDbContext dbContext, HttpSession session, IOptions<DbOptions> dbOptions,
-        ILogger<OrganizationService> logger) : base(dbContext, session, dbOptions, logger)
-    {
-    }
-
     public async Task<OrganizationSummaryDto> GetSummaryAsync(GetSummaryQuery query)
     {
         var organization = await DbContext

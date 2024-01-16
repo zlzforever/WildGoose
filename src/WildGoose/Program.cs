@@ -78,7 +78,7 @@ builder.Services.AddOptions();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.ConfigureIdentityServer(builder.Configuration);
-
+builder.Services.AddResponseCaching();
 builder.Services.Configure<DbOptions>(builder.Configuration.GetSection("DbContext"));
 builder.Services.Configure<IdentityExtensionOptions>(builder.Configuration.GetSection("Identity"));
 builder.Services.Configure<DaprOptions>(builder.Configuration.GetSection("Dapr"));
@@ -135,6 +135,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+
+var rootFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot");
+if (!Directory.Exists(rootFolder))
+{
+    Directory.CreateDirectory(rootFolder);
+}
+
 using var scope = app.Services.CreateScope();
 var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
 var migrations = await dbContext.Database.GetPendingMigrationsAsync();
@@ -153,11 +160,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
-
 app.UseCors(corsPolicyName);
-
+app.UseResponseCaching();
 app.UseAuthorization();
-
 app.UseCloudEvents();
 app.MapSubscribeHandler();
 app.MapControllers().RequireAuthorization("Jwt").RequireCors(corsPolicyName);
