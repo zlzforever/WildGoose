@@ -9,15 +9,8 @@ namespace WildGoose.Controllers.V10;
 [Route("api/v1.0/permissions")]
 [ApiController]
 [Authorize]
-public class PermissionController : ControllerBase
+public class PermissionController(PermissionService permissionService) : ControllerBase
 {
-    private readonly PermissionService _permissionService;
-
-    public PermissionController(PermissionService permissionService)
-    {
-        _permissionService = permissionService;
-    }
-
     /// <summary>
     /// 
     /// </summary>
@@ -34,7 +27,7 @@ public class PermissionController : ControllerBase
         var builder = new StringBuilder("[");
         for (var i = 0; i < query.Count; ++i)
         {
-            var v = await _permissionService.EnforceAsync(query[i]);
+            var v = await permissionService.EnforceAsync(query[i]);
             builder.Append(v ? "true" : "false");
             if (i != query.Count - 1)
             {
