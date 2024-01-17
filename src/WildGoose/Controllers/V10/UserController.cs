@@ -8,18 +8,11 @@ namespace WildGoose.Controllers.V10;
 [ApiController]
 [Route("api/v1.0/users")]
 [Authorize]
-public class UserController : ControllerBase
+public class UserController(UserService userService) : ControllerBase
 {
-    private readonly UserService _userService;
-
-    public UserController(UserService userService)
-    {
-        _userService = userService;
-    }
-
     [HttpPost("resetPasswordByCaptcha")]
     public Task ResetPasswordByCaptchaAsync([FromBody] ResetPasswordByCaptchaCommand command)
     {
-        return _userService.ResetPasswordByCaptchaAsync(command);
+        return userService.ResetPasswordByCaptchaAsync(command);
     }
 }

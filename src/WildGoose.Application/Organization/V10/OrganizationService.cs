@@ -43,6 +43,26 @@ public class OrganizationService(
     {
         if (string.IsNullOrEmpty(query.ParentId))
         {
+            if (Session.IsSupperAdmin())
+            {
+                return await DbContext
+                    .Set<WildGoose.Domain.Entity.Organization>()
+                    .Include(x => x.Parent)
+                    .AsNoTracking()
+                    .Where(x => x.Parent.Id == query.ParentId)
+                    .OrderBy(x => x.Code)
+                    .Select(organization => new SubOrganizationDto
+                    {
+                        Id = organization.Id,
+                        Name = organization.Name,
+                        ParentId = organization.Parent.Id,
+                        ParentName = organization.Parent.Name,
+                        HasChild = DbContext
+                            .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
+                            .Any(x => x.Parent.Id == organization.Id)
+                    }).ToListAsync();
+            }
+
             return await GetMyListAsync();
         }
 
