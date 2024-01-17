@@ -23,7 +23,8 @@ public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : Back
             using var scope = serviceProvider.CreateScope();
             await using var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<GenerateTopLevelOrgService>>();
-            var jsonOption = scope.ServiceProvider.GetRequiredService<IOptions<Microsoft.AspNetCore.Mvc.JsonOptions>>().Value;
+            var jsonOption = scope.ServiceProvider.GetRequiredService<IOptions<Microsoft.AspNetCore.Mvc.JsonOptions>>()
+                .Value;
             while (!stoppingToken.IsCancellationRequested)
             {
                 var topList = await GetListAsync(dbContext, [null]);
@@ -49,7 +50,10 @@ public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : Back
                 Id = x.Id,
                 Name = x.Name,
                 ParentId = x.Parent.Id,
-                ParentName = x.Parent.Name
+                ParentName = x.Parent.Name,
+                HasChild = dbContext
+                    .Set<WildGoose.Domain.Entity.Organization>()
+                    .Any(y => y.Parent.Id == x.Id)
             })
             .ToListAsync();
     }
@@ -61,5 +65,6 @@ public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : Back
         public string Name { get; set; }
         public string ParentId { get; set; }
         public string ParentName { get; set; }
+        public bool HasChild { get; set; }
     }
 }
