@@ -41,29 +41,40 @@ public class OrganizationService(
     /// <returns></returns>
     public async Task<List<SubOrganizationDto>> GetSubListAsync(GetSubListQuery query)
     {
-        if (string.IsNullOrEmpty(query.ParentId))
+        // parentId 为空， 且不是超级管理员， 只能看到自己所在的机构
+        if (string.IsNullOrEmpty(query.ParentId) && !Session.IsSupperAdmin())
         {
-            if (Session.IsSupperAdmin())
-            {
-                return await DbContext
-                    .Set<WildGoose.Domain.Entity.Organization>()
-                    .Include(x => x.Parent)
-                    .AsNoTracking()
-                    .Where(x => x.Parent.Id == query.ParentId)
-                    .OrderBy(x => x.Code)
-                    .Select(organization => new SubOrganizationDto
-                    {
-                        Id = organization.Id,
-                        Name = organization.Name,
-                        ParentId = organization.Parent.Id,
-                        ParentName = organization.Parent.Name,
-                        HasChild = DbContext
-                            .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
-                            .Any(x => x.Parent.Id == organization.Id)
-                    }).ToListAsync();
-            }
-
             return await GetMyListAsync();
+
+            // var list = await DbContext
+            //     .Set<WildGoose.Domain.Entity.Organization>()
+            //     .Include(x => x.Parent)
+            //     .AsNoTracking()
+            //     .Where(x => x.Parent.Id == query.ParentId)
+            //     .OrderBy(x => x.Code)
+            //     .Select(organization => new
+            //     {
+            //         organization.Id,
+            //         organization.Name,
+            //         ParentId = organization.Parent.Id,
+            //         ParentName = organization.Parent.Name,
+            //         organization.Metadata,
+            //         Scope = DbContext.Set<OrganizationScope>().AsNoTracking()
+            //             .Where(y => y.OrganizationId == organization.Id).Select(z => z.Scope).ToList(),
+            //         HasChild = DbContext
+            //             .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
+            //             .Any(x => x.Parent.Id == organization.Id)
+            //     }).ToListAsync();
+            // return list.Select(x => new SubOrganizationDto
+            // {
+            //     Id = x.Id,
+            //     Name = x.Name,
+            //     ParentId = x.ParentId,
+            //     ParentName = x.ParentName,
+            //     Scope = x.Scope,
+            //     HasChild = x.HasChild,
+            //     Metadata = string.IsNullOrEmpty(x.Metadata) ? default : JsonDocument.Parse(x.Metadata)
+            // }).ToList();
         }
 
         var result = await DbContext
@@ -137,7 +148,7 @@ public class OrganizationService(
             .ToList();
         if (entities.Count == 0)
         {
-            return new List<SubOrganizationDto>();
+            return [];
         }
 
         var dict = new Dictionary<string, SubOrganizationDto>();
@@ -155,11 +166,8 @@ public class OrganizationService(
                     ParentName = entity.ParentName,
                     Metadata = string.IsNullOrEmpty(entity.Metadata) ? default : JsonDocument.Parse(entity.Metadata),
                     Scope = string.IsNullOrEmpty(entity.Scope)
-                        ? new List<string>()
-                        : new List<string>
-                        {
-                            entity.Scope
-                        }
+                        ? []
+                        : [entity.Scope]
                 };
                 dict.Add(entity.Id, dto);
             }
