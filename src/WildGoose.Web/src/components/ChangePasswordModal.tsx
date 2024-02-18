@@ -51,7 +51,21 @@ const ChangePasswordModal: React.FC<ChangePasswordlProps> = (props) => {
         <Form layout="vertical" form={form}>
           <Row gutter={16}>
             <Col span={24}>
-              <Form.Item name="newPassword" label="新密码" rules={[{ required: true, message: '请输入新密码' }]}>
+              <Form.Item
+                name="newPassword"
+                label="新密码"
+                rules={[
+                  { required: true, message: '请输入新密码' },
+                  () => ({
+                    validator(_, value) {
+                      const reg = /^(?=.*?[a-z])(?=.*?[A-Z])(?=.*?\d)(?=.*?[~!@#$%^&*()_+{}:|<>?/\-+\\|;<>,.?]).*$/;
+                      if (!value || reg.test(value)) {
+                        return Promise.resolve()
+                      }
+                      return Promise.reject(new Error('密码必须包含数字，特殊字符，大小写字母'))
+                    },
+                  }),
+                ]}>
                 <Input.Password type="password" placeholder="请输入新密码" />
               </Form.Item>
             </Col>
