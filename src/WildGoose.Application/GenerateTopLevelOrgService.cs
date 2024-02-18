@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using WildGoose.Infrastructure;
 
 namespace WildGoose.Application;
@@ -22,6 +23,8 @@ public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : Back
             using var scope = serviceProvider.CreateScope();
             await using var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<GenerateTopLevelOrgService>>();
+            var jsonOption = scope.ServiceProvider.GetRequiredService<IOptions<Microsoft.AspNetCore.Mvc.JsonOptions>>()
+                .Value;
             while (!stoppingToken.IsCancellationRequested)
             {
                 var topList = await GetListAsync(dbContext, [null]);
@@ -29,7 +32,7 @@ public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : Back
                 var lv2List = await GetListAsync(dbContext, lv1List.Select(x => x.Id).ToList());
                 var lv3List = await GetListAsync(dbContext, lv2List.Select(x => x.Id).ToList());
                 var list = topList.Concat(lv1List).Concat(lv2List).Concat(lv3List).ToList();
-                var json = JsonSerializer.Serialize(list);
+                var json = JsonSerializer.Serialize(list, jsonOption.JsonSerializerOptions);
                 await File.WriteAllTextAsync($"{dir}/organizations.json", json, stoppingToken);
                 logger.LogInformation("更新组织机构缓存数据成功");
                 await Task.Delay(60 * 1000, stoppingToken);
@@ -47,7 +50,10 @@ public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : Back
                 Id = x.Id,
                 Name = x.Name,
                 ParentId = x.Parent.Id,
-                ParentName = x.Parent.Name
+                ParentName = x.Parent.Name,
+                HasChild = dbContext
+                    .Set<WildGoose.Domain.Entity.Organization>()
+                    .Any(y => y.Parent.Id == x.Id)
             })
             .ToListAsync();
     }
@@ -59,5 +65,6 @@ public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : Back
         public string Name { get; set; }
         public string ParentId { get; set; }
         public string ParentName { get; set; }
+        public bool HasChild { get; set; }
     }
 }
