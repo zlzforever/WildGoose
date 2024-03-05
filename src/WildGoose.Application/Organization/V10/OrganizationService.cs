@@ -28,6 +28,7 @@ public class OrganizationService(
             {
                 Id = x.Id,
                 Name = x.Name,
+                Code = x.Code,
                 ParentId = x.Parent.Id,
                 ParentName = x.Parent.Name
             }).FirstOrDefaultAsync();

@@ -49,6 +49,7 @@ public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : Back
             {
                 Id = x.Id,
                 Name = x.Name,
+                Code = x.Code,
                 ParentId = x.Parent.Id,
                 ParentName = x.Parent.Name,
                 HasChild = dbContext
@@ -63,6 +64,7 @@ public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : Back
     {
         public string Id { get; set; }
         public string Name { get; set; }
+        public string Code { get; set; }
         public string ParentId { get; set; }
         public string ParentName { get; set; }
         public bool HasChild { get; set; }
