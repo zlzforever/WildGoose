@@ -90,6 +90,7 @@ public class OrganizationService(
                 ParentId = organization.Parent.Id,
                 ParentName = organization.Parent.Name,
                 organization.Metadata,
+                organization.Code,
                 Scope = DbContext.Set<OrganizationScope>().AsNoTracking()
                     .Where(y => y.OrganizationId == organization.Id).Select(z => z.Scope).ToList(),
                 HasChild = DbContext
@@ -100,6 +101,7 @@ public class OrganizationService(
         {
             Id = x.Id,
             Name = x.Name,
+            Code = x.Code,
             ParentId = x.ParentId,
             ParentName = x.ParentName,
             Scope = x.Scope,
@@ -123,6 +125,7 @@ public class OrganizationService(
                     SELECT t1.id,
                            t1.name,
                            t1.metadata,
+                           t1.code,
                            t3.scope,
                            t4.id     as parent_id,
                            t4.name   as parent_name,
@@ -161,6 +164,7 @@ public class OrganizationService(
                 {
                     Id = entity.Id,
                     Name = entity.Name,
+                    Code = entity.Code,
                     HasChild = entity.HasChild,
                     ParentId = entity.ParentId,
                     ParentName = entity.ParentName,
@@ -195,5 +199,6 @@ public class OrganizationService(
         public string ParentId { get; set; }
         public string ParentName { get; set; }
         public bool HasChild { get; set; }
+        public string Code { get; set; }
     }
 }
