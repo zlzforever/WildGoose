@@ -45,6 +45,7 @@ public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : Back
         return await dbContext.Set<WildGoose.Domain.Entity.Organization>()
             .AsNoTracking()
             .Where(x => parentIdList.Contains(x.Parent.Id))
+            .OrderBy(x => x.Code)
             .Select(x => new OrganizationEntity
             {
                 Id = x.Id,
