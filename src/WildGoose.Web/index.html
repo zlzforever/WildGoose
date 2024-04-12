@@ -16,14 +16,18 @@
       // 存空的情况
       // 没有值; 值为'/'; 值为登录页路由
       // TODO
-      if (!pathname || pathname === '/') {
-        localStorage.setItem('RedirectPath', '')
-      } else if (pathname === '/signin-redirect-callback' || pathname === '/signin-silent-callback' || pathname === '/signout-redirect-callback') {
+      if (!pathname || pathname === "/") {
+        localStorage.setItem("RedirectPath", "")
+      } else if (
+        pathname === "/signin-redirect-callback" ||
+        pathname === "/signin-silent-callback" ||
+        pathname === "/signout-redirect-callback"
+      ) {
       } else {
-        localStorage.setItem('RedirectPath', window.location.pathname)
+        localStorage.setItem("RedirectPath", window.location.pathname)
       }
     </script>
-    <script src="/config.js"></script>
+    <script src="/wildgoose/config.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
