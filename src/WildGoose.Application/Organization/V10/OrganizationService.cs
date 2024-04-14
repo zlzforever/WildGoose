@@ -136,7 +136,7 @@ public class OrganizationService(
                             limit 1) as has_children
                     FROM {{organizationTable}} t1
                              JOIN {{organizationUserTable}} t2 ON t1.id = t2.organization_id
-                             JOIN {{organizationTable}} t4 ON t1.parent_id = t4.id
+                             LEFT JOIN {{organizationTable}} t4 ON t1.parent_id = t4.id
                              LEFT JOIN {{organizationScopeTableName}} t3 ON t1.id = t3.organization_id
                     WHERE NOT (t1.is_deleted)
                       AND t2.user_id = @Id
