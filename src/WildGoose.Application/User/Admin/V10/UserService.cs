@@ -48,7 +48,8 @@ public class UserService : BaseService
             select user;
         if (!string.IsNullOrEmpty(query.Q))
         {
-            queryable = queryable.Where(x => x.UserName.Contains(query.Q));
+            queryable = queryable.Where(x =>
+                x.UserName.Contains(query.Q) || x.PhoneNumber.Contains(query.Q) || x.Email.Contains(query.Q));
         }
 
         if ("disabled".Equals(query.Status, StringComparison.OrdinalIgnoreCase))
