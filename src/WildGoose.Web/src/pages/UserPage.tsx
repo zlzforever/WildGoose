@@ -309,11 +309,11 @@ const UserPage = () => {
       children: [],
     }
 
+    organizationTreeDict[values.id] = organization
+    setOrganizationTreeDict({...organizationTreeDict})
     // 新添加了根机构
     if (!organization.pId) {
-      organizationTreeDict[values.id] = organization
       setOrganizationTreeData(organizationTreeData.concat(organization))
-      setOrganizationTreeDict(organizationTreeDict)
     } else {
       const parent = organizationTreeDict[organization.pId]
       parent.isLeaf = false
@@ -388,14 +388,20 @@ const UserPage = () => {
   }
 
   const onOrganizationDelete = async (item: SimpleDataNode) => {
-    await deleteOrganization(item.key)
-    if (item.pId) {
-      const parent = organizationTreeDict[item.pId]
-      parent.children = parent.children.filter((y) => y.key !== item.key)
-      parent.isLeaf = parent.children.length === 0
-      setOrganizationTreeData([...organizationTreeData])
-    } else {
-      setOrganizationTreeData((origin) => origin.filter((y) => y.key !== item.key))
+    try {
+      const res = await deleteOrganization(item.key)
+      if (res) {
+        if (item.pId) {
+          const parent = organizationTreeDict[item.pId]
+          parent.children = parent.children.filter((y) => y.key !== item.key)
+          parent.isLeaf = parent.children.length === 0
+          setOrganizationTreeData([...organizationTreeData])
+        } else {
+          setOrganizationTreeData((origin) => origin.filter((y) => y.key !== item.key))
+        }
+      }
+    } catch(e) {
+      console.log(e)
     }
   }
 
