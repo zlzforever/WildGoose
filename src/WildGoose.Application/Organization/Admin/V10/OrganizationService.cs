@@ -45,11 +45,11 @@ public class OrganizationService(
             }
         }
 
-        var store = DbContext.Set<WildGoose.Domain.Entity.Organization>();
-        if (await store.AnyAsync(x => x.Name == command.Name))
-        {
-            throw new WildGooseFriendlyException(1, "机构名重复");
-        }
+        // var store = DbContext.Set<WildGoose.Domain.Entity.Organization>();
+        // if (await store.AnyAsync(x => x.Name == command.Name))
+        // {
+        //     throw new WildGooseFriendlyException(1, "机构名重复");
+        // }
 
         var organization = Create(command);
         await SetParentAsync(organization, command.ParentId);
