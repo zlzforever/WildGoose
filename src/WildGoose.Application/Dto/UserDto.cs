@@ -1,4 +1,5 @@
 namespace WildGoose.Application.Dto;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 public class UserDto
 {

@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 namespace WildGoose.Application.Role.Admin.V10.Command;
 
 public class DeleteRoleCommand

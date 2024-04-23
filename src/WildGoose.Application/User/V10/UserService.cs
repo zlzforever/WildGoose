@@ -10,28 +10,23 @@ using WildGoose.Infrastructure;
 
 namespace WildGoose.Application.User.V10;
 
-public class UserService : BaseService
+public class UserService(
+    WildGooseDbContext dbContext,
+    HttpSession session,
+    IOptions<DbOptions> dbOptions,
+    ILogger<UserService> logger,
+    IPasswordValidator<WildGoose.Domain.Entity.User> passwordValidator,
+    UserManager<WildGoose.Domain.Entity.User> userManager)
+    : BaseService(dbContext, session, dbOptions, logger)
 {
-    private readonly IPasswordValidator<WildGoose.Domain.Entity.User> _passwordValidator;
-    private readonly UserManager<WildGoose.Domain.Entity.User> _userManager;
-
-    public UserService(WildGooseDbContext dbContext, HttpSession session, IOptions<DbOptions> dbOptions,
-        ILogger<UserService> logger, IPasswordValidator<WildGoose.Domain.Entity.User> passwordValidator,
-        UserManager<WildGoose.Domain.Entity.User> userManager)
-        : base(dbContext, session, dbOptions, logger)
-    {
-        _passwordValidator = passwordValidator;
-        _userManager = userManager;
-    }
-
     public async Task ResetPasswordByCaptchaAsync(ResetPasswordByCaptchaCommand command)
     {
         var password = command.NewPassword;
         var passwordValidatorResult =
-            await _passwordValidator.ValidateAsync(_userManager, new WildGoose.Domain.Entity.User(), password);
+            await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(), password);
         passwordValidatorResult.CheckErrors();
 
-        var user = await _userManager.Users.FirstOrDefaultAsync(x =>
+        var user = await userManager.Users.FirstOrDefaultAsync(x =>
             x.PhoneNumber == command.PhoneNumber || x.UserName == command.PhoneNumber);
         if (user == null)
         {
@@ -39,7 +34,7 @@ public class UserService : BaseService
         }
 
         var result =
-            await _userManager.VerifyChangePhoneNumberTokenAsync(user, command.Captcha, command.PhoneNumber);
+            await userManager.VerifyChangePhoneNumberTokenAsync(user, command.Captcha, command.PhoneNumber);
         if (!result)
         {
             // 验证失败的处理逻辑
@@ -47,8 +42,8 @@ public class UserService : BaseService
         }
 
         // 验证成功，可以允许用户更改密码
-        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        (await _userManager.ResetPasswordAsync(user, token, password)).CheckErrors();
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        (await userManager.ResetPasswordAsync(user, token, password)).CheckErrors();
 
         var extension = await DbContext.Set<UserExtension>()
             .FirstOrDefaultAsync(x => x.Id == user.Id);

@@ -4,15 +4,8 @@ using WildGoose.Domain;
 
 namespace WildGoose.Filters;
 
-public class GlobalExceptionFilter : IExceptionFilter
+public class GlobalExceptionFilter(ILogger<GlobalExceptionFilter> logger) : IExceptionFilter
 {
-    private readonly ILogger<GlobalExceptionFilter> _logger;
-
-    public GlobalExceptionFilter(ILogger<GlobalExceptionFilter> logger)
-    {
-        _logger = logger;
-    }
-
     public void OnException(ExceptionContext context)
     {
         if (context.ExceptionHandled)
@@ -22,7 +15,7 @@ public class GlobalExceptionFilter : IExceptionFilter
 
         if (context.Exception is WildGooseFriendlyException e)
         {
-            _logger.LogError("{LogInfo} {Exception}", e.LogInfo, e);
+            logger.LogError("{LogInfo} {Exception}", e.LogInfo, e);
             context.Result = new BadRequestObjectResult(new
             {
                 Success = false,
@@ -32,7 +25,7 @@ public class GlobalExceptionFilter : IExceptionFilter
         }
         else
         {
-            _logger.LogError("{Exception}", context.Exception);
+            logger.LogError("{Exception}", context.Exception);
             context.HttpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
             context.Result =
                 new ObjectResult(new

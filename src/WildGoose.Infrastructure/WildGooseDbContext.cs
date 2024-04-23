@@ -12,13 +12,9 @@ using WildGoose.Domain.Extensions;
 
 namespace WildGoose.Infrastructure;
 
-public class WildGooseDbContext : IdentityDbContext<User, Role, string>
+public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
+    : IdentityDbContext<User, Role, string>(options)
 {
-    public WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
-        : base(options)
-    {
-    }
-
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

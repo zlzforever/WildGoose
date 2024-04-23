@@ -1,3 +1,4 @@
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 namespace WildGoose.Application.User.Admin.V10.Dto;
 
 public class UserDetailDto

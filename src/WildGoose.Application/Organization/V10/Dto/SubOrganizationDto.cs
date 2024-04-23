@@ -1,4 +1,5 @@
 using System.Text.Json;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace WildGoose.Application.Organization.V10.Dto;
 

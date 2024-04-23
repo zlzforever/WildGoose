@@ -9,17 +9,15 @@ using WildGoose.Infrastructure;
 
 namespace WildGoose.Application.Permission.Internal.V10;
 
-public class PermissionService : BaseService
+public class PermissionService(
+    WildGooseDbContext dbContext,
+    HttpSession session,
+    IOptions<DbOptions> dbOptions,
+    IMemoryCache memoryCache,
+    ILogger<PermissionService> logger)
+    : BaseService(dbContext, session, dbOptions, logger)
 {
-    private readonly IMemoryCache _memoryCache;
     private static readonly Random Random = new();
-
-    public PermissionService(WildGooseDbContext dbContext, HttpSession session, IOptions<DbOptions> dbOptions,
-        IMemoryCache memoryCache, ILogger<PermissionService> logger) : base(dbContext, session,
-        dbOptions, logger)
-    {
-        _memoryCache = memoryCache;
-    }
 
     public async Task<bool> EnforceAsync(EnforceQuery query)
     {
@@ -43,7 +41,7 @@ public class PermissionService : BaseService
         var policies = new List<List<Statement>>();
         foreach (var role in Session.Roles)
         {
-            var statements = await _memoryCache.GetOrCreateAsync($"PermissionService.Role.{role}",
+            var statements = await memoryCache.GetOrCreateAsync($"PermissionService.Role.{role}",
                 async entry =>
                 {
                     var json = await DbContext

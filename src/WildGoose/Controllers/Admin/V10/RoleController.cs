@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
-using WildGoose.Application;
 using WildGoose.Application.Role.Admin.V10;
 using WildGoose.Application.Role.Admin.V10.Command;
 using WildGoose.Application.Role.Admin.V10.Dto;
@@ -12,38 +11,31 @@ namespace WildGoose.Controllers.Admin.V10;
 [ApiController]
 [Route("api/admin/v1.0/roles")]
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "admin")]
-public class RoleController : ControllerBase
+public class RoleController(RoleService roleService) : ControllerBase
 {
-    private readonly RoleService _roleService;
-
-    public RoleController(RoleService roleService)
-    {
-        _roleService = roleService;
-    }
-
     [HttpGet]
     public Task<PagedResult<RoleDto>> GetAsync([FromQuery] GetRolesQuery query)
     {
-        return _roleService.GetRolesAsync(query);
+        return roleService.GetRolesAsync(query);
     }
 
     [HttpPost]
     public Task<string> CreateAsync([FromBody] AddRoleCommand command)
     {
-        return _roleService.AddAsync(command);
+        return roleService.AddAsync(command);
     }
 
     [HttpDelete("{id}")]
     public async Task<string> DeleteAsync([FromRoute] DeleteRoleCommand command)
     {
-        await _roleService.DeleteAsync(command);
+        await roleService.DeleteAsync(command);
         return command.Id;
     }
 
     [HttpGet("{id}")]
     public Task<RoleDto> GetAsync([FromRoute] GetRoleQuery query)
     {
-        return _roleService.GetAsync(query);
+        return roleService.GetAsync(query);
     }
 
     [HttpPost("{id}")]
@@ -51,7 +43,7 @@ public class RoleController : ControllerBase
         [FromBody] UpdateRoleCommand command)
     {
         command.Id = id;
-        await _roleService.UpdateAsync(command);
+        await roleService.UpdateAsync(command);
         return id;
     }
 
@@ -60,25 +52,25 @@ public class RoleController : ControllerBase
         [FromBody] UpdateStatementCommand command)
     {
         command.Id = id;
-        await _roleService.UpdateStatementAsync(command);
+        await roleService.UpdateStatementAsync(command);
         return id;
     }
 
     [HttpPost("assignableRoles")]
     public Task AddAssignableRoleAsync([FromBody] AddAssignableRoleCommand command)
     {
-        return _roleService.AddAssignableRoleAsync(command);
+        return roleService.AddAssignableRoleAsync(command);
     }
 
     [HttpDelete("{id}/assignableRoles/{assignableRoleId}")]
     public Task AddAssignableRoleAsync([FromRoute] DeleteAssignableRoleCommand command)
     {
-        return _roleService.DeleteAssignableRoleAsync(command);
+        return roleService.DeleteAssignableRoleAsync(command);
     }
 
     [HttpGet("assignableRoles")]
     public Task<List<RoleBasicDto>> GetAssignableRolesAsync()
     {
-        return _roleService.GetAssignableRolesAsync();
+        return roleService.GetAssignableRolesAsync();
     }
 }

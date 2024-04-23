@@ -5,15 +5,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MongoDB.Bson;
-using WildGoose.Application.Extensions;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
 using WildGoose.Infrastructure;
 
 namespace WildGoose.Application;
 
-public abstract class BaseService
+public abstract class BaseService(
+    WildGooseDbContext dbContext,
+    HttpSession session,
+    IOptions<DbOptions> dbOptions,
+    ILogger logger)
 {
     protected static readonly Lazy<string> QueryAdminOrganizationSql = new(() =>
     {
@@ -53,21 +55,12 @@ public abstract class BaseService
         return sql;
     });
 
-    protected WildGooseDbContext DbContext { init; get; }
-    protected HttpSession Session { init; get; }
-    protected DbOptions DbOptions { init; get; }
-    protected ILogger Logger { init; get; }
+    protected WildGooseDbContext DbContext { init; get; } = dbContext;
+    protected HttpSession Session { init; get; } = session;
+    protected DbOptions DbOptions { init; get; } = dbOptions.Value;
+    protected ILogger Logger { init; get; } = logger;
 
     protected DaprClient GetDaprClient() => Session.HttpContext.RequestServices.GetService<DaprClient>();
-
-    protected BaseService(WildGooseDbContext dbContext, HttpSession session, IOptions<DbOptions> dbOptions,
-        ILogger logger)
-    {
-        DbContext = dbContext;
-        Session = session;
-        Logger = logger;
-        DbOptions = dbOptions.Value;
-    }
 
     /// <summary>
     /// 查询当前用户管理的机构
@@ -140,7 +133,6 @@ public abstract class BaseService
 
         throw new WildGooseFriendlyException(1, "权限不足");
     }
-
 
     /// <summary>
     /// 查询机构，若机构有上级机构，会被忽略

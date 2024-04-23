@@ -1,4 +1,5 @@
 using WildGoose.Application.Dto;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace WildGoose.Application.Organization.Admin.V10.Dto;
 

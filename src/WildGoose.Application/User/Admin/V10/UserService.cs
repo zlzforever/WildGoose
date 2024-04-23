@@ -17,28 +17,21 @@ using WildGoose.Infrastructure;
 
 namespace WildGoose.Application.User.Admin.V10;
 
-public class UserService : BaseService
+public class UserService(
+    WildGooseDbContext dbContext,
+    HttpSession session,
+    IOptions<DbOptions> dbOptions,
+    ILogger<UserService> logger,
+    IPasswordValidator<WildGoose.Domain.Entity.User> passwordValidator,
+    UserManager<WildGoose.Domain.Entity.User> userManager,
+    IOptions<DaprOptions> dapOptions,
+    IOptions<IdentityExtensionOptions> identityExtensionOptions,
+    IObjectStorageService objectStorageService)
+    : BaseService(dbContext, session, dbOptions, logger)
 {
     private static readonly HashSet<string> ImagePostfixes = new() { ".webp", ".bmp", ".jpg", ".jpeg", ".png", ".gif" };
-    private readonly IPasswordValidator<WildGoose.Domain.Entity.User> _passwordValidator;
-    private readonly UserManager<WildGoose.Domain.Entity.User> _userManager;
-    private readonly IdentityExtensionOptions _identityExtensionOptions;
-    private readonly IObjectStorageService _objectStorageService;
-    private readonly DaprOptions _daprOptions;
-
-    public UserService(WildGooseDbContext dbContext, HttpSession session, IOptions<DbOptions> dbOptions,
-        ILogger<UserService> logger, IPasswordValidator<WildGoose.Domain.Entity.User> passwordValidator,
-        UserManager<WildGoose.Domain.Entity.User> userManager,
-        IOptions<DaprOptions> dapOptions,
-        IOptions<IdentityExtensionOptions> identityExtensionOptions, IObjectStorageService objectStorageService) : base(
-        dbContext, session, dbOptions, logger)
-    {
-        _passwordValidator = passwordValidator;
-        _userManager = userManager;
-        _daprOptions = dapOptions.Value;
-        _objectStorageService = objectStorageService;
-        _identityExtensionOptions = identityExtensionOptions.Value;
-    }
+    private readonly IdentityExtensionOptions _identityExtensionOptions = identityExtensionOptions.Value;
+    private readonly DaprOptions _daprOptions = dapOptions.Value;
 
     public async Task<PagedResult<UserDto>> GetAsync(GetUsersQuery query)
     {
@@ -166,7 +159,7 @@ public class UserService : BaseService
     {
         // 验证密码是否符合要求
         var passwordValidatorResult =
-            await _passwordValidator.ValidateAsync(_userManager, new WildGoose.Domain.Entity.User(),
+            await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(),
                 command.Password);
         passwordValidatorResult.CheckErrors();
 
@@ -175,8 +168,8 @@ public class UserService : BaseService
         // await VerifyOrganizationPermissionAsync(command.Organizations);
         await VerifyRolePermissionAsync(command.Roles);
 
-        var normalizedUserName = _userManager.NormalizeName(command.UserName);
-        if (await _userManager.Users.AnyAsync(x => x.NormalizedUserName == normalizedUserName))
+        var normalizedUserName = userManager.NormalizeName(command.UserName);
+        if (await userManager.Users.AnyAsync(x => x.NormalizedUserName == normalizedUserName))
         {
             throw new WildGooseFriendlyException(1, "用户名已经存在");
         }
@@ -197,7 +190,7 @@ public class UserService : BaseService
         Utils.SetPasswordInfo(userExtension, command.Password);
         await DbContext.AddAsync(userExtension);
 
-        var result = await _userManager.CreateAsync(user, command.Password);
+        var result = await userManager.CreateAsync(user, command.Password);
         // comments by lewis 20231117: _userManager 会自己调用 SaveChanges
         result.CheckErrors();
 
@@ -269,14 +262,14 @@ public class UserService : BaseService
             }
         }
 
-        var normalizedUserName = _userManager.NormalizeName(command.UserName);
+        var normalizedUserName = userManager.NormalizeName(command.UserName);
         if (await DbContext.Set<WildGoose.Domain.Entity.User>()
                 .AnyAsync(x => x.Id != command.Id && x.NormalizedUserName == normalizedUserName))
         {
             throw new WildGooseFriendlyException(1, "用户名已经存在");
         }
 
-        var user = await _userManager.FindByIdAsync(command.Id);
+        var user = await userManager.FindByIdAsync(command.Id);
         if (user == null)
         {
             throw new WildGooseFriendlyException(1, "用户不存在");
@@ -284,10 +277,10 @@ public class UserService : BaseService
 
         user.Code = command.Code;
         user.Name = command.Name;
-        await _userManager.SetEmailAsync(user, command.Email);
-        await _userManager.SetPhoneNumberAsync(user, command.PhoneNumber);
-        await _userManager.SetUserNameAsync(user, command.UserName);
-        await _userManager.UpdateNormalizedUserNameAsync(user);
+        await userManager.SetEmailAsync(user, command.Email);
+        await userManager.SetPhoneNumberAsync(user, command.PhoneNumber);
+        await userManager.SetUserNameAsync(user, command.UserName);
+        await userManager.UpdateNormalizedUserNameAsync(user);
         var organizationIds = await UpdateOrganizationsAsync(user.Id, command.Organizations);
         var roleIds = await UpdateRolesAsync(user.Id, command.Roles);
 
@@ -484,10 +477,10 @@ public class UserService : BaseService
     {
         var password = command.ConfirmPassword;
         var passwordValidatorResult =
-            await _passwordValidator.ValidateAsync(_userManager, new WildGoose.Domain.Entity.User(), password);
+            await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(), password);
         passwordValidatorResult.CheckErrors();
 
-        var user = await _userManager.FindByIdAsync(command.Id);
+        var user = await userManager.FindByIdAsync(command.Id);
         if (user == null)
         {
             throw new WildGooseFriendlyException(1, "用户不存在");
@@ -508,8 +501,8 @@ public class UserService : BaseService
             Utils.SetPasswordInfo(extension, password);
         }
 
-        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        (await _userManager.ResetPasswordAsync(user, token, password)).CheckErrors();
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        (await userManager.ResetPasswordAsync(user, token, password)).CheckErrors();
     }
 
     public async Task DisableAsync(DisableUserCommand command)
@@ -523,8 +516,8 @@ public class UserService : BaseService
 
         await CheckUserPermissionAsync(user.Id);
 
-        await _userManager.SetLockoutEnabledAsync(user, true);
-        await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+        await userManager.SetLockoutEnabledAsync(user, true);
+        await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
 
         var daprClient = GetDaprClient();
         if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
@@ -548,8 +541,8 @@ public class UserService : BaseService
 
         await CheckUserPermissionAsync(user.Id);
 
-        await _userManager.SetLockoutEnabledAsync(user, false);
-        await _userManager.SetLockoutEndDateAsync(user, null);
+        await userManager.SetLockoutEnabledAsync(user, false);
+        await userManager.SetLockoutEndDateAsync(user, null);
 
         var daprClient = GetDaprClient();
         if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
@@ -579,7 +572,7 @@ public class UserService : BaseService
         await using var stream = tuple.File.OpenReadStream();
         var md5 = await CryptographyUtil.ComputeMd5Async(stream);
 
-        var ossResult = await _objectStorageService.PutAsync(key, stream);
+        var ossResult = await objectStorageService.PutAsync(key, stream);
         if (string.IsNullOrEmpty(ossResult))
         {
             throw new WildGooseFriendlyException(1, "上传头像失败");

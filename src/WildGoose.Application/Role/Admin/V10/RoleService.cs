@@ -15,20 +15,17 @@ using WildGoose.Infrastructure;
 
 namespace WildGoose.Application.Role.Admin.V10;
 
-public class RoleService : BaseService
+public class RoleService(
+    WildGooseDbContext dbContext,
+    HttpSession session,
+    IOptions<DbOptions> dbOptions,
+    ILogger<RoleService> logger,
+    RoleManager<WildGoose.Domain.Entity.Role> roleManager)
+    : BaseService(dbContext, session, dbOptions, logger)
 {
-    private readonly RoleManager<WildGoose.Domain.Entity.Role> _roleManager;
-
-    public RoleService(WildGooseDbContext dbContext, HttpSession session, IOptions<DbOptions> dbOptions,
-        ILogger<RoleService> logger,
-        RoleManager<WildGoose.Domain.Entity.Role> roleManager) : base(dbContext, session, dbOptions, logger)
-    {
-        _roleManager = roleManager;
-    }
-
     public async Task<string> AddAsync(AddRoleCommand command)
     {
-        if (await _roleManager.RoleExistsAsync(command.Name))
+        if (await roleManager.RoleExistsAsync(command.Name))
         {
             throw new WildGooseFriendlyException(1, "角色已经存在");
         }
@@ -40,7 +37,7 @@ public class RoleService : BaseService
             Description = command.Description,
             Statement = "[]"
         };
-        var roleResult = await _roleManager.CreateAsync(role);
+        var roleResult = await roleManager.CreateAsync(role);
         roleResult.CheckErrors();
 
         // var roleDomain = new DomainRole
@@ -75,7 +72,8 @@ public class RoleService : BaseService
         {
             var tableName = DbContext.Set<IdentityUserRole<string>>()
                 .EntityType.GetTableName();
-            await DbContext.Database.ExecuteSqlRawAsync(
+            
+            await DbContext.Database.ExecuteSqlAsync(
                 $$"""
                   DELETE FROM {{tableName}} WHERE role_id = '{{role.Id}}'
                   """);
@@ -108,7 +106,7 @@ public class RoleService : BaseService
         }
 
         role.Name = command.Name;
-        role.NormalizedName = _roleManager.NormalizeKey(command.Name);
+        role.NormalizedName = roleManager.NormalizeKey(command.Name);
         role.Description = command.Description;
 
         if (await DbContext.Set<WildGoose.Domain.Entity.Role>()

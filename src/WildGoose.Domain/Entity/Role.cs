@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace WildGoose.Domain.Entity;
 
-public class Role : IdentityRole, ICreation, IModification
+public class Role(string name) : IdentityRole(name), ICreation, IModification
 {
     /// <summary>
     /// 备注
@@ -52,8 +52,4 @@ public class Role : IdentityRole, ICreation, IModification
     public DateTimeOffset? LastModificationTime { get; set; }
 
     #endregion
-
-    public Role(string name) : base(name)
-    {
-    }
 }

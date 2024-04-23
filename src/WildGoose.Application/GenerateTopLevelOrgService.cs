@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,28 +47,19 @@ public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : Back
             .AsNoTracking()
             .Where(x => parentIdList.Contains(x.Parent.Id))
             .OrderBy(x => x.Code)
-            .Select(x => new OrganizationEntity
-            {
-                Id = x.Id,
-                Name = x.Name,
-                Code = x.Code,
-                ParentId = x.Parent.Id,
-                ParentName = x.Parent.Name,
-                HasChild = dbContext
+            .Select(x => new OrganizationEntity(x.Id, x.Name, x.Code, x.Parent.Id, x.Parent.Name,
+                dbContext
                     .Set<WildGoose.Domain.Entity.Organization>()
-                    .Any(y => y.Parent.Id == x.Id)
-            })
+                    .Any(y => y.Parent.Id == x.Id)))
             .ToListAsync();
     }
 
-
-    class OrganizationEntity
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string Code { get; set; }
-        public string ParentId { get; set; }
-        public string ParentName { get; set; }
-        public bool HasChild { get; set; }
-    }
+    [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Local")]
+    private record OrganizationEntity(
+        string Id,
+        string Name,
+        string Code,
+        string ParentId,
+        string ParentName,
+        bool HasChild);
 }

@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace WildGoose.Application.Organization.Admin.V10.Dto;
 
 public class SubOrganizationDto

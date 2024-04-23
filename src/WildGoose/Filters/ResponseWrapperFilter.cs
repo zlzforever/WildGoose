@@ -1,21 +1,13 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace WildGoose.Filters;
 
-public sealed class ResponseWrapperFilter : IAsyncResultFilter
+public sealed class ResponseWrapperFilter(ILogger<ResponseWrapperFilter> logger) : IAsyncResultFilter
 {
-    private readonly ILogger<ResponseWrapperFilter> _logger;
-
-    public ResponseWrapperFilter(ILogger<ResponseWrapperFilter> logger)
-    {
-        _logger = logger;
-    }
-
     public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
     {
-        _logger.LogDebug("开始执行返回结果过滤器");
+        logger.LogDebug("开始执行返回结果过滤器");
 
         // 服务调用不做 APIResult 包装
         if (context.HttpContext.Request.Headers.TryGetValue("Internal-Caller", out var value))
@@ -74,7 +66,7 @@ public sealed class ResponseWrapperFilter : IAsyncResultFilter
             });
         }
 
-        _logger.LogDebug("执行返回结果过滤器结束");
+        logger.LogDebug("执行返回结果过滤器结束");
         await next();
     }
 
