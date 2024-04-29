@@ -72,10 +72,10 @@ public class RoleService(
         {
             var tableName = DbContext.Set<IdentityUserRole<string>>()
                 .EntityType.GetTableName();
-            
-            await DbContext.Database.ExecuteSqlAsync(
-                $$"""
-                  DELETE FROM {{tableName}} WHERE role_id = '{{role.Id}}'
+
+            await DbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                  DELETE FROM {tableName} WHERE role_id = '{role.Id}'
                   """);
             await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
