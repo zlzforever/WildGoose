@@ -201,6 +201,7 @@ const UserPage = () => {
         })
         setOrganizationTreeData(data)
         setOrganizationTreeSelectedKeys([organizations[0].id])
+        loadUsers(organizations[0].id, '', 'all', window.wildgoods.pageSize, 1)
       } else {
         setOrganizationTreeData([])
         setOrganizationTreeSelectedKeys([])
