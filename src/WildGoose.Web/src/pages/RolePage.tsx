@@ -314,9 +314,11 @@ const RolePage: React.FC = () => {
             id={id}
             onOk={() => {
               setRoleStatementModalOpen(false)
+              setId("")
             }}
             onClose={() => {
               setRoleStatementModalOpen(false)
+              setId("")
             }}></RoleStatementModal>
         ) : (
           <></>
