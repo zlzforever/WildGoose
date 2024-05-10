@@ -133,7 +133,7 @@ public class OrganizationService(
                            (SELECT true
                             FROM {{organizationTable}} AS child
                             WHERE child.parent_id = t1.id
-                            limit 1) as has_children
+                            limit 1) as has_child
                     FROM {{organizationTable}} t1
                              JOIN {{organizationUserTable}} t2 ON t1.id = t2.organization_id
                              LEFT JOIN {{organizationTable}} t4 ON t1.parent_id = t4.id
