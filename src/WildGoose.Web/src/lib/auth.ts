@@ -11,6 +11,12 @@ Log.level = Log.INFO
 
 export async function getUser(): Promise<User | null> {
   const user = await userManager.getUser()
+  if (user && user.profile.role) {
+    user.profile.role = Object.prototype.toString.call(user.profile.role) ===
+      "[object Array]"
+      ? user.profile.role
+      : user.profile.role.split(" ")
+  }
   return user
 }
 
