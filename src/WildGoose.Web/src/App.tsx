@@ -1,6 +1,6 @@
 import { ProConfigProvider } from '@ant-design/pro-provider'
 import './App.css'
-import { ConfigProvider, Dropdown } from 'antd'
+import { ConfigProvider, Dropdown, Modal } from 'antd'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import ProLayout, { ProSettings } from '@ant-design/pro-layout'
 import { LogoutOutlined } from '@ant-design/icons'
@@ -9,8 +9,9 @@ import defaultLayoutSettings from '../config/layoutSettings'
 import routes from '../config/routes'
 import RolePage from './pages/RolePage'
 import UserPage from './pages/UserPage'
-import { getUser } from './lib/auth'
+import { getUser, removeUserInfo, signoutRedirect } from './lib/auth'
 import AccoutImg from './assets/images/account.png'
+import { ExclamationCircleOutlined } from "@ant-design/icons"
 
 function App() {
   const navigate = useNavigate()
@@ -31,6 +32,20 @@ function App() {
     fun()
   }, [])
 
+  const onLogout = () => {
+    Modal.confirm({
+      content: "确定要注销登录吗?",
+      icon: <ExclamationCircleOutlined />,
+      onOk() {
+        removeUserInfo()
+        signoutRedirect()
+      },
+      cancelText: "取消",
+      onCancel() {
+        Modal.destroyAll()
+      },
+    })
+  }
 
   if (typeof document === 'undefined') {
     return <div />
@@ -66,6 +81,9 @@ function App() {
                                 key: 'logout',
                                 icon: <LogoutOutlined />,
                                 label: '退出登录',
+                                onClick: () => {
+                                    onLogout();
+                                },
                               },
                             ],
                           }}>

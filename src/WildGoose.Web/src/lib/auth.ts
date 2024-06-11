@@ -43,3 +43,24 @@ export async function signoutRedirect(): Promise<void> {
 export async function signoutRedirectCallback(): Promise<SignoutResponse> {
   return userManager.signoutRedirectCallback()
 }
+
+export const removeUserInfo = () => {
+  // 遍历localstorage，清空localstorage
+  if (window.localStorage) {
+    const lsKeys = Object.keys(window.localStorage)
+    lsKeys &&
+      lsKeys.length &&
+      lsKeys.forEach((item) => {
+        localStorage.removeItem(item)
+      })
+  }
+  // 遍历cookie，清空cookie
+  if (document.cookie) {
+    // eslint-disable-next-line no-useless-escape
+    const ckKeys: any = document.cookie.match(/[^ =;]+(?=\=)/g)
+    if (ckKeys && ckKeys.length) {
+      for (let i = ckKeys.length; i--; )
+        document.cookie = ckKeys[i] + "=0;expires=" + new Date(0).toUTCString()
+    }
+  }
+}
