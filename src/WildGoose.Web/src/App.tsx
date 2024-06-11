@@ -1,18 +1,22 @@
 import { ProConfigProvider } from '@ant-design/pro-provider'
 import './App.css'
-import { ConfigProvider, Dropdown } from 'antd'
+import { ConfigProvider, Dropdown, Modal } from 'antd'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import ProLayout, { ProSettings } from '@ant-design/pro-layout'
 import { LogoutOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import defaultLayoutSettings from '../config/layoutSettings'
 import routes from '../config/routes'
 import RolePage from './pages/RolePage'
 import UserPage from './pages/UserPage'
+import { getUser, removeUserInfo, signoutRedirect } from './lib/auth'
+import AccoutImg from './assets/images/account.png'
+import { ExclamationCircleOutlined } from "@ant-design/icons"
 
 function App() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [user, setUser] = useState<any>()
   const [settings] = useState<Partial<ProSettings>>({
     fixSiderbar: true,
     layout: 'mix',
@@ -20,9 +24,33 @@ function App() {
   })
   const [pathname, setPathname] = useState(location.pathname)
 
+  useEffect(() => {
+    const fun = async () => {
+      const user = await getUser()
+      setUser(user)
+    }
+    fun()
+  }, [])
+
+  const onLogout = () => {
+    Modal.confirm({
+      content: "确定要注销登录吗?",
+      icon: <ExclamationCircleOutlined />,
+      onOk() {
+        removeUserInfo()
+        signoutRedirect()
+      },
+      cancelText: "取消",
+      onCancel() {
+        Modal.destroyAll()
+      },
+    })
+  }
+
   if (typeof document === 'undefined') {
     return <div />
   }
+
   return (
     <div
       id="socodb-layout"
@@ -41,9 +69,9 @@ function App() {
               element={
                 <ProLayout
                   avatarProps={{
-                    src: 'https://gw.alipayobjects.com/zos/antfincdn/efFD%24IOql2/weixintupian_20170331104822.jpg',
+                    src: AccoutImg,
                     size: 'small',
-                    title: '周正',
+                    title: user && user.profile && user.profile.name,
                     render: (_, dom) => {
                       return (
                         <Dropdown
@@ -53,6 +81,9 @@ function App() {
                                 key: 'logout',
                                 icon: <LogoutOutlined />,
                                 label: '退出登录',
+                                onClick: () => {
+                                    onLogout();
+                                },
                               },
                             ],
                           }}>

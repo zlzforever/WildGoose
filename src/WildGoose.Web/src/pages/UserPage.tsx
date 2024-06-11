@@ -705,7 +705,12 @@ const UserPage = () => {
                 rowKey="id"
                 columns={columns}
                 dataSource={dataSource}
-                pagination={pagination}
+                pagination={{
+                  ...pagination,
+                  onChange: (page: number) => {
+                    loadUsers(organizationTreeSelectedKeys[0], keyword, status, pagination.pageSize, page)
+                  },
+                }}
                 rowSelection={{
                   type: 'checkbox',
                   selectedRowKeys: userSelectedKeys,
