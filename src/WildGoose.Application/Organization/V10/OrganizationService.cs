@@ -43,7 +43,8 @@ public class OrganizationService(
     public async Task<List<SubOrganizationDto>> GetSubListAsync(GetSubListQuery query)
     {
         // parentId 为空， 且不是超级管理员， 只能看到自己所在的机构
-        if (string.IsNullOrEmpty(query.ParentId) && !Session.IsSupperAdmin())
+        if (string.IsNullOrEmpty(query.ParentId)
+            && !Session.IsSupperAdmin() && !query.Type.Equals("all", StringComparison.OrdinalIgnoreCase))
         {
             return await GetMyListAsync();
 
