@@ -66,3 +66,8 @@
   visibility: visible;
 }
 /* #endregion */
+/* #region pro*/
+body .ant-pro-global-header-header-actions-avatar >div{
+  color: rgba(0, 0, 0, 0.85);
+}
+/* #endregion */

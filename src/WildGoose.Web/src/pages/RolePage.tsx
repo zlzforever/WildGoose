@@ -336,7 +336,20 @@ const RolePage: React.FC = () => {
         <Card style={{ ...baseStyle }}>
           <Button onClick={onAdd}>添加</Button>
           <p />
-          <Table rowKey="id" columns={columns} dataSource={dataSource} pagination={pagination} bordered size="small" scroll={{x: 'max-content'}}></Table>
+          <Table
+            rowKey="id"
+            columns={columns}
+            dataSource={dataSource}
+            pagination={{
+              ...pagination,
+              onChange: (page: number) => {
+                loadRoles(keyword, pagination.pageSize, page)
+              },
+            }}
+            bordered
+            size="small"
+            scroll={{x: 'max-content'}}>
+            </Table>
         </Card>
       </PageContainer>
     </>
