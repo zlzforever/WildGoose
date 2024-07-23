@@ -101,6 +101,7 @@ builder.Services.AddAuthentication(o =>
     o.DefaultSignInScheme = IdentityConstants.ExternalScheme;
 }).AddIdentityCookies();
 builder.Services.AddMemoryCache();
+builder.Services.AddHealthChecks();
 builder.Services.AddIdentityCore<User>(o =>
     {
         o.Stores.MaxLengthForKeys = 128;
