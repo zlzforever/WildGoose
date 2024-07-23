@@ -160,6 +160,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+app.UseHealthChecks("/healthz");
 app.UseCors(corsPolicyName);
 app.UseResponseCaching();
 app.UseAuthorization();
