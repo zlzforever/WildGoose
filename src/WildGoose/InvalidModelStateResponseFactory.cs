@@ -9,13 +9,13 @@ public static class InvalidModelStateResponseFactory
     public static readonly Func<ActionContext, IActionResult> Instance = context =>
     {
         var errors = context.ModelState.Where(x =>
-                    x.Value?.ValidationState == ModelValidationState.Invalid)
-                .Select(x => new
-                {
-                    Name = x.Key.ToCamelCase(),
-                    Messages = x.Value?.Errors.Where(z => !string.IsNullOrEmpty(z.ErrorMessage))
-                        .Select(y => y.ErrorMessage)
-                });
+                x.Value?.ValidationState == ModelValidationState.Invalid)
+            .Select(x => new ErrorDescriptor
+            {
+                Name = x.Key.ToCamelCase(),
+                Messages = x.Value?.Errors.Where(z => !string.IsNullOrEmpty(z.ErrorMessage))
+                    .Select(y => y.ErrorMessage).ToList()
+            }).ToList();
 
         return new BadRequestObjectResult(new
         {
@@ -25,4 +25,10 @@ public static class InvalidModelStateResponseFactory
             Errors = errors
         });
     };
+
+    public class ErrorDescriptor
+    {
+        public string? Name { get; set; }
+        public List<string>? Messages { get; set; }
+    }
 }

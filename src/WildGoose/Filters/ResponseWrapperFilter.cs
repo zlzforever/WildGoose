@@ -12,6 +12,7 @@ public sealed class ResponseWrapperFilter(ILogger<ResponseWrapperFilter> logger)
         // 服务调用不做 APIResult 包装
         if (context.HttpContext.Request.Headers.TryGetValue("Internal-Caller", out var value))
         {
+            logger.LogDebug("Internal-Caller: true");
             if ("true".Equals(value, StringComparison.OrdinalIgnoreCase))
             {
                 await next();
