@@ -1,15 +1,18 @@
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WildGoose.Application.Permission.Internal.V10;
 using WildGoose.Application.Permission.Internal.V10.Queries;
+using WildGoose.Domain;
 
 namespace WildGoose.Controllers.V10;
 
 [Route("api/v1.0/permissions")]
 [ApiController]
 [Authorize]
-public class PermissionController(PermissionService permissionService) : ControllerBase
+public class PermissionController(PermissionService permissionService, ILogger<PermissionController> logger)
+    : ControllerBase
 {
     /// <summary>
     /// 
@@ -21,6 +24,7 @@ public class PermissionController(PermissionService permissionService) : Control
     {
         if (query.Count == 0)
         {
+            logger.LogDebug("Enforce {EnforceQuery}", "[]");
             return Content("[]", "application/json");
         }
 
@@ -36,6 +40,8 @@ public class PermissionController(PermissionService permissionService) : Control
         }
 
         builder.Append(']');
-        return Content(builder.ToString(), "text/plain");
+        var result = builder.ToString();
+        logger.LogDebug("Enforce {EnforceQuery}, {Result}", JsonSerializer.Serialize(query), result);
+        return Content(result, "application/json");
     }
 }
