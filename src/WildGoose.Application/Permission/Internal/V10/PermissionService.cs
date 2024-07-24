@@ -27,6 +27,11 @@ public class PermissionService(
             return false;
         }
 
+        if (string.IsNullOrEmpty(query.Action))
+        {
+            return false;
+        }
+
         var effect = Effect.Allow.Equals(query.PolicyEffect, StringComparison.OrdinalIgnoreCase)
             ? Effect.Allow
             : Effect.Deny.Equals(query.PolicyEffect, StringComparison.OrdinalIgnoreCase)

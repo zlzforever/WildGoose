@@ -8,7 +8,7 @@ public class EnforceQuery
     /// <summary>
     /// 操作
     /// </summary>
-    [Required, StringLength(256)]
+    [StringLength(256)]
     public string Action { get; set; }
 
     /// <summary>
@@ -20,6 +20,6 @@ public class EnforceQuery
     /// <summary>
     /// 策略生效范围
     /// </summary>
-    [Required, StringLength(256)]
+    [StringLength(256)]
     public string PolicyEffect { get; set; }
 }
