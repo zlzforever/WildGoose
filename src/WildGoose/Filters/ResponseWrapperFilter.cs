@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -12,7 +13,11 @@ public sealed class ResponseWrapperFilter(ILogger<ResponseWrapperFilter> logger)
         // 服务调用不做 APIResult 包装
         if (context.HttpContext.Request.Headers.TryGetValue("Internal-Caller", out var value))
         {
-            logger.LogDebug("Internal-Caller: true");
+            logger.LogDebug("{URL} Internal-Caller: {InternalCaller}, {ResultType}",
+                context.HttpContext.Request.GetDisplayUrl(),
+                value,
+                context.Result.GetType());
+
             if ("true".Equals(value, StringComparison.OrdinalIgnoreCase))
             {
                 await next();
@@ -27,6 +32,7 @@ public sealed class ResponseWrapperFilter(ILogger<ResponseWrapperFilter> logger)
             var objectResult = (ObjectResult)context.Result;
             if (objectResult.Value is ProblemDetails problemDetails)
             {
+                logger.LogDebug("{URL} is ProblemDetails", context.HttpContext.Request.GetDisplayUrl());
                 var num = problemDetails.Status ?? 200;
                 var success = IsSuccessStatusCode(num);
                 if (success)
@@ -49,6 +55,7 @@ public sealed class ResponseWrapperFilter(ILogger<ResponseWrapperFilter> logger)
             }
             else
             {
+                logger.LogDebug("{URL} is ObjectResult", context.HttpContext.Request.GetDisplayUrl());
                 context.Result = new ObjectResult(new
                 {
                     Code = 0,
@@ -59,6 +66,7 @@ public sealed class ResponseWrapperFilter(ILogger<ResponseWrapperFilter> logger)
         }
         else if (context.Result is EmptyResult)
         {
+            logger.LogDebug("{URL} is EmptyResult", context.HttpContext.Request.GetDisplayUrl());
             context.Result = new ObjectResult(new
             {
                 Success = true,
