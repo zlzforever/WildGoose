@@ -17,7 +17,7 @@ public static class InvalidModelStateResponseFactory
                     .Select(y => y.ErrorMessage).ToList()
             }).ToList();
 
-        return new BadRequestObjectResult(new
+        return new ObjectResult(new
         {
             Code = 1,
             Success = false,
