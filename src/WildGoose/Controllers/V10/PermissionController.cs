@@ -21,21 +21,10 @@ public class PermissionController(PermissionService permissionService, ILogger<P
     /// </summary>
     /// <returns></returns>
     [HttpPost("enforce")]
-    public async Task<IActionResult> EnforceAsync()
+    public async Task<IActionResult> EnforceAsync([FromBody] List<EnforceQuery> query)
     {
-        using var streamReader = new StreamReader(HttpContext.Request.Body);
-        var body = await streamReader.ReadToEndAsync();
-        logger.LogDebug("Enforce query start: {EnforceQuery}", body);
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.General)
+        if (query.Count == 0)
         {
-            NumberHandling = JsonNumberHandling.AllowReadingFromString,
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-        var query = JsonSerializer.Deserialize<List<EnforceQuery>>(body, options);
-        if (query == null || query.Count == 0)
-        {
-            logger.LogDebug("Enforce {EnforceQuery}", "[]");
             return Content("[]", "text/plain");
         }
 
@@ -52,7 +41,6 @@ public class PermissionController(PermissionService permissionService, ILogger<P
 
         builder.Append(']');
         var result = builder.ToString();
-        logger.LogDebug("Enforce {EnforceQuery}, {Result}", JsonSerializer.Serialize(query), result);
         return Content(result, "text/plain");
     }
 }
