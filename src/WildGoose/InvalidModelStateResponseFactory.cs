@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using WildGoose.Domain.Extensions;
@@ -16,7 +17,9 @@ public static class InvalidModelStateResponseFactory
                 Messages = x.Value?.Errors.Where(z => !string.IsNullOrEmpty(z.ErrorMessage))
                     .Select(y => y.ErrorMessage).ToList()
             }).ToList();
-
+        var logger = context.HttpContext.RequestServices
+            .GetRequiredService<ILoggerFactory>().CreateLogger("InvalidModelStateResponseFactory");
+        logger.LogDebug("Model state is invalid: {Errors}", JsonSerializer.Serialize(errors));
         return new ObjectResult(new
         {
             Code = 1,
