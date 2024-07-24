@@ -24,6 +24,7 @@ public class PermissionController(PermissionService permissionService, ILogger<P
     {
         HttpContext.Request.EnableBuffering();
         var stream = HttpContext.Request.Body;
+        stream.Seek(0, System.IO.SeekOrigin.Begin);
         using var reader = new StreamReader(stream);
         var body = await reader.ReadToEndAsync();
         logger.LogDebug("Enforce query start: {EnforceQuery}", body);
