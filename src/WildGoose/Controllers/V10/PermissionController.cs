@@ -22,7 +22,11 @@ public class PermissionController(PermissionService permissionService, ILogger<P
     [HttpPost("enforce")]
     public async Task<IActionResult> EnforceAsync([FromBody] List<EnforceQuery> query)
     {
-        logger.LogDebug("Enforce query start: {EnforceQuery}", JsonSerializer.Serialize(query));
+        HttpContext.Request.EnableBuffering();
+        var stream = HttpContext.Request.Body;
+        using var reader = new StreamReader(stream);
+        var body = await reader.ReadToEndAsync();
+        logger.LogDebug("Enforce query start: {EnforceQuery}", body);
 
         if (query.Count == 0)
         {
