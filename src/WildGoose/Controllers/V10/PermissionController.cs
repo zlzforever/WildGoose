@@ -22,10 +22,12 @@ public class PermissionController(PermissionService permissionService, ILogger<P
     [HttpPost("enforce")]
     public async Task<IActionResult> EnforceAsync([FromBody] List<EnforceQuery> query)
     {
+        logger.LogDebug("Enforce query start");
+
         if (query.Count == 0)
         {
             logger.LogDebug("Enforce {EnforceQuery}", "[]");
-            return Content("[]", "application/json");
+            return Content("[]", "text/plain");
         }
 
         var builder = new StringBuilder("[");
@@ -42,6 +44,6 @@ public class PermissionController(PermissionService permissionService, ILogger<P
         builder.Append(']');
         var result = builder.ToString();
         logger.LogDebug("Enforce {EnforceQuery}, {Result}", JsonSerializer.Serialize(query), result);
-        return Content(result, "application/json");
+        return Content(result, "text/plain");
     }
 }
