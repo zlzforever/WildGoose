@@ -1,5 +1,7 @@
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WildGoose.Application.Permission.Internal.V10;
@@ -17,18 +19,21 @@ public class PermissionController(PermissionService permissionService, ILogger<P
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="query"></param>
     /// <returns></returns>
     [HttpPost("enforce")]
-    public async Task<IActionResult> EnforceAsync([FromBody] List<EnforceQuery> query)
+    public async Task<IActionResult> EnforceAsync()
     {
         using var streamReader = new StreamReader(HttpContext.Request.Body);
-        HttpContext.Request.EnableBuffering();
-        HttpContext.Request.Body.Seek(0, SeekOrigin.Begin);
         var body = await streamReader.ReadToEndAsync();
         logger.LogDebug("Enforce query start: {EnforceQuery}", body);
-
-        if (query.Count == 0)
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.General)
+        {
+            NumberHandling = JsonNumberHandling.AllowReadingFromString,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+        var query = JsonSerializer.Deserialize<List<EnforceQuery>>(body, options);
+        if (query == null || query.Count == 0)
         {
             logger.LogDebug("Enforce {EnforceQuery}", "[]");
             return Content("[]", "text/plain");
