@@ -5,7 +5,10 @@ import { BrowserRouter } from "react-router-dom"
 const signinRedirectCallbackPath = "/signin-redirect-callback"
 const signinSilentCallbackPath = "/signin-silent-callback"
 import { getUser, signinRedirect, signinRedirectCallback, signinSilentCallback } from "./lib/auth"
-const baseName = window.wildgoose.baseName || "/"
+
+let baseName = window.wildgoose.baseName || "/"
+baseName = baseName === "%BaseName%" ? "/" : baseName
+
 try {
   let user
   let oidcCallback
