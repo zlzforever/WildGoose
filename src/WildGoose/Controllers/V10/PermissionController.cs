@@ -1,12 +1,8 @@
 using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WildGoose.Application.Permission.Internal.V10;
 using WildGoose.Application.Permission.Internal.V10.Queries;
-using WildGoose.Domain;
 
 namespace WildGoose.Controllers.V10;
 

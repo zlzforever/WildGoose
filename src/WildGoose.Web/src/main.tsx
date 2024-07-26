@@ -5,7 +5,7 @@ import { BrowserRouter } from "react-router-dom"
 const signinRedirectCallbackPath = "/signin-redirect-callback"
 const signinSilentCallbackPath = "/signin-silent-callback"
 import { getUser, signinRedirect, signinRedirectCallback, signinSilentCallback } from "./lib/auth"
-
+const baseName = window.wildgoods.baseName || "/"
 try {
   let user
   let oidcCallback
@@ -35,7 +35,7 @@ try {
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <BrowserRouter>
+  <BrowserRouter basename={baseName}>
     <App />
   </BrowserRouter>
 )

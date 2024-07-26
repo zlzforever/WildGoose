@@ -1,9 +1,10 @@
-import dayjs from 'dayjs'
+import dayjs from "dayjs"
 
 declare global {
   interface Window {
     wildgoods: {
       backend: string
+      baseName: string
       pageSize: number
       applicationId: string
       oidc: any
