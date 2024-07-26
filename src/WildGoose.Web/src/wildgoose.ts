@@ -2,7 +2,7 @@ import dayjs from "dayjs"
 
 declare global {
   interface Window {
-    wildgoods: {
+    wildgoose: {
       backend: string
       baseName: string
       pageSize: number

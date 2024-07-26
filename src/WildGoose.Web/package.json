@@ -1,5 +1,5 @@
 {
-  "name": "wildgoods-web",
+  "name": "wildgoose-web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -37,5 +37,7 @@
     "vite": "5.0.0",
     "vite-plugin-top-level-await": "1.3.1"
   },
- "resolutions": { "**/vite-plugin-top-level-await/@swc/core": "1.6.13"  }
+  "resolutions": {
+    "**/vite-plugin-top-level-await/@swc/core": "1.6.13"
+  }
 }

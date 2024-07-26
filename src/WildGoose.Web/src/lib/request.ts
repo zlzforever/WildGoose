@@ -1,6 +1,6 @@
-import { message } from 'antd'
-import axios, { AxiosError, AxiosResponse } from 'axios'
-import { getUser, signinRedirect, signinSilent } from './auth'
+import { message } from "antd"
+import axios, { AxiosError, AxiosResponse } from "axios"
+import { getUser, signinRedirect, signinSilent } from "./auth"
 
 export interface ApiResult {
   code: number
@@ -26,10 +26,10 @@ const instance = axios.create({
 
 // Request interceptor
 instance.interceptors.request.use(async (requestConfig) => {
-  requestConfig.headers['z-application-id'] = 'wildgoods-web'
+  requestConfig.headers["z-application-id"] = "wildgoose-web"
   const user = await getUser()
   if (user) {
-    requestConfig.headers['z-user-id'] = user.profile.sub
+    requestConfig.headers["z-user-id"] = user.profile.sub
     let displayName = `${user.profile.family_name}${user.profile.given_name}`
     if (!displayName && user.profile.name) {
       displayName = user.profile.name
@@ -37,9 +37,9 @@ instance.interceptors.request.use(async (requestConfig) => {
     if (!displayName && user.profile.nickname) {
       displayName = user.profile.nickname
     }
-    requestConfig.headers['z-user-name'] = displayName
+    requestConfig.headers["z-user-name"] = displayName
     if (user.access_token) {
-      requestConfig.headers['Authorization'] = `Bearer ${user.access_token}`
+      requestConfig.headers["Authorization"] = `Bearer ${user.access_token}`
     }
   }
 
@@ -54,7 +54,7 @@ instance.interceptors.response.use(
     if (!result) {
       // 1. 若没有返回数据，则根据 statusCode 来判断
       if (response.status < 200 && response.status >= 300) {
-        const msg = '服务请求错误: ' + response.status
+        const msg = "服务请求错误: " + response.status
         message.error(msg)
         throw msg
       }
@@ -74,7 +74,7 @@ instance.interceptors.response.use(
           message.error(msg)
           throw msg
         } else {
-          throw '未知的错误'
+          throw "未知的错误"
         }
       }
     }
@@ -101,18 +101,18 @@ instance.interceptors.response.use(
 
     const apiResult = error.response?.data as ApiResult
     if (!apiResult) {
-      message.error('未知错误')
+      message.error("未知错误")
     } else {
       if (apiResult.errors || message.error.length > 0) {
         const msg = apiResult.errors.map((x) => {
-          return '\n'.concat(...x.messages)
+          return "\n".concat(...x.messages)
         })
         message.error(msg)
       } else {
         if (apiResult.msg) {
           message.error(apiResult.msg)
         } else {
-          message.error('未知错误')
+          message.error("未知错误")
         }
       }
     }

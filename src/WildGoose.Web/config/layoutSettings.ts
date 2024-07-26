@@ -8,7 +8,7 @@ const Settings: ProLayoutProps & {
   logo?: string
 } = {
   title: '访问控制',
-  prefixCls: 'wildgoods-web',
+  prefixCls: 'wildgoose-web',
   fixSiderbar: true,
   layout: 'mix',
   splitMenus: false,

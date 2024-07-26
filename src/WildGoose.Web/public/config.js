@@ -1,5 +1,6 @@
-window.wildgoods = {
+window.wildgoose = {
   applicationId: '1',
+  baseName: '/',
   backend: 'http://localhost:5181/api',
   pageSize: 10,
   oidc: {

@@ -1,16 +1,16 @@
-import { ProConfigProvider } from '@ant-design/pro-provider'
-import './App.css'
-import { ConfigProvider, Dropdown, Modal } from 'antd'
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import ProLayout, { ProSettings } from '@ant-design/pro-layout'
-import { LogoutOutlined } from '@ant-design/icons'
-import { useEffect, useState } from 'react'
-import defaultLayoutSettings from '../config/layoutSettings'
-import routes from '../config/routes'
-import RolePage from './pages/RolePage'
-import UserPage from './pages/UserPage'
-import { getUser, removeUserInfo, signoutRedirect } from './lib/auth'
-import AccoutImg from './assets/images/account.png'
+import { ProConfigProvider } from "@ant-design/pro-provider"
+import "./App.css"
+import { ConfigProvider, Dropdown, Modal } from "antd"
+import { Route, Routes, useLocation, useNavigate } from "react-router-dom"
+import ProLayout, { ProSettings } from "@ant-design/pro-layout"
+import { LogoutOutlined } from "@ant-design/icons"
+import { useEffect, useState } from "react"
+import defaultLayoutSettings from "../config/layoutSettings"
+import routes from "../config/routes"
+import RolePage from "./pages/RolePage"
+import UserPage from "./pages/UserPage"
+import { getUser, removeUserInfo, signoutRedirect } from "./lib/auth"
+import AccoutImg from "./assets/images/account.png"
 import { ExclamationCircleOutlined } from "@ant-design/icons"
 
 function App() {
@@ -19,7 +19,7 @@ function App() {
   const [user, setUser] = useState<any>()
   const [settings] = useState<Partial<ProSettings>>({
     fixSiderbar: true,
-    layout: 'mix',
+    layout: "mix",
     splitMenus: false,
   })
   const [pathname, setPathname] = useState(location.pathname)
@@ -47,7 +47,7 @@ function App() {
     })
   }
 
-  if (typeof document === 'undefined') {
+  if (typeof document === "undefined") {
     return <div />
   }
 
@@ -55,14 +55,16 @@ function App() {
     <div
       id="socodb-layout"
       style={{
-        height: '100vh',
-        overflow: 'auto',
-      }}>
+        height: "100vh",
+        overflow: "auto",
+      }}
+    >
       <ProConfigProvider hashed={false}>
         <ConfigProvider
           getTargetContainer={() => {
-            return document.getElementById('socodb-layout') || document.body
-          }}>
+            return document.getElementById("socodb-layout") || document.body
+          }}
+        >
           <Routes>
             <Route
               path="*"
@@ -70,7 +72,7 @@ function App() {
                 <ProLayout
                   avatarProps={{
                     src: AccoutImg,
-                    size: 'small',
+                    size: "small",
                     title: user && user.profile && user.profile.name,
                     render: (_, dom) => {
                       return (
@@ -78,15 +80,16 @@ function App() {
                           menu={{
                             items: [
                               {
-                                key: 'logout',
+                                key: "logout",
                                 icon: <LogoutOutlined />,
-                                label: '退出登录',
+                                label: "退出登录",
                                 onClick: () => {
-                                    onLogout();
+                                  onLogout()
                                 },
                               },
                             ],
-                          }}>
+                          }}
+                        >
                           {dom}
                         </Dropdown>
                       )
@@ -117,11 +120,12 @@ function App() {
                     return (
                       <div
                         style={{
-                          textAlign: 'center',
+                          textAlign: "center",
                           paddingBlockStart: 12,
-                        }}>
+                        }}
+                      >
                         <div>© 2023 Made with love</div>
-                        <div>by wildgoods</div>
+                        <div>by wildgoose</div>
                       </div>
                     )
                   }}
@@ -131,10 +135,11 @@ function App() {
                   menuItemRender={(item, dom) => (
                     <div
                       onClick={() => {
-                        const path = item.path || '/webcome'
+                        const path = item.path || "/webcome"
                         navigate(path)
                         setPathname(path)
-                      }}>
+                      }}
+                    >
                       {dom}
                     </div>
                   )}
@@ -143,7 +148,8 @@ function App() {
                   location={{
                     pathname,
                   }}
-                  {...settings}>
+                  {...settings}
+                >
                   <Routes>
                     <Route path="/role" element={<RolePage></RolePage>} />
                     <Route path="/user" element={<UserPage></UserPage>} />

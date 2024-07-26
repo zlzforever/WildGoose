@@ -5,7 +5,7 @@ import { BrowserRouter } from "react-router-dom"
 const signinRedirectCallbackPath = "/signin-redirect-callback"
 const signinSilentCallbackPath = "/signin-silent-callback"
 import { getUser, signinRedirect, signinRedirectCallback, signinSilentCallback } from "./lib/auth"
-const baseName = window.wildgoods.baseName || "/"
+const baseName = window.wildgoose.baseName || "/"
 try {
   let user
   let oidcCallback

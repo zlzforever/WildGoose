@@ -1,6 +1,6 @@
-import { Form, Row, Col, Input, Modal } from 'antd'
-import { useEffect } from 'react'
-import { addRole, getRole, updateRole } from '../services/wildgoods/api'
+import { Form, Row, Col, Input, Modal } from "antd"
+import { useEffect } from "react"
+import { addRole, getRole, updateRole } from "../services/wildgoose/api"
 
 export interface RoleModalProps {
   id?: string
@@ -15,7 +15,7 @@ const RoleModal: React.FC<RoleModalProps> = (props) => {
     name: string
     description: string
   }>()
-  const title = props.id ? '编辑' : '添加角色'
+  const title = props.id ? "编辑" : "添加角色"
 
   useEffect(() => {
     const init = async () => {
@@ -60,19 +60,24 @@ const RoleModal: React.FC<RoleModalProps> = (props) => {
           if (props.onClose) {
             props.onClose()
           }
-        }}>
+        }}
+      >
         <Form layout="vertical" form={form}>
           <Row gutter={16}>
             <Col span={24}>
-              <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
-                <Input placeholder="请输入名称" maxLength={100}/>
+              <Form.Item
+                name="name"
+                label="名称"
+                rules={[{ required: true, message: "请输入名称" }]}
+              >
+                <Input placeholder="请输入名称" maxLength={100} />
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={24}>
               <Form.Item name="description" label="备注">
-                <TextArea style={{ height: 100 }} placeholder="请输入备注" maxLength={512}/>
+                <TextArea style={{ height: 100 }} placeholder="请输入备注" maxLength={512} />
               </Form.Item>
             </Col>
           </Row>

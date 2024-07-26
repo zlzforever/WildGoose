@@ -1,6 +1,6 @@
-import { Modal, Form, Row, Col, Input, message } from 'antd'
-import { changePassword } from '../services/wildgoods/api'
-import { useEffect } from 'react'
+import { Modal, Form, Row, Col, Input, message } from "antd"
+import { changePassword } from "../services/wildgoose/api"
+import { useEffect } from "react"
 
 export interface ChangePasswordlProps {
   id?: string
@@ -25,7 +25,7 @@ const ChangePasswordModal: React.FC<ChangePasswordlProps> = (props) => {
     await form.validateFields()
     const values = form.getFieldsValue()
     if (await changePassword(props.id, values)) {
-      message.success('操作成功')
+      message.success("操作成功")
     }
 
     form.resetFields()
@@ -38,7 +38,7 @@ const ChangePasswordModal: React.FC<ChangePasswordlProps> = (props) => {
   return (
     <>
       <Modal
-        title={'修改密码'}
+        title={"修改密码"}
         width={720}
         maskClosable={false}
         open={props.open}
@@ -47,7 +47,8 @@ const ChangePasswordModal: React.FC<ChangePasswordlProps> = (props) => {
           if (props.onClose) {
             props.onClose()
           }
-        }}>
+        }}
+      >
         <Form layout="vertical" form={form}>
           <Row gutter={16}>
             <Col span={24}>
@@ -55,17 +56,19 @@ const ChangePasswordModal: React.FC<ChangePasswordlProps> = (props) => {
                 name="newPassword"
                 label="新密码"
                 rules={[
-                  { required: true, message: '请输入新密码' },
+                  { required: true, message: "请输入新密码" },
                   () => ({
                     validator(_, value) {
-                      const reg = /^(?=.*?[a-z])(?=.*?[A-Z])(?=.*?\d)(?=.*?[~!@#$%^&*()_+{}:|<>?/\-+\\|;<>,.?]).*$/;
+                      const reg =
+                        /^(?=.*?[a-z])(?=.*?[A-Z])(?=.*?\d)(?=.*?[~!@#$%^&*()_+{}:|<>?/\-+\\|;<>,.?]).*$/
                       if (!value || reg.test(value)) {
                         return Promise.resolve()
                       }
-                      return Promise.reject(new Error('密码必须包含数字，特殊字符，大小写字母'))
+                      return Promise.reject(new Error("密码必须包含数字，特殊字符，大小写字母"))
                     },
                   }),
-                ]}>
+                ]}
+              >
                 <Input.Password type="password" placeholder="请输入新密码" />
               </Form.Item>
             </Col>
@@ -74,19 +77,20 @@ const ChangePasswordModal: React.FC<ChangePasswordlProps> = (props) => {
             <Col span={24}>
               <Form.Item
                 name="confirmPassword"
-                dependencies={['newPassword']}
+                dependencies={["newPassword"]}
                 label="重复密码"
                 rules={[
-                  { required: true, message: '请输入重复密码' },
+                  { required: true, message: "请输入重复密码" },
                   ({ getFieldValue }) => ({
                     validator(_, value) {
-                      if (!value || getFieldValue('newPassword') === value) {
+                      if (!value || getFieldValue("newPassword") === value) {
                         return Promise.resolve()
                       }
-                      return Promise.reject(new Error('重复密码不匹配'))
+                      return Promise.reject(new Error("重复密码不匹配"))
                     },
                   }),
-                ]}>
+                ]}
+              >
                 <Input.Password placeholder="请输入重复密码" />
               </Form.Item>
             </Col>

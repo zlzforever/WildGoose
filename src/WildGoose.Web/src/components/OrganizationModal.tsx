@@ -1,11 +1,16 @@
-import { Col, Form, Input, Modal, Row, Select, TreeSelect, TreeSelectProps, message } from 'antd'
+import { Col, Form, Input, Modal, Row, Select, TreeSelect, TreeSelectProps, message } from "antd"
 
-import TextArea from 'antd/es/input/TextArea'
-import { addOrganization, updateOrganization, getOrganization, getSubOrganizationList } from '../services/wildgoods/api'
-import { useEffect, useState } from 'react'
-import AceEditor from 'react-ace'
-import 'ace-builds/src-noconflict/theme-monokai'
-import 'ace-builds/src-noconflict/mode-json'
+import TextArea from "antd/es/input/TextArea"
+import {
+  addOrganization,
+  updateOrganization,
+  getOrganization,
+  getSubOrganizationList,
+} from "../services/wildgoose/api"
+import { useEffect, useState } from "react"
+import AceEditor from "react-ace"
+import "ace-builds/src-noconflict/theme-monokai"
+import "ace-builds/src-noconflict/mode-json"
 
 export interface OrganizationModalProps {
   id?: string
@@ -19,8 +24,8 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
   const [form] = Form.useForm<Organization>()
   const [parentTreeData, setParentTreeData] = useState<OrganizationTreeNode[]>([])
   const [parentTreeDict, setParentTreeDict] = useState<Dictionary<OrganizationTreeNode>>({})
-  const [originParentId, setOriginParentId] = useState<string>('')
-  const title = props.id ? '编辑机构' : '添加机构'
+  const [originParentId, setOriginParentId] = useState<string>("")
+  const title = props.id ? "编辑机构" : "添加机构"
 
   // 初始化机构选择器
   useEffect(() => {
@@ -31,7 +36,7 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
     const init = async () => {
       form.resetFields()
 
-      const res = await getSubOrganizationList('')
+      const res = await getSubOrganizationList("")
       const subOrganizations = (res.data as OrganizationDto[]) ?? []
       const cache: Dictionary<OrganizationTreeNode> = {}
       const organizations = subOrganizations.map((x) => {
@@ -46,7 +51,7 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
         return node
       })
 
-      let data = { parentId: '' }
+      let data = { parentId: "" }
       // 创建
       if (!props.id) {
         // 上级机构初始化
@@ -90,7 +95,7 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
           }
           data.parentId = serverParent.id
         } else {
-          data.parentId = ''
+          data.parentId = ""
         }
         setOriginParentId(data.parentId)
       }
@@ -109,7 +114,7 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
       let res
       if (props.id) {
         if (values.parentId === props.id) {
-          message.error('上级机构不能为自身')
+          message.error("上级机构不能为自身")
           return
         }
         res = await updateOrganization(props.id, values)
@@ -123,7 +128,7 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
     })
   }
 
-  const onParentTreeLoadData: TreeSelectProps['loadData'] = async ({ id }) => {
+  const onParentTreeLoadData: TreeSelectProps["loadData"] = async ({ id }) => {
     const res = await getSubOrganizationList(id)
     const subOrganizations = (res.data as OrganizationDto[]) ?? []
     const data: OrganizationTreeNode[] = []
@@ -158,14 +163,14 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
         title={title}
         width={720}
         style={{
-          top: 15
+          top: 15,
         }}
         styles={{
           body: {
             height: "80vh",
             overflowY: "auto",
             overflowX: "hidden",
-          }
+          },
         }}
         maskClosable={false}
         open={props.open}
@@ -174,11 +179,16 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
           if (props.onClose) {
             props.onClose()
           }
-        }}>
+        }}
+      >
         <Form layout="vertical" form={form}>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
+              <Form.Item
+                name="name"
+                label="名称"
+                rules={[{ required: true, message: "请输入名称" }]}
+              >
                 <Input placeholder="请输入名称" maxLength={50} />
               </Form.Item>
             </Col>
@@ -196,7 +206,7 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
                   treeLine
                   treeData={parentTreeData}
                   treeDataSimpleMode
-                  dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
+                  dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
                   loadData={onParentTreeLoadData}
                   // onChange={(v) => {
                   //   setParentId(v)
@@ -215,11 +225,15 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
           </Row>
           <Row gutter={16}>
             <Col span={24}>
-              <Form.Item name="metadata" label="元数据" rules={[{ max: 2000, message: '长度超限' }]}>
+              <Form.Item
+                name="metadata"
+                label="元数据"
+                rules={[{ max: 2000, message: "长度超限" }]}
+              >
                 <AceEditor
                   style={{
-                    width: '100%',
-                    height: 'calc(80vh - 420px)',
+                    width: "100%",
+                    height: "calc(80vh - 420px)",
                   }}
                   mode="json"
                   theme="monokai"
@@ -237,8 +251,13 @@ const OrganizationModal: React.FC<OrganizationModalProps> = (props) => {
           </Row> */}
           <Row gutter={16}>
             <Col span={24}>
-              <Form.Item name="description" label="描述" >
-                <TextArea style={{ width: '100%' }} placeholder="请输入描述" maxLength={256} showCount />
+              <Form.Item name="description" label="描述">
+                <TextArea
+                  style={{ width: "100%" }}
+                  placeholder="请输入描述"
+                  maxLength={256}
+                  showCount
+                />
               </Form.Item>
             </Col>
           </Row>

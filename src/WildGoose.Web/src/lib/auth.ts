@@ -1,8 +1,8 @@
-import type { User, SignoutResponse } from 'oidc-client'
-import { Log, UserManager } from 'oidc-client'
-import oidc from 'oidc-client'
+import type { User, SignoutResponse } from "oidc-client"
+import { Log, UserManager } from "oidc-client"
+import oidc from "oidc-client"
 
-const oidcSettings = window.wildgoods.oidc
+const oidcSettings = window.wildgoose.oidc
 oidcSettings.userStore = new oidc.WebStorageStateStore({ store: window.localStorage })
 
 const userManager = new UserManager(oidcSettings)
@@ -12,10 +12,10 @@ Log.level = Log.INFO
 export async function getUser(): Promise<User | null> {
   const user = await userManager.getUser()
   if (user && user.profile.role) {
-    user.profile.role = Object.prototype.toString.call(user.profile.role) ===
-      "[object Array]"
-      ? user.profile.role
-      : user.profile.role.split(" ")
+    user.profile.role =
+      Object.prototype.toString.call(user.profile.role) === "[object Array]"
+        ? user.profile.role
+        : user.profile.role.split(" ")
   }
   return user
 }
