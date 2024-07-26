@@ -14,4 +14,4 @@ COPY ./src/WildGoose.Web/nginx.conf /etc/nginx/nginx.conf
 COPY ./src/WildGoose.Web/docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh
 ENV BASE_PATH='/'
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+# ENTRYPOINT ["/app/docker-entrypoint.sh"]
