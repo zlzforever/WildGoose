@@ -1,5 +1,5 @@
-#!/bin/bash
-set -e
+#!/bin/sh
+set -eu
 echo $BASE_PATH
 sed "s#%BaseName%#${BASE_PATH}#g" /app/config.js >/app/config2.js
 sed -i "s#/config.js#${BASE_PATH}config2.js#g" /app/index.html

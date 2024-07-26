@@ -11,7 +11,7 @@ WORKDIR /app
 COPY --from=build /workspace/dist .
 RUN gzip -k /app/*
 COPY ./src/WildGoose.Web/nginx.conf /etc/nginx/nginx.conf
-COPY ./src/WildGoose.Web/docker-entrypoint.sh /app/
-RUN chmod +x /app/docker-entrypoint.sh
+COPY ./src/WildGoose.Web/docker-entrypoint.sh /docker-entrypoint.d/90-replace-base-path.sh
+RUN chmod +x /docker-entrypoint.d/90-replace-base-path.sh
 ENV BASE_PATH='/'
 # ENTRYPOINT ["/app/docker-entrypoint.sh"]
