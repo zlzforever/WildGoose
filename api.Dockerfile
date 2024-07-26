@@ -20,5 +20,8 @@ RUN dotnet publish -c Debug -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "WildGoose.dll"]
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["dotnet", "WildGoose.dll"]
