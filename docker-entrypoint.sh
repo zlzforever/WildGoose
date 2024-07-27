@@ -1,18 +1,13 @@
 #!/bin/bash
 set -eu
 
-# 定义要处理的输入文件
-if [ -f "${CONFIG_SOURCE}" ]; then
-    target="/app/appsettings.json"
-
-    # 读取输入文件内容
-    content=$(cat "${CONFIG_SOURCE}")
-
-    # 进行环境变量替换
-    replaced_content=${content//\${ENV_VAR_NAME}/${!ENV_VAR_NAME}}
-
-    # 将替换后的内容写入输出文件
-    echo "$replaced_content" > "${target}"
-else
-    echo "未设置配置源文件"
+# 检查输入文件是否存在
+if [ ! -f "${CONFIG_SOURCE}" ]; then
+    echo "未设置配置源文件或源源文件不存在"
+    exit 1
 fi
+
+# 读取文件内容，并替换环境变量
+while IFS= read -r line; do
+    eval "echo \"$line\""
+done <"${CONFIG_SOURCE}" >"/app/appsettings.json"
