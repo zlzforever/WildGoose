@@ -1,6 +1,20 @@
 #!/bin/sh
 set -eu
-echo $BASE_PATH
-sed "s#%BaseName%#${BASE_PATH}#g" /app/config.js >/app/config2.js
-sed -i "s#/config.js#${BASE_PATH}config2.js#g" /app/index.html
+
+sed -i "s#/config.js#${BASE_PATH}config_v1.js#g" /app/index.html
 sed -i "s#/assets/index-#${BASE_PATH}assets/index-#g" /app/index.html
+
+# 输入文件名
+input_file="/app/config.js"
+# 输出文件名
+output_file="/app/config_v1.js"
+
+if [ -f "${input_file}" ]; then
+    awk '{
+       while (match($0, /\$\{[A-Za-z_][A-Za-z0-9_]*\}/)) {
+           var=substr($0, RSTART+2, RLENGTH-3)
+           gsub(/\$\{[A-Za-z_][A-Za-z0-9_]*\}/, ENVIRON[var])
+       }
+       print
+   }' "$input_file" >"$output_file"
+fi

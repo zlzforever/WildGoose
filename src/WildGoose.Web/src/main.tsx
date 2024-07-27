@@ -7,7 +7,7 @@ const signinSilentCallbackPath = "/signin-silent-callback"
 import { getUser, signinRedirect, signinRedirectCallback, signinSilentCallback } from "./lib/auth"
 
 let baseName = window.wildgoose.baseName || "/"
-baseName = baseName === "%BaseName%" ? "/" : baseName
+baseName = baseName === "${BASE_PATH}" ? "/" : baseName
 
 try {
   let user
