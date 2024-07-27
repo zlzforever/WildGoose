@@ -1,12 +1,20 @@
 #!/bin/bash
 set -eu
 
+# 输入文件名
+input_file="${CONFIG_SOURCE}"
+# 输出文件名
+output_file="/app/appsettings.json"
+
 # 检查输入文件是否存在
-if [ -f "${CONFIG_SOURCE}" ]; then
-   # 读取文件内容，并替换环境变量
-   while IFS= read -r line; do
-       eval "echo \"$line\""
-   done <"${CONFIG_SOURCE}" >"/app/appsettings.json"
+if [ -f "${input_file}" ]; then
+   awk '{
+       while (match($0, /\$\{[A-Za-z_][A-Za-z0-9_]*\}/)) {
+           var=substr($0, RSTART+2, RLENGTH-3)
+           gsub(/\$\{[A-Za-z_][A-Za-z0-9_]*\}/, ENVIRON[var])
+       }
+       print
+   }' "$input_file" >"$output_file"
    echo "应用配置文件已生成"
 fi
 
