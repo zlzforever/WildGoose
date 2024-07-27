@@ -1,13 +1,14 @@
 #!/bin/sh
 set -eu
 
-sed -i "s#/config.js#${BASE_PATH}config_v1.js#g" /app/index.html
+version=$(date +%s)
+sed -i "s#/config.js#${BASE_PATH}config_${version}.js#g" /app/index.html
 sed -i "s#/assets/index-#${BASE_PATH}assets/index-#g" /app/index.html
 
 # 输入文件名
 input_file="/app/config.js"
 # 输出文件名
-output_file="/app/config_v1.js"
+output_file="/app/config_${version}.js"
 
 if [ -f "${input_file}" ]; then
     awk '{
