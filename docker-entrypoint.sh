@@ -10,5 +10,6 @@ if [ -f "${CONFIG_SOURCE}" ]; then
    echo "应用配置文件已生成"
 fi
 
-echo "未设置配置源文件或源文件不存在"
+exec "$@"
+
 
