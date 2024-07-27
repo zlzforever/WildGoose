@@ -161,7 +161,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
-app.UseHealthChecks("/healthz");
+var healthCheckPath = Environment.GetEnvironmentVariable("HEALTH_CHECK_PATH") ?? "/healthz";
+app.UseHealthChecks(healthCheckPath);
 app.UseCors(corsPolicyName);
 app.UseResponseCaching();
 app.UseAuthorization();
