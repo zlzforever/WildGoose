@@ -1,5 +1,4 @@
 #!/bin/bash
-set -eu
 
 # 输入文件名
 input_file="${CONFIG_SOURCE}"
