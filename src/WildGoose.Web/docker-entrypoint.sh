@@ -1,5 +1,4 @@
 #!/bin/sh
-set -eu
 
 version=$(date +%s)
 sed -i "s#/config.js#${BASE_PATH}config_${version}.js#g" /app/index.html
