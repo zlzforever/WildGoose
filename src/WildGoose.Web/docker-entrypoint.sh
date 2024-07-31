@@ -1,6 +1,12 @@
 #!/bin/sh
 
 version=$(date +%s)
+
+if [ ! -e "/app/index_o.html" ]; then
+    cp /app/index.html /app/index_o.html
+fi
+cp -f /app/index_o.html /app/index.html
+
 sed -i "s#/config.js#${BASE_PATH}config_${version}.js#g" /app/index.html
 sed -i "s#/assets/index-#${BASE_PATH}assets/index-#g" /app/index.html
 
