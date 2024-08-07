@@ -136,7 +136,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-
+var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Program");
 var rootFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot");
 if (!Directory.Exists(rootFolder))
 {
@@ -145,10 +145,15 @@ if (!Directory.Exists(rootFolder))
 
 using var scope = app.Services.CreateScope();
 var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-var migrations = await dbContext.Database.GetPendingMigrationsAsync();
+var migrations = (await dbContext.Database.GetPendingMigrationsAsync()).ToList();
 if (migrations.Any())
 {
+    logger.LogInformation("Applying migrations: {Migrations}", string.Join(", ", migrations));
     await dbContext.Database.MigrateAsync();
+}
+else
+{
+    logger.LogInformation("No Applying migrations");
 }
 
 SeedData.Init(app.Services).GetAwaiter().GetResult();
