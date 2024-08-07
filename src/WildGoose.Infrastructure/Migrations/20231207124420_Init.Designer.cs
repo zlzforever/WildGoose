@@ -542,7 +542,7 @@ namespace WildGoose.Infrastructure.Migrations
                         .HasDatabaseName("EmailIndex");
 
                     b.HasIndex("NormalizedUserName")
-                        .IsUnique()
+                        // .IsUnique()
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("wild_goose_user", (string)null);

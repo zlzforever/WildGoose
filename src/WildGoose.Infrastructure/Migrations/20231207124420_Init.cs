@@ -308,7 +308,7 @@ namespace WildGoose.Infrastructure.Migrations
                 name: "UserNameIndex",
                 table: "wild_goose_user",
                 column: "normalized_user_name",
-                unique: true);
+                unique: false);
 
             migrationBuilder.CreateIndex(
                 name: "IX_wild_goose_user_claim_user_id",
