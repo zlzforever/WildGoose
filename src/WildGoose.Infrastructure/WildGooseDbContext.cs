@@ -12,6 +12,7 @@ using WildGoose.Domain.Extensions;
 
 namespace WildGoose.Infrastructure;
 
+// 20231207124420_Init
 public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
     : IdentityDbContext<User, Role, string>(options)
 {
@@ -47,12 +48,43 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             b.Property(x => x.DeleterName).HasMaxLength(256);
 
             b.HasQueryFilter(x => !x.IsDeleted);
+
+            var userNameIndex = b.Metadata.GetIndexes().FirstOrDefault(x => x.GetDatabaseName() == "UserNameIndex");
+            if (userNameIndex != null)
+            {
+                userNameIndex.IsUnique = false;
+            }
         });
 
-        builder.Entity<IdentityUserClaim<string>>().ToTable($"{options.TablePrefix}user_claim");
-        builder.Entity<IdentityUserRole<string>>().ToTable($"{options.TablePrefix}user_role");
-        builder.Entity<IdentityUserLogin<string>>().ToTable($"{options.TablePrefix}user_login");
-        builder.Entity<IdentityUserToken<string>>().ToTable($"{options.TablePrefix}user_token");
+        builder.Entity<IdentityUserClaim<string>>(b =>
+        {
+            b.ToTable($"{options.TablePrefix}user_claim");
+            b.Property(x => x.UserId).HasMaxLength(36);
+            b.Property(x => x.ClaimType).HasMaxLength(256);
+            b.Property(x => x.ClaimValue).HasMaxLength(256);
+        });
+        builder.Entity<IdentityUserRole<string>>(b =>
+        {
+            b.ToTable($"{options.TablePrefix}user_role");
+            b.Property(x => x.UserId).HasMaxLength(36);
+            b.Property(x => x.RoleId).HasMaxLength(36);
+        });
+        builder.Entity<IdentityUserLogin<string>>(b =>
+        {
+            b.ToTable($"{options.TablePrefix}user_login");
+            b.Property(x => x.LoginProvider).HasMaxLength(256);
+            b.Property(x => x.ProviderKey).HasMaxLength(256);
+            b.Property(x => x.ProviderDisplayName).HasMaxLength(256);
+            b.Property(x => x.UserId).HasMaxLength(36);
+        });
+        builder.Entity<IdentityUserToken<string>>(b =>
+        {
+            b.ToTable($"{options.TablePrefix}user_token");
+            b.Property(x => x.UserId).HasMaxLength(36);
+            b.Property(x => x.LoginProvider).HasMaxLength(256);
+            b.Property(x => x.Name).HasMaxLength(256);
+            b.Property(x => x.Value).HasMaxLength(256);
+        });
         builder.Entity<Role>(b =>
         {
             b.ToTable($"{options.TablePrefix}role");
@@ -71,7 +103,13 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             b.Property(x => x.LastModifierId).HasMaxLength(36);
             b.Property(x => x.LastModifierName).HasMaxLength(256);
         });
-        builder.Entity<IdentityRoleClaim<string>>().ToTable($"{options.TablePrefix}role_claim");
+        builder.Entity<IdentityRoleClaim<string>>(b =>
+        {
+            b.ToTable($"{options.TablePrefix}role_claim");
+            b.Property(x => x.RoleId).HasMaxLength(36);
+            b.Property(x => x.ClaimType).HasMaxLength(256);
+            b.Property(x => x.ClaimValue).HasMaxLength(256);
+        });
 
         // builder.Entity<Domain.Entity.Domain>(b =>
         // {
