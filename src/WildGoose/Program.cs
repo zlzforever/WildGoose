@@ -5,8 +5,6 @@ using System.Text.Json.Serialization;
 using Dapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Serilog;
-using Serilog.Events;
 using WildGoose;
 using WildGoose.Application;
 using WildGoose.Domain;
@@ -18,41 +16,6 @@ DefaultTypeMap.MatchNamesWithUnderscores = true;
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
-var serilogSection = builder.Configuration.GetSection("Serilog");
-if (serilogSection.GetChildren().Any())
-{
-    Log.Logger = new LoggerConfiguration().ReadFrom
-        .Configuration(builder.Configuration)
-        .CreateLogger();
-}
-else
-{
-    var logFile = Environment.GetEnvironmentVariable("LOG_PATH");
-    if (string.IsNullOrEmpty(logFile))
-    {
-        logFile = Environment.GetEnvironmentVariable("LOG");
-    }
-
-    if (string.IsNullOrEmpty(logFile))
-    {
-        logFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-            "logs/wildgoose.log".ToLowerInvariant());
-    }
-
-    Log.Logger = new LoggerConfiguration()
-        .MinimumLevel.Information()
-        .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
-        .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
-        .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-        .MinimumLevel.Override("System", LogEventLevel.Warning)
-        .MinimumLevel.Override("Microsoft.AspNetCore.Authentication", LogEventLevel.Warning)
-        .Enrich.FromLogContext()
-#if DEBUG
-        .WriteTo.Console()
-#endif
-        .WriteTo.Async(x => x.File(logFile, rollingInterval: RollingInterval.Day))
-        .CreateLogger();
-}
 
 builder.AddSerilog();
 
@@ -173,7 +136,9 @@ app.UseResponseCaching();
 app.UseAuthorization();
 app.UseCloudEvents();
 app.MapSubscribeHandler();
-app.MapControllers().RequireAuthorization("Jwt").RequireCors(corsPolicyName);
+app.MapControllers()
+    .RequireAuthorization("JWT")
+    .RequireCors(corsPolicyName);
 app.Run();
 
 Console.WriteLine("Bye");

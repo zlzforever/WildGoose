@@ -43,7 +43,7 @@ public static class IdentityServerExtensions
 
         services.AddAuthorization(options =>
         {
-            options.AddPolicy("Jwt", policy =>
+            options.AddPolicy("JWT", policy =>
             {
                 policy.AddAuthenticationSchemes("Bearer");
                 policy.RequireAuthenticatedUser();

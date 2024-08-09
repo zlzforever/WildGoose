@@ -14,7 +14,7 @@ namespace WildGoose;
 
 public static class WebApplicationBuilderExtensions
 {
-    public static void AddSerilog(this WebApplicationBuilder builder)
+    public static WebApplicationBuilder AddSerilog(this WebApplicationBuilder builder)
     {
         var serilogSection = builder.Configuration.GetSection("Serilog");
         if (serilogSection.GetChildren().Any())
@@ -25,31 +25,22 @@ public static class WebApplicationBuilderExtensions
         }
         else
         {
-            var logFile = Environment.GetEnvironmentVariable("LOG_PATH");
-            if (string.IsNullOrEmpty(logFile))
+            var logPath = builder.Configuration["LOG_PATH"] ?? builder.Configuration["LOGPATH"];
+            if (string.IsNullOrEmpty(logPath))
             {
-                logFile = Environment.GetEnvironmentVariable("LOG");
-            }
-
-            if (string.IsNullOrEmpty(logFile))
-            {
-                logFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-                    "logs/wild_goose.log".ToLowerInvariant());
+                logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs/log.txt");
             }
 
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
-                .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Information)
-                // .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-                // .MinimumLevel.Override("System", LogEventLevel.Warning)
-                .MinimumLevel.Override("Microsoft.AspNetCore.Authentication", LogEventLevel.Warning)
                 .Enrich.FromLogContext()
-                .WriteTo.Console().WriteTo.Async(x => x.File(logFile, rollingInterval: RollingInterval.Day))
+                .WriteTo.Console()
+                .WriteTo.Async(x => x.File(logPath, rollingInterval: RollingInterval.Day))
                 .CreateLogger();
         }
 
         builder.Logging.AddSerilog();
+        return builder;
     }
 
     public static void RegisterServices(this WebApplicationBuilder builder)
