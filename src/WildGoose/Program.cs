@@ -50,10 +50,23 @@ builder.Services.Configure<DaprOptions>(builder.Configuration.GetSection("Dapr")
 var connectionString = builder.Configuration["DbContext:ConnectionString"] ??
                        throw new InvalidOperationException("Connection string 'DbContext:ConnectionString' not found.");
 var tablePrefix = builder.Configuration["DbContext:TablePrefix"] ?? string.Empty;
-builder.Services.AddDbContext<WildGooseDbContext>(options =>
+var databaseType = builder.Configuration["DbContext:DatabaseType"] ?? "PostgreSql";
+if ("mysql".Equals(databaseType, StringComparison.OrdinalIgnoreCase))
 {
-    options.UseNpgsql(connectionString, b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
-});
+    builder.Services.AddDbContext<WildGooseDbContext>(options =>
+    {
+        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+            b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
+    });
+}
+else
+{
+    builder.Services.AddDbContext<WildGooseDbContext>(options =>
+    {
+        options.UseNpgsql(connectionString, b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
+    });
+}
+
 builder.RegisterServices();
 
 // builder.Services.AddDatabaseDeveloperPageExceptionFilter();

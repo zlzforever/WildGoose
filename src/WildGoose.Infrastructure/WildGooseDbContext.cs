@@ -28,6 +28,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
 
             b.Property(x => x.Id).HasMaxLength(36).ValueGeneratedNever();
             b.Property(x => x.Name).HasMaxLength(256);
+            b.Property(x => x.UserName).HasMaxLength(256);
             b.Property(x => x.GivenName).HasMaxLength(256);
             b.Property(x => x.FamilyName).HasMaxLength(256);
             b.Property(x => x.MiddleName).HasMaxLength(256);
