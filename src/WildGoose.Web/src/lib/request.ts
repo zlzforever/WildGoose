@@ -26,6 +26,7 @@ const instance = axios.create({
 
 // Request interceptor
 instance.interceptors.request.use(async (requestConfig) => {
+  console.log("start config request: " + JSON.stringify(requestConfig))
   requestConfig.headers["z-application-id"] = "wildgoose-web"
   const user = await getUser()
   if (user) {
@@ -87,6 +88,7 @@ instance.interceptors.response.use(
     // localStorage.removeItem(E_Storage.EXPIRE_TIME)
     // localStorage.removeItem(E_Storage.USER_PASSWORD_STRENGTH)
     // window.location.href = `${config.pathPrefix}/`
+    console.log(JSON.stringify(error))
     if (error.response?.status === 401) {
       const handle401 = async () => {
         const user = await getUser()
