@@ -195,7 +195,9 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
 
         builder.Entity<OrganizationUser>(b =>
         {
-            b.ToTable($"{options.TablePrefix}organization_user");
+            b.ToTable(string.IsNullOrEmpty(options.OrganizationUserTableName)
+                ? $"{options.TablePrefix}organization_user"
+                : $"{options.TablePrefix}{options.OrganizationUserTableName}");
 
             b.Property(x => x.OrganizationId).HasMaxLength(36);
             b.Property(x => x.UserId).HasMaxLength(36);
