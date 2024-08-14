@@ -222,7 +222,7 @@ const UserPage = () => {
     const init = async () => {
       const dict: Dictionary<SimpleDataNode> = {}
       const res = await getSubOrganizationList()
-      const organizations = (res?.data as OrganizationDto[]) ?? []
+      const organizations = (res?.data ?? []) as OrganizationDto[]
       if (organizations && organizations.length > 0) {
         const data = organizations.map((x) => {
           const node: SimpleDataNode = {
