@@ -431,20 +431,16 @@ const UserPage = () => {
   }
 
   const onOrganizationDelete = async (item: SimpleDataNode) => {
-    try {
-      const res = await deleteOrganization(item.key)
-      if (res) {
-        if (item.pId) {
-          const parent = organizationTreeDict[item.pId]
-          parent.children = parent.children.filter((y) => y.key !== item.key)
-          parent.isLeaf = parent.children.length === 0
-          setOrganizationTreeData([...organizationTreeData])
-        } else {
-          setOrganizationTreeData((origin) => origin.filter((y) => y.key !== item.key))
-        }
+    const res = await deleteOrganization(item.key)
+    if (res) {
+      if (item.pId) {
+        const parent = organizationTreeDict[item.pId]
+        parent.children = parent.children.filter((y) => y.key !== item.key)
+        parent.isLeaf = parent.children.length === 0
+        setOrganizationTreeData([...organizationTreeData])
+      } else {
+        setOrganizationTreeData((origin) => origin.filter((y) => y.key !== item.key))
       }
-    } catch (e) {
-      console.log(e)
     }
   }
 

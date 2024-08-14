@@ -129,8 +129,8 @@ function App() {
                       </div>
                     )
                   }}
-                  onMenuHeaderClick={(e) => {
-                    console.log(e)
+                  onMenuHeaderClick={() => {
+                    // console.log(e)
                   }}
                   menuItemRender={(item, dom) => (
                     <div
