@@ -2,19 +2,28 @@ import ReactDOM from "react-dom/client"
 import App from "./App.tsx"
 import "./index.css"
 import { BrowserRouter } from "react-router-dom"
-const signinRedirectCallbackPath = "/signin-redirect-callback"
+const signinRedirectCallbackPath = ["/signin-redirect-callback", "/signin-oidc"]
+const signoutRedirectCallbackPath = ["/signout-redirect-callback", "/signout-callback-oidc"]
 const signinSilentCallbackPath = "/signin-silent-callback"
-import { getUser, signinRedirect, signinRedirectCallback, signinSilentCallback } from "./lib/auth"
+import {
+  getUser,
+  signinRedirect,
+  signinRedirectCallback,
+  signinSilentCallback,
+  signoutRedirectCallback,
+} from "./lib/auth"
 
 let baseName = window.wildgoose.baseName || "/"
-baseName = baseName === "${BASE_PATH}" ? "/" : baseName
+baseName = baseName === "${BASE_PATH}" || baseName === "${PATH_BASE}" ? "/" : baseName
 
 try {
   let user
   let oidcCallback
-  if (location.pathname.endsWith(signinRedirectCallbackPath)) {
+  if (signinRedirectCallbackPath.find((x) => location.pathname.endsWith(x))) {
     user = await signinRedirectCallback()
     oidcCallback = true
+  } else if (signoutRedirectCallbackPath.find((x) => location.pathname.endsWith(x))) {
+    await signoutRedirectCallback()
   } else if (location.pathname.endsWith(signinSilentCallbackPath)) {
     user = await signinSilentCallback()
     oidcCallback = true
