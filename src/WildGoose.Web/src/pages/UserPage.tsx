@@ -456,12 +456,12 @@ const UserPage = () => {
         key: "a",
         icon: <FormOutlined />,
         onClick: () => {
-          if (organizationTreeSelectedKeys.length === 0) {
-            message.error("未选中机构")
-            return
-          }
+          // if (organizationTreeSelectedKeys.length === 0) {
+          //   message.error("未选中机构")
+          //   return
+          // }
           setOrganizationModalParams({
-            id: organizationTreeSelectedKeys[0],
+            id: node.key,
             parent: undefined,
           })
           setOrganizationModalOpen(true)
