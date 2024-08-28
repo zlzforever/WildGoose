@@ -53,7 +53,7 @@ public static class WebApplicationBuilderExtensions
         builder.Services.TryAddScoped<Application.User.V10.UserService>();
         builder.Services.TryAddScoped<ISession, HttpSession>();
         builder.Services.TryAddScoped<PermissionService>();
-        builder.Services.TryAddScoped<ScopeServiceProvider, HttpContextScopeServiceProvider>();
+        builder.Services.TryAddSingleton<ScopeServiceProvider, HttpContextScopeServiceProvider>();
         builder.Services.TryAddScoped<HttpSession>(provider =>
             HttpSession.Create(provider.GetRequiredService<IHttpContextAccessor>()));
         builder.Services.AddHostedService<GenerateTopLevelOrgService>();
