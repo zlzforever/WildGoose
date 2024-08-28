@@ -298,7 +298,8 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
 
     private void ApplyConcepts()
     {
-        var session = this.GetService<ISession>();
+        var scope = this.GetService<ScopeServiceProvider>();
+        var session = scope.GetService<ISession>();
 
         foreach (var entry in ChangeTracker.Entries())
         {
