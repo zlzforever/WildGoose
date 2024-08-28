@@ -53,7 +53,7 @@ var tablePrefix = builder.Configuration["DbContext:TablePrefix"] ?? string.Empty
 var databaseType = builder.Configuration["DbContext:DatabaseType"] ?? "PostgreSql";
 if ("mysql".Equals(databaseType, StringComparison.OrdinalIgnoreCase))
 {
-    builder.Services.AddDbContext<WildGooseDbContext>(options =>
+    builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
     {
         options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
             b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
@@ -61,7 +61,7 @@ if ("mysql".Equals(databaseType, StringComparison.OrdinalIgnoreCase))
 }
 else
 {
-    builder.Services.AddDbContext<WildGooseDbContext>(options =>
+    builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
     {
         options.UseNpgsql(connectionString, b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
     });

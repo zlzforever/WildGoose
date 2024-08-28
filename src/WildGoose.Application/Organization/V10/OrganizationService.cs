@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -112,6 +113,35 @@ public class OrganizationService(
         }).ToList();
     }
 
+    public async Task<bool> ExistsUserAsync(ExistsUserQuery query)
+    {
+        var organizationUserTable = DbContext.Set<OrganizationUser>();
+        var organizationTable = DbContext.Set<WildGoose.Domain.Entity.Organization>();
+
+        var queryable = from t1 in organizationUserTable
+            join t2 in organizationTable on t1.OrganizationId equals t2.Id
+            where t1.UserId == query.UserId
+            select t2.Metadata;
+        var organizationList =
+            (await queryable.ToListAsync()).Select(x => JsonSerializer.Deserialize<MetadataWithCode>(x)).ToList();
+        return organizationList.Any(x => query.Code == x.Code);
+    }
+
+    public async Task<bool> IsUserInOrganizationWithInheritanceAsync(
+        IsUserInOrganizationWithInheritanceQuery query)
+    {
+        var organizationUserTable = DbContext.Set<OrganizationUser>();
+        var organizationTable = DbContext.Set<WildGoose.Domain.Entity.Organization>();
+
+        var queryable = from t1 in organizationUserTable
+            join t2 in organizationTable on t1.OrganizationId equals t2.Id
+            where t1.UserId == query.UserId
+            select t2.Metadata;
+        var organizationList =
+            (await queryable.ToListAsync()).Select(x => JsonSerializer.Deserialize<MetadataWithCode>(x)).ToList();
+        return organizationList.Any(x => query.Code.StartsWith(x.Code));
+    }
+
     private async Task<List<SubOrganizationDto>> GetMyListAsync()
     {
         var organizationTable = DbContext
@@ -160,7 +190,7 @@ public class OrganizationService(
         foreach (var entity in entities)
         {
             SubOrganizationDto dto;
-            if (!dict.ContainsKey(entity.Id))
+            if (!dict.TryGetValue(entity.Id, out var value))
             {
                 dto = new SubOrganizationDto
                 {
@@ -184,7 +214,7 @@ public class OrganizationService(
                     continue;
                 }
 
-                dto = dict[entity.Id];
+                dto = value;
                 dto.Scope.Add(entity.Scope);
             }
         }
@@ -201,6 +231,15 @@ public class OrganizationService(
         public string ParentId { get; set; }
         public string ParentName { get; set; }
         public bool HasChild { get; set; }
+        public string Code { get; set; }
+    }
+
+    class MetadataWithCode
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        [JsonPropertyName("code")]
         public string Code { get; set; }
     }
 }

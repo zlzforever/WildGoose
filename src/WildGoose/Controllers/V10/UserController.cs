@@ -11,8 +11,14 @@ namespace WildGoose.Controllers.V10;
 public class UserController(UserService userService) : ControllerBase
 {
     [HttpPost("resetPasswordByCaptcha")]
-    public Task ResetPasswordByCaptchaAsync([FromBody] ResetPasswordByCaptchaCommand command)
+    public Task ResetPasswordByCaptcha([FromBody] ResetPasswordByCaptchaCommand command)
     {
         return userService.ResetPasswordByCaptchaAsync(command);
+    }
+
+    [HttpGet("{userId}/organizations")]
+    public Task GetOrganizationsAsync([FromRoute] string userId, bool isAdministrator = false)
+    {
+        return userService.GetOrganizationsAsync(userId, isAdministrator);
     }
 }

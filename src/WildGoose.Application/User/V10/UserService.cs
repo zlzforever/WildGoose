@@ -1,9 +1,11 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WildGoose.Application.Extensions;
 using WildGoose.Application.User.V10.Command;
+using WildGoose.Application.User.V10.Dto;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
 using WildGoose.Infrastructure;
@@ -59,5 +61,69 @@ public class UserService(
         }
 
         await DbContext.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<OrganizationDto>> GetOrganizationsAsync(string userId, bool isAdministrator = false)
+    {
+        IQueryable<WildGoose.Domain.Entity.Organization> queryable;
+        var organizationTable = DbContext.Set<WildGoose.Domain.Entity.Organization>();
+        var organizationAdministratorTable = DbContext.Set<OrganizationAdministrator>();
+        var organizationUserTable = DbContext.Set<OrganizationUser>();
+        // 查询用户是机构管理员的机构
+        if (isAdministrator)
+        {
+            queryable = from t1 in organizationTable
+                join t2 in organizationUserTable on t1.Id equals t2.OrganizationId
+                join t3 in organizationAdministratorTable on t1.Id equals t3.OrganizationId
+                where t2.UserId == userId && t3.UserId == userId
+                select t1;
+        }
+        else
+        {
+            queryable = from t1 in organizationTable
+                join t2 in organizationUserTable on t1.Id equals t2.OrganizationId
+                where t2.UserId == userId
+                select t1;
+        }
+
+        var organizations = await queryable
+            .AsNoTracking()
+            .OrderBy(x => x.Code)
+            .ToListAsync();
+
+        var organizationIds = organizations.Select(x => x.Id).ToList();
+
+        var extensionInfoList = await DbContext
+            .Set<WildGoose.Domain.Entity.Organization>()
+            .Include(x => x.Parent)
+            .AsNoTracking()
+            .Where(x => organizationIds.Contains(x.Id))
+            .Select(x => new
+            {
+                x.Id,
+                x.Parent,
+                Scope = DbContext.Set<OrganizationScope>().AsNoTracking()
+                    .Where(y => y.OrganizationId == x.Id).Select(z => z.Scope).ToList(),
+                HasChild = DbContext
+                    .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
+                    .Any(y => y.Parent.Id == x.Id)
+            }).ToListAsync();
+
+        return organizations.Select(x =>
+        {
+            var extensionInfo = extensionInfoList.First(y => y.Id == x.Id);
+            var a = new OrganizationDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                ParentId = extensionInfo.Parent?.Id,
+                ParentName = extensionInfo.Parent?.Name,
+                HasChild = extensionInfo.HasChild,
+                Code = x.Code,
+                Metadata = string.IsNullOrEmpty(x.Metadata) ? default : JsonDocument.Parse(x.Metadata),
+                Scope = extensionInfo.Scope,
+            };
+            return a;
+        });
     }
 }
