@@ -25,10 +25,20 @@ public sealed class ResponseWrapperFilter(ILogger<ResponseWrapperFilter> logger)
                 return;
             }
         }
-
+ 
+        if (context.Result is EmptyResult)
+        {
+            logger.LogDebug("{URL} is EmptyResult", context.HttpContext.Request.GetDisplayUrl());
+            context.Result = new ObjectResult(new
+            {
+                Success = true,
+                Code = 0,
+                Msg = string.Empty
+            });
+        }
         // comments by lewis at 20240103
         // 只能使用 type 比较， 不能使用 is， 不然如 BadRequestObjectResult 也会被二次包装
-        if (context.Result.GetType() == typeof(ObjectResult))
+        else if (context.Result.GetType() == typeof(ObjectResult))
         {
             var objectResult = (ObjectResult)context.Result;
             if (objectResult.Value is ProblemDetails problemDetails)
@@ -54,9 +64,13 @@ public sealed class ResponseWrapperFilter(ILogger<ResponseWrapperFilter> logger)
                     };
                 }
             }
+            else if (objectResult.Value is InvalidModelStateResponseFactory.ModelError)
+            {
+            }
             else
             {
                 logger.LogDebug("{URL} is ObjectResult", context.HttpContext.Request.GetDisplayUrl());
+                // 如果 controller 的方法， 直接返回值， 到此处时会被包装成 ObjectResult
                 context.Result = new ObjectResult(new
                 {
                     Code = 0,
@@ -64,16 +78,6 @@ public sealed class ResponseWrapperFilter(ILogger<ResponseWrapperFilter> logger)
                     Data = objectResult.Value, Msg = string.Empty
                 });
             }
-        }
-        else if (context.Result is EmptyResult)
-        {
-            logger.LogDebug("{URL} is EmptyResult", context.HttpContext.Request.GetDisplayUrl());
-            context.Result = new ObjectResult(new
-            {
-                Success = true,
-                Code = 0,
-                Msg = string.Empty
-            });
         }
 
         logger.LogDebug("执行返回结果过滤器结束");

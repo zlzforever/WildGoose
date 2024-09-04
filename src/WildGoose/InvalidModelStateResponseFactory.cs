@@ -20,14 +20,22 @@ public static class InvalidModelStateResponseFactory
         var logger = context.HttpContext.RequestServices
             .GetRequiredService<ILoggerFactory>().CreateLogger("InvalidModelStateResponseFactory");
         logger.LogDebug("Model state is invalid: {Errors}", JsonSerializer.Serialize(errors));
-        return new ObjectResult(new
+        return new ObjectResult(new ModelError
         {
-            Code = 1,
-            Success = false,
             Msg = "数据校验不通过",
-            Errors = errors
+            Errors = errors,
+            Code = 1,
+            Success = false
         });
     };
+
+    public class ModelError
+    {
+        public int Code { get; set; }
+        public bool Success { get; set; }
+        public string Msg { get; set; }
+        public List<ErrorDescriptor> Errors { get; set; }
+    }
 
     public class ErrorDescriptor
     {
