@@ -273,7 +273,7 @@ public class RoleService(
             where userRole.UserId == userId && role.Name != Defaults.OrganizationAdmin
             select new RoleBasicDto
             {
-                Id = userRole.RoleId,
+                Id = role.Id,
                 Name = role.Name
             }).AsNoTracking().ToListAsync();
         return roles;
