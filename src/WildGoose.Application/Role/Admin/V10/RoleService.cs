@@ -269,7 +269,7 @@ public class RoleService(
         var roles = await (from userRole in DbContext.Set<IdentityUserRole<string>>()
             join roleAssignableRole in DbContext.Set<RoleAssignableRole>() on userRole.RoleId equals roleAssignableRole
                 .RoleId
-            join role in DbContext.Set<WildGoose.Domain.Entity.Role>() on roleAssignableRole.RoleId equals role.Id
+            join role in DbContext.Set<WildGoose.Domain.Entity.Role>() on roleAssignableRole.AssignableId equals role.Id
             where userRole.UserId == userId && role.Name != Defaults.OrganizationAdmin
             select new RoleBasicDto
             {
