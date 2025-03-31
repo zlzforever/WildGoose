@@ -34,7 +34,19 @@ function App() {
 
   // 检查用户是否拥有指定角色
   const hasRole = (roleName: string) => {
-    return user?.profile?.roles?.includes(roleName)
+    if (!user?.profile?.role) return false;
+
+    // 处理角色为字符串的情况
+    if (typeof user.profile.role === 'string') {
+      return user.profile.role === roleName;
+    }
+
+    // 处理角色为数组的情况
+    if (Array.isArray(user.profile.role)) {
+      return user.profile.role.includes(roleName);
+    }
+
+    return false;
   }
 
   // 检查用户是否可以访问角色页面
