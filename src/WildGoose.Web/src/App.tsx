@@ -56,7 +56,7 @@ function App() {
 
   // 检查用户是否可以访问用户页面
   const canAccessUserPage = () => {
-    return hasRole("admin") || hasRole("organization_admin") // 需替换为实际的机构管理员角色名称
+    return hasRole("admin") || hasRole("organization-admin") // 需替换为实际的机构管理员角色名称
   }
 
   const onLogout = () => {
