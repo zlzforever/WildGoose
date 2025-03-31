@@ -32,6 +32,21 @@ function App() {
     fun()
   }, [])
 
+  // 检查用户是否拥有指定角色
+  const hasRole = (roleName: string) => {
+    return user?.profile?.roles?.includes(roleName)
+  }
+
+  // 检查用户是否可以访问角色页面
+  const canAccessRolePage = () => {
+    return hasRole("admin")
+  }
+
+  // 检查用户是否可以访问用户页面
+  const canAccessUserPage = () => {
+    return hasRole("admin") || hasRole("organization_admin") // 需替换为实际的机构管理员角色名称
+  }
+
   const onLogout = () => {
     Modal.confirm({
       content: "确定要注销登录吗?",
@@ -49,6 +64,16 @@ function App() {
 
   if (typeof document === "undefined") {
     return <div />
+  }
+
+  // 过滤路由，根据用户角色显示菜单
+  const filteredRoutes = {
+    ...routes,
+    routes: routes.routes.filter((route) => {
+      if (route.path === "/role") return canAccessRolePage()
+      if (route.path === "/user") return canAccessUserPage()
+      return true
+    })
   }
 
   return (
@@ -143,7 +168,7 @@ function App() {
                       {dom}
                     </div>
                   )}
-                  route={routes}
+                  route={filteredRoutes}
                   {...defaultLayoutSettings}
                   location={{
                     pathname,
@@ -151,8 +176,12 @@ function App() {
                   {...settings}
                 >
                   <Routes>
-                    <Route path="/role" element={<RolePage></RolePage>} />
-                    <Route path="/user" element={<UserPage></UserPage>} />
+                    {canAccessRolePage() && (
+                      <Route path="/role" element={<RolePage />} />
+                    )}
+                    {canAccessUserPage() && (
+                      <Route path="/user" element={<UserPage />} />
+                    )}
                   </Routes>
                 </ProLayout>
               }
