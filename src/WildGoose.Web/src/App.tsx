@@ -66,15 +66,44 @@ function App() {
     return <div />
   }
 
-  // 过滤路由，根据用户角色显示菜单
+  // 过滤路由，根据用户角色进行递归过滤
+  const filterRoutesByPermission = (routes: any[]): any[] => {
+    return routes.map(route => {
+      // 创建当前路由的副本
+      const newRoute = { ...route };
+
+      // 根据路径检查权限
+      if (route.path === "/role" && !canAccessRolePage()) {
+        return null;
+      }
+
+      if (route.path === "/user" && !canAccessUserPage()) {
+        return null;
+      }
+
+      // 如果有子路由，递归过滤
+      if (route.routes && route.routes.length > 0) {
+        const filteredChildren = filterRoutesByPermission(route.routes)
+          .filter(Boolean); // 过滤掉 null 项
+
+        // 更新子路由
+        newRoute.routes = filteredChildren;
+
+        // 如果子路由都被过滤掉了，也可以选择隐藏父路由
+        // 取消下面的注释，如果想在所有子路由被过滤掉时隐藏父路由
+        // if (filteredChildren.length === 0) {
+        //   return null;
+        // }
+      }
+
+      return newRoute;
+    }).filter(Boolean); // 过滤掉 null 项
+  };
+
   const filteredRoutes = {
     ...routes,
-    routes: routes.routes.filter((route) => {
-      if (route.path === "/role") return canAccessRolePage()
-      if (route.path === "/user") return canAccessUserPage()
-      return true
-    })
-  }
+    routes: filterRoutesByPermission(routes.routes)
+  };
 
   return (
     <div
