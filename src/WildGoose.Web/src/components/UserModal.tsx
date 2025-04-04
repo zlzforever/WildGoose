@@ -259,8 +259,12 @@ const UserModal: React.FC<UserModalProps> = (props) => {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="phoneNumber" label="电话" rules={[{ validator: phoneValidator }]}>
-                <Input placeholder="请输入电话" maxLength={11} />
+              <Form.Item
+                name="phoneNumber"
+                label="手机号"
+                rules={[{ required: true, message: "请输入手机号" }, { validator: phoneValidator }]}
+              >
+                <Input placeholder="请输入手机号" maxLength={11} />
               </Form.Item>
             </Col>
             {props.id ? (

@@ -91,7 +91,7 @@ const UserPage = () => {
       key: "userName",
     },
     {
-      title: "电话",
+      title: "手机号",
       dataIndex: "phoneNumber",
       key: "phoneNumber",
     },
@@ -745,7 +745,7 @@ const UserPage = () => {
                           }
                         }}
                       >
-                        查看
+                        编辑
                       </Button>
                       <Popconfirm
                         title="警告"
