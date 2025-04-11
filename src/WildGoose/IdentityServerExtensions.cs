@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using WildGoose.Application;
 using WildGoose.Domain;
 using WildGoose.Filters;
 
@@ -44,6 +45,7 @@ public static class IdentityServerExtensions
 
         // adds an authorization policy to make sure the token is for scope 'api1'
         var apiName = configuration["ApiName"];
+        Utils.ApiName = apiName;
         if (string.IsNullOrEmpty(apiName))
         {
             throw new WildGooseFriendlyException(1, "ApiName is null or empty");

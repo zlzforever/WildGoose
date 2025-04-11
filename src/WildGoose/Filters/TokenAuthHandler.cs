@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
+using WildGoose.Application;
 
 namespace WildGoose.Filters;
 
@@ -45,6 +46,7 @@ public class TokenAuthHandler : AuthenticationHandler<TokenAuthOptions>
             new(ClaimTypes.Name, "TokenUser"),
             new(ClaimTypes.NameIdentifier, "TokenUser"),
             new(ClaimTypes.AuthenticationMethod, "Token"),
+            new("scope", Utils.ApiName)
         };
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);
