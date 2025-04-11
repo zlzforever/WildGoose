@@ -28,6 +28,11 @@ public class TokenAuthHandler : AuthenticationHandler<TokenAuthOptions>
             return AuthenticateResult.Fail("No endpoint found");
         }
 
+        if (string.IsNullOrEmpty(Options.SecurityToken))
+        {
+            return AuthenticateResult.Fail("No security token");
+        }
+
         var token = Context.Request.Headers["X-AUTH-TOKEN"].ToString();
 
         if (string.IsNullOrEmpty(token))

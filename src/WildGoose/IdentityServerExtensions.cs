@@ -39,8 +39,7 @@ public static class IdentityServerExtensions
         authenticationBuilder.AddScheme<TokenAuthOptions, TokenAuthHandler>("SecurityToken",
             tOptions =>
             {
-                tOptions.SecurityToken = Environment.GetEnvironmentVariable("WildGooseSecurityToken") ??
-                                         Guid.NewGuid().ToString("");
+                tOptions.SecurityToken = Environment.GetEnvironmentVariable("WildGooseSecurityToken") ?? "";
             });
 
         // adds an authorization policy to make sure the token is for scope 'api1'
