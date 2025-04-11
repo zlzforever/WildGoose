@@ -9,7 +9,7 @@ public static class IdentityServerExtensions
 {
     public static void ConfigureIdentityServer(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddAuthentication(x =>
+        var authenticationBuilder = services.AddAuthentication(x =>
             {
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -34,12 +34,13 @@ public static class IdentityServerExtensions
                     ValidateIssuer = "true".Equals(configuration["JwtBearer:ValidateIssuer"],
                         StringComparison.OrdinalIgnoreCase),
                 };
-            }).AddScheme<TokenAuthOptions, TokenAuthHandler>("Token",
-                tOptions =>
-                {
-                    tOptions.Token = Environment.GetEnvironmentVariable("WildGooseToken") ??
-                                     Guid.NewGuid().ToString("");
-                });
+            });
+        authenticationBuilder.AddScheme<TokenAuthOptions, TokenAuthHandler>("Token",
+            tOptions =>
+            {
+                tOptions.Token = Environment.GetEnvironmentVariable("WildGooseToken") ??
+                                 Guid.NewGuid().ToString("");
+            });
 
         // adds an authorization policy to make sure the token is for scope 'api1'
         var apiName = configuration["ApiName"];
