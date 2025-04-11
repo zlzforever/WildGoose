@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using WildGoose.Application;
@@ -40,8 +41,6 @@ public class TokenAuthHandler : AuthenticationHandler<TokenAuthOptions>
             return AuthenticateResult.Fail("401");
         }
 
-        Logger.LogDebug("验签成功 traceId {TraceId}", Context.TraceIdentifier);
-
         var claims = new List<Claim>
         {
             new(ClaimTypes.Name, "TokenUser"),
@@ -58,6 +57,8 @@ public class TokenAuthHandler : AuthenticationHandler<TokenAuthOptions>
                 claims.Add(new Claim(ClaimTypes.Role, role.Trim()));
             }
         }
+
+        Logger.LogDebug("验签成功 traceId {TraceId} {Identity}", Context.TraceIdentifier, JsonSerializer.Serialize(claims));
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);
         var principal = new ClaimsPrincipal(identity);
