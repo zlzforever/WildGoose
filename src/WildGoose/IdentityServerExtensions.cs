@@ -36,11 +36,11 @@ public static class IdentityServerExtensions
                         StringComparison.OrdinalIgnoreCase),
                 };
             });
-        authenticationBuilder.AddScheme<TokenAuthOptions, TokenAuthHandler>("Token",
+        authenticationBuilder.AddScheme<TokenAuthOptions, TokenAuthHandler>("SecurityToken",
             tOptions =>
             {
-                tOptions.Token = Environment.GetEnvironmentVariable("WildGooseToken") ??
-                                 Guid.NewGuid().ToString("");
+                tOptions.SecurityToken = Environment.GetEnvironmentVariable("WildGooseSecurityToken") ??
+                                         Guid.NewGuid().ToString("");
             });
 
         // adds an authorization policy to make sure the token is for scope 'api1'

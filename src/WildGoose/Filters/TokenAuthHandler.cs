@@ -28,38 +28,42 @@ public class TokenAuthHandler : AuthenticationHandler<TokenAuthOptions>
             return AuthenticateResult.Fail("No endpoint found");
         }
 
-        var token = Context.Request.Headers["X-WD-TOKEN"].ToString();
+        var token = Context.Request.Headers["X-AUTH-TOKEN"].ToString();
 
         if (string.IsNullOrEmpty(token))
         {
-            Logger.LogError("授权码不存在 {TraceId}", Context.TraceIdentifier);
+            Logger.LogError("认证码未提供 {TraceId}", Context.TraceIdentifier);
             return AuthenticateResult.Fail("401");
         }
 
-        if (token != Options.Token)
+        if (token != Options.SecurityToken)
         {
-            Logger.LogError("授权码不正确 {TraceId}", Context.TraceIdentifier);
+            Logger.LogError("认证码匹配失败 {TraceId} {Expected} {Actual}", Context.TraceIdentifier, Options.SecurityToken,
+                token);
             return AuthenticateResult.Fail("401");
         }
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.Name, "TokenUser"),
+            new("sub", "SecurityToken"),
+            new(ClaimTypes.Name, "SecurityToken"),
             new(ClaimTypes.NameIdentifier, "TokenUser"),
-            new(ClaimTypes.AuthenticationMethod, "Token"),
+            new(ClaimTypes.AuthenticationMethod, "SecurityToken"),
             new("scope", Utils.ApiName)
         };
-        var roleStr = Context.Request.Headers["X-WD-ROLE"].ToString();
-        if (!string.IsNullOrEmpty(roleStr))
+        var authRoles = Context.Request.Headers["X-AUTH-ROLE"].ToString();
+        if (!string.IsNullOrEmpty(authRoles))
         {
-            var roles = HttpUtility.UrlDecode(roleStr).Split(',', StringSplitOptions.RemoveEmptyEntries);
-            foreach (var role in roles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, role.Trim()));
-            }
+            var roles = HttpUtility.UrlDecode(authRoles).Split(',', StringSplitOptions.RemoveEmptyEntries);
+            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role.Trim())));
         }
 
-        Logger.LogDebug("验签成功 traceId {TraceId} {Identity}", Context.TraceIdentifier, JsonSerializer.Serialize(claims));
+        Logger.LogDebug("认证码匹配成功 {TraceId} {Identity}", Context.TraceIdentifier,
+            JsonSerializer.Serialize(claims.Select(x => new
+            {
+                type = x.Type,
+                value = x.Value
+            })));
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);
         var principal = new ClaimsPrincipal(identity);
