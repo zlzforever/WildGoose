@@ -41,6 +41,7 @@ public class TokenAuthHandler : AuthenticationHandler<TokenAuthOptions>
         }
 
         Logger.LogDebug("验签成功 traceId {TraceId}", Context.TraceIdentifier);
+
         var claims = new List<Claim>
         {
             new(ClaimTypes.Name, "TokenUser"),
@@ -48,6 +49,15 @@ public class TokenAuthHandler : AuthenticationHandler<TokenAuthOptions>
             new(ClaimTypes.AuthenticationMethod, "Token"),
             new("scope", Utils.ApiName)
         };
+        var roleStr = Context.Request.Headers["X-WD-ROLE"].ToString();
+        if (!string.IsNullOrEmpty(roleStr))
+        {
+            var roles = roleStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role.Trim()));
+            }
+        }
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);
         var principal = new ClaimsPrincipal(identity);
