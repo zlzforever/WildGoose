@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using WildGoose.Domain;
+using WildGoose.Filters;
 
 namespace WildGoose;
 
@@ -30,9 +31,15 @@ public static class IdentityServerExtensions
                 {
                     ValidateAudience =
                         "true".Equals(configuration["JwtBearer:ValidateAudience"], StringComparison.OrdinalIgnoreCase),
-                    ValidateIssuer = "true".Equals(configuration["JwtBearer:ValidateIssuer"], StringComparison.OrdinalIgnoreCase),
+                    ValidateIssuer = "true".Equals(configuration["JwtBearer:ValidateIssuer"],
+                        StringComparison.OrdinalIgnoreCase),
                 };
-            });
+            }).AddScheme<TokenAuthOptions, TokenAuthHandler>("Token",
+                tOptions =>
+                {
+                    tOptions.Token = Environment.GetEnvironmentVariable("WildGooseToken") ??
+                                     Guid.NewGuid().ToString("");
+                });
 
         // adds an authorization policy to make sure the token is for scope 'api1'
         var apiName = configuration["ApiName"];
