@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using WildGoose.Application;
@@ -51,7 +52,7 @@ public class TokenAuthHandler : AuthenticationHandler<TokenAuthOptions>
         var roleStr = Context.Request.Headers["X-WD-ROLE"].ToString();
         if (!string.IsNullOrEmpty(roleStr))
         {
-            var roles = roleStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            var roles = HttpUtility.UrlDecode(roleStr).Split(',', StringSplitOptions.RemoveEmptyEntries);
             foreach (var role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role.Trim()));
