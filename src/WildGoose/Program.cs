@@ -43,6 +43,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.ConfigureIdentityServer(builder.Configuration);
 builder.Services.AddResponseCaching();
+var identity = builder.Configuration.GetSection("Identity");
+builder.Services.Configure<IdentityOptions>(identity);
 builder.Services.Configure<DbOptions>(builder.Configuration.GetSection("DbContext"));
 builder.Services.Configure<IdentityExtensionOptions>(builder.Configuration.GetSection("Identity"));
 builder.Services.Configure<DaprOptions>(builder.Configuration.GetSection("Dapr"));
