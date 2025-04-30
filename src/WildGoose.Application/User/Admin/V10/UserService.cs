@@ -185,6 +185,11 @@ public class UserService(
             }
         }
 
+        if (command.Organizations.Length == 0 && command.Roles.Contains(Defaults.OrganizationAdminRoleId))
+        {
+            throw new WildGooseFriendlyException(1, "用户不存在任何机构， 无法授于企业管理员");
+        }
+
         // 校验可授于角色
         await VerifyRolePermissionAsync(command.Roles);
 

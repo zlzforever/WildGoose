@@ -8,7 +8,6 @@ public class AddUserCommand
     /// <summary>
     /// 
     /// </summary>
-    [MinLength(1)]
     public string[] Organizations { get; set; }
 
     /// <summary>
