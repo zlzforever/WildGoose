@@ -21,7 +21,7 @@ public record AddOrganizationCommand
     /// <summary>
     /// 编号
     /// </summary>
-    [StringLength(50)]
+    [StringLength(64)]
     public string Code { get; set; }
 
     /// <summary>

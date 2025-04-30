@@ -35,10 +35,21 @@ public class UserService(
 
     public async Task<PagedResult<UserDto>> GetAsync(GetUsersQuery query)
     {
-        var queryable = from user in DbContext.Set<WildGoose.Domain.Entity.User>()
-            join organizationUser in DbContext.Set<OrganizationUser>() on user.Id equals organizationUser.UserId
-            where organizationUser.OrganizationId == query.OrganizationId
-            select user;
+        IQueryable<WildGoose.Domain.Entity.User> queryable;
+        if (!string.IsNullOrEmpty(query.OrganizationId))
+        {
+            queryable = from user in DbContext.Set<WildGoose.Domain.Entity.User>()
+                join organizationUser in DbContext.Set<OrganizationUser>() on user.Id equals organizationUser.UserId
+                where organizationUser.OrganizationId == query.OrganizationId
+                select user;
+        }
+        else
+        {
+            queryable = DbContext.Set<WildGoose.Domain.Entity.User>()
+                    .Where(u => !DbContext.Set<OrganizationUser>().Any(uo => uo.UserId == u.Id))
+                ;
+        }
+
         if (!string.IsNullOrEmpty(query.Q))
         {
             queryable = queryable.Where(x =>
@@ -163,9 +174,18 @@ public class UserService(
                 command.Password);
         passwordValidatorResult.CheckErrors();
 
-        // TODO
-        //// 判断当前用户对设置的机构有没有权限
-        // await VerifyOrganizationPermissionAsync(command.Organizations);
+        var organizationAdministrators = await DbContext.Set<OrganizationAdministrator>()
+            .Where(x => x.UserId == Session.UserId)
+            .Select(x => x.OrganizationId).ToListAsync();
+        foreach (var organization in command.Organizations)
+        {
+            if (!organizationAdministrators.Contains(organization))
+            {
+                throw new WildGooseFriendlyException(1, "没有权限添加用户到机构");
+            }
+        }
+
+        // 校验可授于角色
         await VerifyRolePermissionAsync(command.Roles);
 
         var normalizedUserName = userManager.NormalizeName(command.UserName);
@@ -253,13 +273,18 @@ public class UserService(
     /// <exception cref="WildGooseFriendlyException"></exception>
     public async Task<UserDto> UpdateAsync(UpdateUserCommand command)
     {
-        if (command.Organizations.Length == 0)
+        // if (command.Organizations.Length == 0)
+        // {
+        //     // 只有超管可以添加没有机构的人员
+        //     if (!Session.IsSupperAdmin())
+        //     {
+        //         throw new WildGooseFriendlyException(1, "机构不能为空");
+        //     }
+        // }
+
+        if (command.Organizations.Length == 0 && command.Roles.Contains(Defaults.OrganizationAdminRoleId))
         {
-            // 只有超管可以添加没有机构的人员
-            if (!Session.IsSupperAdmin())
-            {
-                throw new WildGooseFriendlyException(1, "机构不能为空");
-            }
+            throw new WildGooseFriendlyException(1, "用户不存在任何机构， 无法授于企业管理员");
         }
 
         var normalizedUserName = userManager.NormalizeName(command.UserName);
@@ -277,12 +302,18 @@ public class UserService(
 
         user.Code = command.Code;
         user.Name = command.Name;
+
+        // 优化
         await userManager.SetEmailAsync(user, command.Email);
         await userManager.SetPhoneNumberAsync(user, command.PhoneNumber);
         await userManager.SetUserNameAsync(user, command.UserName);
+
+        // TODO: 每次 SetUserNameAsync SetPhoneNumberAsync 都会调用 UpdateNormalizedUserNameAsync
         await userManager.UpdateNormalizedUserNameAsync(user);
-        var organizationIds = await UpdateOrganizationsAsync(user.Id, command.Organizations);
-        var roleIds = await UpdateRolesAsync(user.Id, command.Roles);
+
+
+        var organizationIds = await UpdateOrganizationsAsync(user, command.Organizations);
+        var roleIds = await UpdateRolesAsync(user, command.Roles);
 
         var userExtension = await DbContext.Set<UserExtension>()
             .FirstOrDefaultAsync(x => x.Id == command.Id) ?? new UserExtension { Id = user.Id };
@@ -407,11 +438,11 @@ public class UserService(
         return dto;
     }
 
-    private async Task<List<string>> UpdateRolesAsync(string userId, string[] roleIds)
+    private async Task<List<string>> UpdateRolesAsync(WildGoose.Domain.Entity.User user, string[] roleIds)
     {
         var userRoles = await DbContext.Set<IdentityUserRole<string>>()
             .AsNoTracking()
-            .Where(x => x.UserId == userId)
+            .Where(x => x.UserId == user.Id)
             .ToListAsync();
         var originUserRoleIds = userRoles.Select(x => x.RoleId).ToList();
         // 如果删除了别人授于的角色， 也是允许的。若要加回来， 只能让有权限的人操作。
@@ -426,7 +457,7 @@ public class UserService(
 
         await DbContext.AddRangeAsync(addIdList.Select(x => new IdentityUserRole<string>
         {
-            UserId = userId,
+            UserId = user.Id,
             RoleId = x
         }));
         DbContext.RemoveRange(removeList);
@@ -440,11 +471,11 @@ public class UserService(
         return originUserRoleIds;
     }
 
-    private async Task<List<string>> UpdateOrganizationsAsync(string userId, string[] organizations)
+    private async Task<List<string>> UpdateOrganizationsAsync(WildGoose.Domain.Entity.User user, string[] organizations)
     {
         var organizationUsers = await DbContext.Set<OrganizationUser>()
             .AsNoTracking()
-            .Where(x => x.UserId == userId).ToListAsync();
+            .Where(x => x.UserId == user.Id).ToListAsync();
         var originOrganizationIds = organizationUsers.Select(x => x.OrganizationId).ToList();
         var addIdList = organizations.Except(originOrganizationIds).ToArray();
 
@@ -459,7 +490,7 @@ public class UserService(
 
         await DbContext.AddRangeAsync(addIdList.Select(x => new OrganizationUser
         {
-            UserId = userId,
+            UserId = user.Id,
             OrganizationId = x
         }));
         DbContext.RemoveRange(removeList);
@@ -652,15 +683,17 @@ public class UserService(
             }
         }
 
+        var finalRoles = new List<IdentityUserRole<string>>();
         foreach (var roleId in finalRoleIds)
         {
-            await DbContext.AddAsync(new IdentityUserRole<string>
+            finalRoles.Add(new IdentityUserRole<string>
             {
                 RoleId = roleId,
                 UserId = userId
             });
         }
 
+        await DbContext.AddRangeAsync(finalRoles);
         var roles = await DbContext.Set<WildGoose.Domain.Entity.Role>()
             .Where(x => finalRoleIds.Contains(x.Id))
             .Select(x => x.Name).ToListAsync();

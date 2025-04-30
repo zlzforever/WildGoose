@@ -44,40 +44,16 @@ public class OrganizationService(
     public async Task<List<SubOrganizationDto>> GetSubListAsync(GetSubListQuery query)
     {
         // parentId 为空， 且不是超级管理员， 只能看到自己所在的机构
-        if (string.IsNullOrEmpty(query.ParentId)
-            && !Session.IsSupperAdmin() && !"all".Equals(query.Type, StringComparison.OrdinalIgnoreCase))
+        // if (string.IsNullOrEmpty(query.ParentId)
+        //     && !Session.IsSupperAdmin() && !"all".Equals(query.Type, StringComparison.OrdinalIgnoreCase))
+        // {
+        //     return await GetMyListAsync();
+        // }
+        // 非管理服务， 即便超管进来， 也可以一样的业务逻辑
+        // 
+        if (!"all".Equals(query.Type, StringComparison.OrdinalIgnoreCase))
         {
             return await GetMyListAsync();
-
-            // var list = await DbContext
-            //     .Set<WildGoose.Domain.Entity.Organization>()
-            //     .Include(x => x.Parent)
-            //     .AsNoTracking()
-            //     .Where(x => x.Parent.Id == query.ParentId)
-            //     .OrderBy(x => x.Code)
-            //     .Select(organization => new
-            //     {
-            //         organization.Id,
-            //         organization.Name,
-            //         ParentId = organization.Parent.Id,
-            //         ParentName = organization.Parent.Name,
-            //         organization.Metadata,
-            //         Scope = DbContext.Set<OrganizationScope>().AsNoTracking()
-            //             .Where(y => y.OrganizationId == organization.Id).Select(z => z.Scope).ToList(),
-            //         HasChild = DbContext
-            //             .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
-            //             .Any(x => x.Parent.Id == organization.Id)
-            //     }).ToListAsync();
-            // return list.Select(x => new SubOrganizationDto
-            // {
-            //     Id = x.Id,
-            //     Name = x.Name,
-            //     ParentId = x.ParentId,
-            //     ParentName = x.ParentName,
-            //     Scope = x.Scope,
-            //     HasChild = x.HasChild,
-            //     Metadata = string.IsNullOrEmpty(x.Metadata) ? default : JsonDocument.Parse(x.Metadata)
-            // }).ToList();
         }
 
         var result = await DbContext
@@ -109,7 +85,7 @@ public class OrganizationService(
             ParentName = x.ParentName,
             Scope = x.Scope,
             HasChild = x.HasChild,
-            Metadata = string.IsNullOrEmpty(x.Metadata) ? default : JsonDocument.Parse(x.Metadata)
+            Metadata = string.IsNullOrEmpty(x.Metadata) ? null : JsonDocument.Parse(x.Metadata)
         }).ToList();
     }
 
@@ -120,11 +96,10 @@ public class OrganizationService(
 
         var queryable = from t1 in organizationUserTable
             join t2 in organizationTable on t1.OrganizationId equals t2.Id
-            where t1.UserId == query.UserId
-            select t2.Metadata;
-        var organizationList =
-            (await queryable.ToListAsync()).Select(x => JsonSerializer.Deserialize<MetadataWithCode>(x)).ToList();
-        return organizationList.Any(x => query.Code == x.Code);
+            where t1.UserId == query.UserId && t2.Code == query.Code
+            select t2.Id;
+
+        return await queryable.AnyAsync();
     }
 
     public async Task<bool> IsUserInOrganizationWithInheritanceAsync(
@@ -136,10 +111,9 @@ public class OrganizationService(
         var queryable = from t1 in organizationUserTable
             join t2 in organizationTable on t1.OrganizationId equals t2.Id
             where t1.UserId == query.UserId
-            select t2.Metadata;
-        var organizationList =
-            (await queryable.ToListAsync()).Select(x => JsonSerializer.Deserialize<MetadataWithCode>(x)).ToList();
-        return organizationList.Any(x => query.Code.StartsWith(x.Code));
+            select t2.Code;
+        var organizationList = await queryable.ToListAsync();
+        return organizationList.Any(x => query.Code.StartsWith(x));
     }
 
     private async Task<List<SubOrganizationDto>> GetMyListAsync()

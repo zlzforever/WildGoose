@@ -37,6 +37,9 @@ public abstract class BaseService(
         return sql;
     });
 
+    /// <summary>
+    /// 支持 MYSQL/PG 的SQL
+    /// </summary>
     private static readonly Lazy<string> QuerySingleOrganizationSql = new(() =>
     {
         var sql = $$"""
@@ -78,6 +81,31 @@ public abstract class BaseService(
         return Build(enumerable);
     }
 
+//     /// <summary>
+//     /// 是否拥有管理某个机构的权限
+//     /// </summary>
+//     /// <param name="organizationId"></param>
+//     /// <returns></returns>
+//     protected async ValueTask<bool> HasOrganizationPermissionAsync(string organizationId)
+//     {
+//         if (Session.IsSupperAdmin())
+//         {
+//             return true;
+//         }
+//
+//         var sql = $"""
+//                    {QuerySingleOrganizationSql.Value};
+//                    {QueryAdminOrganizationSql.Value};
+//                    """;
+//         var gridReader = await DbContext.Database.GetDbConnection()
+//             .QueryMultipleAsync(sql, new { Session.UserId, OrganizationId = organizationId });
+//         var entityEnumerable1 = await gridReader.ReadAsync<OrganizationEntity>();
+//         var checkOrganization = Build(entityEnumerable1).First();
+//         var entityEnumerable2 = await gridReader.ReadAsync<OrganizationEntity>();
+//         var organizations = Build(entityEnumerable2);
+//         return organizations.Any(x => checkOrganization.Path.StartsWith(x.Path));
+//     }
+
     /// <summary>
     /// 是否拥有管理某个机构的权限
     /// </summary>
@@ -94,6 +122,8 @@ public abstract class BaseService(
                    {QuerySingleOrganizationSql.Value};
                    {QueryAdminOrganizationSql.Value};
                    """;
+        var b = await DbContext.Database.SqlQueryRaw<object>(sql).ToListAsync();
+
         var gridReader = await DbContext.Database.GetDbConnection()
             .QueryMultipleAsync(sql, new { Session.UserId, OrganizationId = organizationId });
         var entityEnumerable1 = await gridReader.ReadAsync<OrganizationEntity>();

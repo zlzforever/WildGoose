@@ -106,22 +106,23 @@ const UserPage = () => {
               checked={record.isAdministrator}
               onChange={async () => {
                 if (organizationTreeSelectedKeys && organizationTreeSelectedKeys.length > 0) {
+                  const key = organizationTreeSelectedKeys[0]
+                  if (!key) {
+                    return
+                  }
                   if (record.isAdministrator) {
                     Modal.confirm({
                       title: "警告",
                       content: "您确定要移除此管理员吗?",
                       onOk: async () => {
-                        await deleteOrganizationAdministrator(
-                          organizationTreeSelectedKeys[0],
-                          record.id
-                        )
+                        await deleteOrganizationAdministrator(key, record.id)
                         record.isAdministrator = !record.isAdministrator
                         record.roles = record.roles.filter((item) => item !== "organization-admin")
                         setDataSource([...dataSource])
                       },
                     })
                   } else {
-                    await addOrganizationAdministrator(organizationTreeSelectedKeys[0], record.id)
+                    await addOrganizationAdministrator(key, record.id)
                     record.isAdministrator = !record.isAdministrator
                     record.roles.push("organization-admin")
                     setDataSource([...dataSource])
@@ -223,6 +224,14 @@ const UserPage = () => {
       const dict: Dictionary<SimpleDataNode> = {}
       const res = await getSubOrganizationList()
       const organizations = (res?.data ?? []) as OrganizationDto[]
+      const defaultNode: SimpleDataNode = {
+        key: "",
+        title: "默认机构",
+        pId: "",
+        isLeaf: true,
+        children: [],
+      }
+
       if (organizations && organizations.length > 0) {
         const data = organizations.map((x) => {
           const node: SimpleDataNode = {
@@ -235,12 +244,13 @@ const UserPage = () => {
           dict[x.id] = node
           return node
         })
+        data.push(defaultNode)
         setOrganizationTreeData(data)
         setOrganizationTreeSelectedKeys([organizations[0].id])
         loadUsers(organizations[0].id, "", "all", window.wildgoose.pageSize, 1)
       } else {
-        setOrganizationTreeData([])
-        setOrganizationTreeSelectedKeys([])
+        setOrganizationTreeData([defaultNode])
+        setOrganizationTreeSelectedKeys([""])
       }
       setOrganizationTreeDict(dict)
     }
@@ -254,9 +264,6 @@ const UserPage = () => {
     limit: number,
     page: number
   ) => {
-    if (!orgId) {
-      return
-    }
     const res = await getUsers({
       organizationId: orgId,
       q: q,
@@ -317,6 +324,7 @@ const UserPage = () => {
     if (keys.length === 0) {
       return
     }
+
     setKeyword("")
     setStatus("all")
     if (keys.length > 0) {
@@ -450,11 +458,13 @@ const UserPage = () => {
   }
 
   const organizationTreeTitleRender = (node: SimpleDataNode) => {
+    const disabled = node.key === "" || !node.key
     const items: MenuItem[] = [
       {
-        label: "编辑机构",
+        label: "编辑",
         key: "a",
         icon: <FormOutlined />,
+        disabled: disabled,
         onClick: () => {
           // if (organizationTreeSelectedKeys.length === 0) {
           //   message.error("未选中机构")
@@ -468,9 +478,10 @@ const UserPage = () => {
         },
       },
       {
-        label: "添加下级机构",
+        label: "添加",
         key: "b",
         icon: <AppstoreAddOutlined />,
+        disabled: disabled,
         onClick: () => {
           if (organizationTreeSelectedKeys.length === 0) {
             message.error("未选中机构")
@@ -489,6 +500,7 @@ const UserPage = () => {
         label: "删除",
         key: "c",
         icon: <DeleteOutlined />,
+        disabled: disabled,
         onClick: () => {
           Modal.confirm({
             title: "警告",
@@ -687,7 +699,7 @@ const UserPage = () => {
                     allowClear
                     style={{ width: 220 }}
                     onSearch={() => {
-                      if (organizationTreeSelectedKeys && organizationTreeSelectedKeys[0]) {
+                      if (organizationTreeSelectedKeys) {
                         loadUsers(
                           organizationTreeSelectedKeys[0],
                           keyword,

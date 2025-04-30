@@ -170,7 +170,8 @@ public class OrganizationService(
 
     public async Task<OrganizationSimpleDto> UpdateAsync(UpdateOrganizationCommand command)
     {
-        if (!await HasOrganizationPermissionAsync(command.Id) || !await HasOrganizationPermissionAsync(command.ParentId))
+        if (!await HasOrganizationPermissionAsync(command.Id) ||
+            !await HasOrganizationPermissionAsync(command.ParentId))
         {
             throw new WildGooseFriendlyException(1, "权限不足");
         }
@@ -440,11 +441,6 @@ public class OrganizationService(
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
 
-        if (!await HasOrganizationPermissionAsync(command.Id))
-        {
-            throw new WildGooseFriendlyException(1, "权限不足");
-        }
-
         var relationships = await DbContext.Set<OrganizationAdministrator>()
             .Where(x => x.UserId == command.UserId)
             .ToListAsync();
@@ -490,7 +486,8 @@ public class OrganizationService(
     {
         organization.Parent = string.IsNullOrEmpty(parentId)
             ? null
-            : await DbContext.Set<WildGoose.Domain.Entity.Organization>().FirstOrDefaultAsync(x => x.Id == parentId);
+            : await DbContext.Set<WildGoose.Domain.Entity.Organization>()
+                .FirstOrDefaultAsync(x => x.Id == parentId);
     }
 
 //     private Task<bool> HasParentPermissionAsync(string organizationId)

@@ -47,6 +47,7 @@ var identity = builder.Configuration.GetSection("Identity");
 builder.Services.Configure<IdentityOptions>(identity);
 builder.Services.Configure<DbOptions>(builder.Configuration.GetSection("DbContext"));
 builder.Services.Configure<IdentityExtensionOptions>(builder.Configuration.GetSection("Identity"));
+builder.Services.Configure<WildGooseOptions>(builder.Configuration.GetSection("WildGoose"));
 builder.Services.Configure<DaprOptions>(builder.Configuration.GetSection("Dapr"));
 
 // Add services to the container.
@@ -58,6 +59,9 @@ if ("mysql".Equals(databaseType, StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
     {
+#if DEBUG
+        options.EnableSensitiveDataLogging();
+#endif
         options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
             b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
     });

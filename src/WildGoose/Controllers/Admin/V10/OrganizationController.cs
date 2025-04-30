@@ -12,6 +12,12 @@ namespace WildGoose.Controllers.Admin.V10;
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "admin, organization-admin")]
 public class OrganizationController(OrganizationService organizationService) : ControllerBase
 {
+    [HttpGet("subList")]
+    public Task<List<SubOrganizationDto>> GetSubListAsync([FromQuery] GetSubListQuery query)
+    {
+        return organizationService.GetSubListAsync(query);
+    }
+
     /// <summary>
     /// 添加机构
     /// </summary>
@@ -40,12 +46,6 @@ public class OrganizationController(OrganizationService organizationService) : C
     {
         command.Id = id;
         return organizationService.UpdateAsync(command);
-    }
-
-    [HttpGet("subList")]
-    public Task<List<SubOrganizationDto>> GetSubListAsync([FromQuery] GetSubListQuery query)
-    {
-        return organizationService.GetSubListAsync(query);
     }
 
     [HttpPost("{id}/administrators/{userId}")]

@@ -75,8 +75,8 @@ public class RoleService(
 
             await DbContext.Database.ExecuteSqlRawAsync(
                 $"""
-                  DELETE FROM {tableName} WHERE role_id = '{role.Id}'
-                  """);
+                 DELETE FROM {tableName} WHERE role_id = '{role.Id}'
+                 """);
             await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
         }
@@ -270,7 +270,8 @@ public class RoleService(
             join roleAssignableRole in DbContext.Set<RoleAssignableRole>() on userRole.RoleId equals roleAssignableRole
                 .RoleId
             join role in DbContext.Set<WildGoose.Domain.Entity.Role>() on roleAssignableRole.AssignableId equals role.Id
-            where userRole.UserId == userId && role.Name != Defaults.OrganizationAdmin
+            where userRole.UserId == userId && role.Name != Defaults.OrganizationAdmin &&
+                  role.Name != Defaults.AdminRole
             select new RoleBasicDto
             {
                 Id = role.Id,

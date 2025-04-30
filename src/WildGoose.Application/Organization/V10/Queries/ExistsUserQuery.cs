@@ -11,8 +11,8 @@ public class ExistsUserQuery
     public string UserId { get; set; }
 
     /// <summary>
-    /// 
+    /// 机构代码
     /// </summary>
-    [StringLength(10)]
+    [StringLength(16)]
     public string Code { get; set; }
 }
