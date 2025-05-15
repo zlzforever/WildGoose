@@ -122,7 +122,7 @@ public abstract class BaseService(
                    {QuerySingleOrganizationSql.Value};
                    {QueryAdminOrganizationSql.Value};
                    """;
-        var b = await DbContext.Database.SqlQueryRaw<object>(sql).ToListAsync();
+        // var b = await DbContext.Database.SqlQueryRaw<object>(sql).ToListAsync();
 
         var gridReader = await DbContext.Database.GetDbConnection()
             .QueryMultipleAsync(sql, new { Session.UserId, OrganizationId = organizationId });

@@ -26,6 +26,5 @@
       <Folder Include="Domain\Admin\" />
       <Folder Include="Organization\Admin\" />
       <Folder Include="Role\Admin\" />
-      <Folder Include="User\Admin\" />
     </ItemGroup>
 </Project>

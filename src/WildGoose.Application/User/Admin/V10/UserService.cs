@@ -174,9 +174,11 @@ public class UserService(
                 command.Password);
         passwordValidatorResult.CheckErrors();
 
+        // 查询当前用户管理的所有机构 ID
         var organizationAdministrators = await DbContext.Set<OrganizationAdministrator>()
             .Where(x => x.UserId == Session.UserId)
             .Select(x => x.OrganizationId).ToListAsync();
+        
         foreach (var organization in command.Organizations)
         {
             if (!organizationAdministrators.Contains(organization))
@@ -185,7 +187,7 @@ public class UserService(
             }
         }
 
-        if (command.Organizations.Length == 0 && command.Roles.Contains(Defaults.OrganizationAdminRoleId))
+        if (command.Roles.Contains(Defaults.OrganizationAdminRoleId))
         {
             throw new WildGooseFriendlyException(1, "用户不存在任何机构， 无法授于企业管理员");
         }

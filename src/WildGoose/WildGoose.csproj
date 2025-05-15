@@ -31,7 +31,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Controllers\Admin\" />
       <Folder Include="Controllers\Internal\" />
       <Folder Include="wwwroot\" />
     </ItemGroup>

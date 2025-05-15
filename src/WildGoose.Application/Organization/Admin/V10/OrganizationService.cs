@@ -170,8 +170,10 @@ public class OrganizationService(
 
     public async Task<OrganizationSimpleDto> UpdateAsync(UpdateOrganizationCommand command)
     {
-        if (!await HasOrganizationPermissionAsync(command.Id) ||
-            !await HasOrganizationPermissionAsync(command.ParentId))
+        // TODO: 如果变更了 parent 才需要校验
+        if (!await HasOrganizationPermissionAsync(command.Id)
+            // || !await HasOrganizationPermissionAsync(command.ParentId)
+           )
         {
             throw new WildGooseFriendlyException(1, "权限不足");
         }
