@@ -317,8 +317,7 @@ public class UserService(
 
         // TODO: 每次 SetUserNameAsync SetPhoneNumberAsync 都会调用 UpdateNormalizedUserNameAsync
         await userManager.UpdateNormalizedUserNameAsync(user);
-
-
+        
         var organizationIds = await UpdateOrganizationsAsync(user, command.Organizations);
         var roleIds = await UpdateRolesAsync(user, command.Roles);
 
@@ -445,7 +444,7 @@ public class UserService(
         return dto;
     }
 
-    private async Task<List<string>> UpdateRolesAsync(WildGoose.Domain.Entity.User user, string[] roleIds)
+    private async Task<List<string>> UpdateRolesAsync(WildGoose.Domain.Entity.User user, List<string> roleIds)
     {
         var userRoles = await DbContext.Set<IdentityUserRole<string>>()
             .AsNoTracking()

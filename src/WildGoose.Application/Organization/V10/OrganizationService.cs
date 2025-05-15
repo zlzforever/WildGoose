@@ -174,7 +174,7 @@ public class OrganizationService(
                     HasChild = entity.HasChild,
                     ParentId = entity.ParentId,
                     ParentName = entity.ParentName,
-                    Metadata = string.IsNullOrEmpty(entity.Metadata) ? default : JsonDocument.Parse(entity.Metadata),
+                    Metadata = string.IsNullOrEmpty(entity.Metadata) ? null : JsonDocument.Parse(entity.Metadata),
                     Scope = string.IsNullOrEmpty(entity.Scope)
                         ? []
                         : [entity.Scope]

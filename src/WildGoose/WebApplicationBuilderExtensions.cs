@@ -48,6 +48,7 @@ public static class WebApplicationBuilderExtensions
         builder.Services.TryAddScoped<OrganizationService>();
         builder.Services.TryAddScoped<WildGoose.Application.Organization.V10.OrganizationService>();
         builder.Services.TryAddScoped<UserService>();
+        builder.Services.TryAddScoped<WildGoose.Application.User.Admin.V11.UserService>();
         builder.Services.TryAddScoped<RoleService>();
         builder.Services.TryAddScoped<IObjectStorageService, ObjectStorageService>();
         builder.Services.TryAddScoped<Application.User.V10.UserService>();

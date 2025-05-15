@@ -18,7 +18,7 @@ public class OrganizationController(OrganizationService organizationService, IMe
         Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot/data/organizations.json");
 
     [HttpGet("base")]
-    public IActionResult GetBaseAsync()
+    public IActionResult GetBaseList()
     {
         var etag = HttpContext.Request.Headers.ETag.ToString();
         var tuple = memoryCache.GetOrCreate("organizations_base.json", entry =>
@@ -78,31 +78,31 @@ public class OrganizationController(OrganizationService organizationService, IMe
     //     return organizationService.ExistsUserAsync(query);
     // }
 
-    [HttpGet("contains")]
-    public Task<bool> IsUserInOrganizationWithInheritance(
-        [FromQuery, StringLength(36), Required]
-        string userId,
-        [FromQuery, StringLength(50), Required]
-        string code,
-        [FromQuery, StringLength(10), Required]
-        string type
-    )
-    {
-        if ("inherit".Equals(type, StringComparison.OrdinalIgnoreCase))
-        {
-            return organizationService.IsUserInOrganizationWithInheritanceAsync(
-                new IsUserInOrganizationWithInheritanceQuery
-                {
-                    UserId = userId,
-                    Code = code
-                });
-        }
-
-        return organizationService.ExistsUserAsync(new ExistsUserQuery
-        {
-            UserId = userId,
-        });
-    }
+    // [HttpGet("contains")]
+    // public Task<bool> IsUserInOrganizationWithInheritance(
+    //     [FromQuery, StringLength(36), Required]
+    //     string userId,
+    //     [FromQuery, StringLength(50), Required]
+    //     string code,
+    //     [FromQuery, StringLength(10), Required]
+    //     string type
+    // )
+    // {
+    //     if ("inherit".Equals(type, StringComparison.OrdinalIgnoreCase))
+    //     {
+    //         return organizationService.IsUserInOrganizationWithInheritanceAsync(
+    //             new IsUserInOrganizationWithInheritanceQuery
+    //             {
+    //                 UserId = userId,
+    //                 Code = code
+    //             });
+    //     }
+    //
+    //     return organizationService.ExistsUserAsync(new ExistsUserQuery
+    //     {
+    //         UserId = userId,
+    //     });
+    // }
 
     // [HttpGet("my")]
     // public async Task<List<OrganizationDto>> GetMyListAsync()

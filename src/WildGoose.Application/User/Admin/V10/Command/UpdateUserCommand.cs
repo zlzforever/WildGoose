@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace WildGoose.Application.User.Admin.V10.Command;
@@ -48,7 +49,7 @@ public class UpdateUserCommand
     /// <summary>
     /// 角色
     /// </summary>
-    public string[] Roles { get; set; } = Array.Empty<string>();
+    public List<string> Roles { get; set; } = new();
 
     /// <summary>
     ///  

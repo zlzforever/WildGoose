@@ -9,7 +9,7 @@ namespace WildGoose.Controllers.V10;
 [Route("api/v1.0/permissions")]
 [ApiController]
 [Authorize(AuthenticationSchemes = "Bearer,SecurityToken")]
-public class PermissionController(PermissionService permissionService, ILogger<PermissionController> logger)
+public class PermissionController(PermissionService permissionService)
     : ControllerBase
 {
     /// <summary>
