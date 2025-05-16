@@ -21,12 +21,17 @@ public class UserService(
     IPasswordValidator<WildGoose.Domain.Entity.User> passwordValidator,
     UserManager<WildGoose.Domain.Entity.User> userManager,
     IOptions<DaprOptions> dapOptions,
-    IOptions<IdentityExtensionOptions> identityExtensionOptions,
-    IObjectStorageService objectStorageService)
+    IOptions<WildGooseOptions> wildGooseOptions)
     : BaseService(dbContext, session, dbOptions, logger)
 {
     public async Task<UserDto> AddAsync(AddUserCommand command)
     {
+        var options = wildGooseOptions.Value;
+        if (options.AddUserRoles.Length == 0 || !Session.Roles.Any(x => options.AddUserRoles.Contains(x)))
+        {
+            throw new WildGooseFriendlyException(403, "访问受限");
+        }
+
         // 验证密码是否符合要求
         var passwordValidatorResult =
             await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(),

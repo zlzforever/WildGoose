@@ -7,7 +7,7 @@ namespace WildGoose.Controllers.Admin.V11;
 
 [ApiController]
 [Route("api/admin/v1.1/users")]
-[Microsoft.AspNetCore.Authorization.Authorize(Roles = "add-user")]
+[Microsoft.AspNetCore.Authorization.Authorize()]
 public class UserController(UserService userService) : ControllerBase
 {
     [HttpPost]
