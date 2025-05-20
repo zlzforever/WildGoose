@@ -178,12 +178,15 @@ public class UserService(
         var organizationAdministrators = await DbContext.Set<OrganizationAdministrator>()
             .Where(x => x.UserId == Session.UserId)
             .Select(x => x.OrganizationId).ToListAsync();
-        
-        foreach (var organization in command.Organizations)
+
+        if (!Session.IsSupperAdmin())
         {
-            if (!organizationAdministrators.Contains(organization))
+            foreach (var organization in command.Organizations)
             {
-                throw new WildGooseFriendlyException(1, "没有权限添加用户到机构");
+                if (!organizationAdministrators.Contains(organization))
+                {
+                    throw new WildGooseFriendlyException(1, "没有权限添加用户到机构");
+                }
             }
         }
 
@@ -317,7 +320,7 @@ public class UserService(
 
         // TODO: 每次 SetUserNameAsync SetPhoneNumberAsync 都会调用 UpdateNormalizedUserNameAsync
         await userManager.UpdateNormalizedUserNameAsync(user);
-        
+
         var organizationIds = await UpdateOrganizationsAsync(user, command.Organizations);
         var roleIds = await UpdateRolesAsync(user, command.Roles);
 
