@@ -51,7 +51,7 @@ public class OrganizationService(
         // }
         // 非管理服务， 即便超管进来， 也可以一样的业务逻辑
         // 
-        if (!"all".Equals(query.Type, StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrEmpty(query.ParentId) && !"all".Equals(query.Type, StringComparison.OrdinalIgnoreCase))
         {
             return await GetMyListAsync();
         }
