@@ -317,13 +317,17 @@ const UserModal: React.FC<UserModalProps> = (props) => {
                 />
               </Form.Item>
             </Col>
+            <Col span={12}>
+              <Form.Item
+                name="roles"
+                label="角色"
+                rules={[{ required: true, message: "请选择角色" }]}
+              >
+                <Select mode="multiple" options={roleOptions} />
+              </Form.Item>
+            </Col>
             {props.id ? (
               <>
-                <Col span={12}>
-                  <Form.Item name="roles" label="角色">
-                    <Select mode="multiple" options={roleOptions} />
-                  </Form.Item>
-                </Col>
                 <Col span={12}>
                   <Form.Item name="departureTime" label="离职时间">
                     <DatePicker />
