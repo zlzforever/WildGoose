@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -39,15 +40,8 @@ public class RoleService(
         };
         var roleResult = await roleManager.CreateAsync(role);
         roleResult.CheckErrors();
-
-        // var roleDomain = new DomainRole
-        // {
-        //     RoleId = role.Id,
-        //     DomainId = command.DomainId
-        // };
-        //
-        // await DbContext.AddAsync(roleDomain);
-        await DbContext.SaveChangesAsync();
+        // roleManager.CreateAsync 会调用 DbContext.SaveChangesAsync
+        // await DbContext.SaveChangesAsync();
         return role.Id;
     }
 
@@ -63,7 +57,7 @@ public class RoleService(
         if ("admin".Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             "organization-admin".Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
-            throw new WildGooseFriendlyException(1, "系统角色， 禁止删除");
+            throw new WildGooseFriendlyException(1, "禁止删除系统角色");
         }
 
         DbContext.Remove(role);
@@ -73,10 +67,14 @@ public class RoleService(
             var tableName = DbContext.Set<IdentityUserRole<string>>()
                 .EntityType.GetTableName();
 
+            Debug.Assert(tableName != null);
+
+#pragma warning disable EF1002
             await DbContext.Database.ExecuteSqlRawAsync(
-                $"""
-                 DELETE FROM {tableName} WHERE role_id = '{role.Id}'
-                 """);
+#pragma warning restore EF1002
+                $$"""
+                  DELETE FROM {{tableName}} WHERE role_id = {0}
+                  """, role.Id);
             await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
         }
@@ -109,13 +107,15 @@ public class RoleService(
         role.NormalizedName = roleManager.NormalizeKey(command.Name);
         role.Description = command.Description;
 
-        if (await DbContext.Set<WildGoose.Domain.Entity.Role>()
-                .AnyAsync(x => x.NormalizedName == role.NormalizedName && x.Id != role.Id))
-        {
-            throw new WildGooseFriendlyException(1, "角色名已经存在");
-        }
+        // if (await DbContext.Set<WildGoose.Domain.Entity.Role>()
+        //         .AnyAsync(x => x.NormalizedName == role.NormalizedName && x.Id != role.Id))
+        // {
+        //     throw new WildGooseFriendlyException(1, "角色名已经存在");
+        // }
 
-        await DbContext.SaveChangesAsync();
+        // roleManager.UpdateAsync 会校验角色名重复
+        (await roleManager.UpdateAsync(role)).CheckErrors();
+        // await DbContext.SaveChangesAsync();
     }
 
     public async Task UpdateStatementAsync(UpdateStatementCommand command)
@@ -153,8 +153,8 @@ public class RoleService(
                 x.LastModificationTime
             }).OrderByDescending(x => x.Id)
             .PagedQueryAsync(query.Page, query.Limit);
-        var list = result.Data.ToList();
-        var data = list.Select(x => new RoleDto
+
+        var dtoList = result.Data.Select(x => new RoleDto
         {
             Id = x.Id,
             Name = x.Name,
@@ -164,12 +164,12 @@ public class RoleService(
                 ? x.LastModificationTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
                 : "-"
         }).ToList();
-        var roleIds = result.Data.Select(x => x.Id).ToList();
+        var roleIdList = result.Data.Select(x => x.Id).ToList();
         var t1 = DbContext.Set<RoleAssignableRole>();
         var t2 = DbContext.Set<WildGoose.Domain.Entity.Role>();
         var assignableRoles = await (from relationship in t1
             join role in t2 on relationship.AssignableId equals role.Id
-            where roleIds.Contains(relationship.RoleId)
+            where roleIdList.Contains(relationship.RoleId)
             select new
             {
                 relationship.RoleId,
@@ -177,7 +177,7 @@ public class RoleService(
                 AssignableName = role.Name
             }).ToListAsync();
 
-        foreach (var roleDto in data)
+        foreach (var roleDto in dtoList)
         {
             roleDto.AssignableRoles = assignableRoles.Where(x => x.RoleId == roleDto.Id)
                 .Select(x => new RoleBasicDto
@@ -186,7 +186,7 @@ public class RoleService(
                 }).ToList();
         }
 
-        return new PagedResult<RoleDto>(result.Page, result.Limit, result.Total, data);
+        return new PagedResult<RoleDto>(result.Page, result.Limit, result.Total, dtoList);
     }
 
     public async Task<RoleDto> GetAsync(GetRoleQuery query)
@@ -218,10 +218,20 @@ public class RoleService(
 
     public async Task AddAssignableRoleAsync(AddAssignableRoleCommand command)
     {
+        IQueryable<RoleAssignableRole> queryable = DbContext.Set<RoleAssignableRole>();
+        var groups = command.GroupBy(x => x.Id);
+        foreach (var group in groups)
+        {
+            var assignableRoles = group.Select(x => x.AssignableRoleId).ToList();
+            queryable = queryable.Where(item =>
+                item.RoleId == group.Key && assignableRoles.Contains(item.AssignableId));
+        }
+
+        var existList = await queryable.AsNoTracking().ToListAsync();
+
         foreach (var dto in command)
         {
-            var exists = await DbContext.Set<RoleAssignableRole>()
-                .AnyAsync(x => x.RoleId == dto.Id && x.AssignableId == dto.AssignableRoleId);
+            var exists = existList.Any(y => y.RoleId == dto.Id && y.AssignableId == dto.AssignableRoleId);
             if (exists)
             {
                 continue;
@@ -244,7 +254,7 @@ public class RoleService(
             .FirstOrDefaultAsync(x => x.RoleId == command.Id && x.AssignableId == command.AssignableRoleId);
         if (relationship == null)
         {
-            throw new WildGooseFriendlyException(1, "角色不存在");
+            throw new WildGooseFriendlyException(1, "数据不存在");
         }
 
         DbContext.Remove(relationship);

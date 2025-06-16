@@ -503,7 +503,13 @@ public class UserService(
             OrganizationId = x
         }));
         DbContext.RemoveRange(removeList);
-
+        
+        // TODO: 移除机构管理员
+        // var organizationUsers = await DbContext.Set<OrganizationAdministrator>()
+        //     .AsNoTracking()
+        //     .Where(x => x.UserId == user.Id).ToListAsync();
+        
+        
         foreach (var id in removeIdList)
         {
             originOrganizationIds.Remove(id);

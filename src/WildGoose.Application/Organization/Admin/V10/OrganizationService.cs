@@ -20,9 +20,7 @@ public class OrganizationService(
     IOptions<DbOptions> dbOptions,
     ILogger<OrganizationService> logger,
     UserManager<WildGoose.Domain.Entity.User> userManager)
-    : BaseService(dbContext,
-        session, dbOptions,
-        logger)
+    : BaseService(dbContext, session, dbOptions, logger)
 {
     public async Task<OrganizationSimpleDto> AddAsync(AddOrganizationCommand command)
     {
@@ -367,47 +365,60 @@ public class OrganizationService(
 
     public async Task<List<SubOrganizationDto>> GetSubListAsync(GetSubListQuery query)
     {
-        if (Session.IsSupperAdmin())
-        {
-            return await DbContext
-                .Set<WildGoose.Domain.Entity.Organization>()
-                .Include(x => x.Parent)
-                .AsNoTracking()
-                .Where(x => x.Parent.Id == query.ParentId)
-                .OrderBy(x => x.Code)
-                .Select(organization => new SubOrganizationDto
-                {
-                    Id = organization.Id,
-                    Name = organization.Name,
-                    ParentId = organization.Parent.Id,
-                    ParentName = organization.Parent.Name,
-                    HasChild = DbContext
-                        .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
-                        .Any(x => x.Parent.Id == organization.Id)
-                }).ToListAsync();
-        }
+        // 超管
+        // if (Session.IsSupperAdmin())
+        // {
+        //     return await DbContext
+        //         .Set<WildGoose.Domain.Entity.Organization>()
+        //         .Include(x => x.Parent)
+        //         .AsNoTracking()
+        //         .Where(x => x.Parent.Id == query.ParentId)
+        //         .OrderBy(x => x.Code)
+        //         .Select(organization => new SubOrganizationDto
+        //         {
+        //             Id = organization.Id,
+        //             Name = organization.Name,
+        //             ParentId = organization.Parent.Id,
+        //             ParentName = organization.Parent.Name,
+        //             HasChild = DbContext
+        //                 .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
+        //                 .Any(x => x.Parent.Id == organization.Id)
+        //         }).ToListAsync();
+        // }
 
-        // 查询管理的机构
+        // 机构管理员
+        // 1. 查询自身管理的所有机构
         if (string.IsNullOrEmpty(query.ParentId))
         {
             var organizations = await GetAdminOrganizationsAsync();
-            var idList = organizations.Select(x => x.Id);
-            return await DbContext
-                .Set<WildGoose.Domain.Entity.Organization>()
-                .Include(x => x.Parent)
-                .AsNoTracking()
-                .Where(x => idList.Contains(x.Id))
-                .OrderBy(x => x.Code)
-                .Select(organization => new SubOrganizationDto
-                {
-                    Id = organization.Id,
-                    Name = organization.Name,
-                    ParentId = organization.Parent.Id,
-                    ParentName = organization.Parent.Name,
-                    HasChild = DbContext
-                        .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
-                        .Any(x => x.Parent.Id == organization.Id)
-                }).ToListAsync();
+            var sql = $$"""
+                        SELECT t1.id as Id,
+                               t1.name as Name,
+                               t1.parent_id as ParentId,
+                               t2.name                                                                as ParentName,
+                               EXISTS (SELECT 1 FROM {{Defaults.OrganizationTableName}} WHERE parent_id = t1.id) as HasChild
+                        from wild_goose_organization t1
+                                 left join {{Defaults.OrganizationTableName}} t2 on t1.parent_id = t2.id
+                        where t1.id in (select distinct organization_id
+                                        from {{Defaults.OrganizationAdministratorTableName}}
+                                        where user_id = @UserId)
+                          and t1.is_deleted <> true
+                        """;
+            var result = organizations.Select(organization => new SubOrganizationDto
+            {
+                Id = organization.Id,
+                Name = organization.Name,
+                ParentId = organization.ParentId,
+                ParentName = organization.ParentName,
+                HasChild = organization.HasChild
+            }).ToList();
+            return result;
+            // var list = (await DbContext.Database.GetDbConnection().QueryAsync<SubOrganizationDto>(
+            //     sql, new
+            //     {
+            //         Session.UserId
+            //     })).ToList();
+            // return list;
         }
 
         // 机构信息只有名称、ID 非敏感信息， 直接给

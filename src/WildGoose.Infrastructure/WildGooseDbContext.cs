@@ -307,18 +307,14 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             {
                 case EntityState.Added:
                     ApplyConceptsForAddedEntity(entry, session.UserId, session.UserDisplayName);
-
                     break;
                 case EntityState.Modified:
                     ApplyConceptsForModifiedEntity(entry, session.UserId, session.UserDisplayName);
-
                     break;
                 case EntityState.Deleted:
                     ApplyConceptsForDeletedEntity(entry, session.UserId, session.UserDisplayName);
-
                     break;
                 case EntityState.Detached:
-                    break;
                 case EntityState.Unchanged:
                     break;
                 default:

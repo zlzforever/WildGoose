@@ -19,21 +19,28 @@ public abstract class BaseService(
 {
     protected static readonly Lazy<string> QueryAdminOrganizationSql = new(() =>
     {
-        var sql = $$"""
-                    WITH RECURSIVE recursion AS
-                                       (SELECT t1.id, t1.name, t1.parent_id, true as leaf
-                                        from {{Defaults.OrganizationTableName}} t1
-                                        where t1.id in (select distinct organization_id
-                                                        from {{Defaults.OrganizationAdministratorTableName}}
-                                                        where user_id = @UserId) and t1.is_deleted <> true
-                                        UNION ALL
-                                        SELECT t2.id, t2.name, t2.parent_id, false
-                                        from {{Defaults.OrganizationTableName}} t2,
-                                             recursion t3
-                                        WHERE t2.id = t3.parent_id)
-                    SELECT distinct *
-                    FROM recursion order by leaf desc
-                    """;
+        var sql = $"""
+                   WITH RECURSIVE Ancestors as (
+                   -- 初始查询
+                       SELECT t1.id,
+                              t1.name,
+                              t1.parent_id,
+                              t2.name                                                                as parent_name,
+                              EXISTS (SELECT 1 FROM {Defaults.OrganizationTableName} WHERE parent_id = t1.id) as has_child
+                       from {Defaults.OrganizationTableName} t1
+                                left join {Defaults.OrganizationTableName} t2 on t1.parent_id = t2.id
+                       where t1.id in (select distinct organization_id
+                                       from {Defaults.OrganizationAdministratorTableName}
+                                       where user_id = @UserId)
+                         and t1.is_deleted <> true
+                       union all
+                   -- 递归查询
+                       select p.id, p.name, p.parent_id, a.parent_name, true
+                       from {Defaults.OrganizationTableName} p
+                                join Ancestors a on p.id = a.parent_id)
+                   select distinct *
+                   from Ancestors;
+                   """;
         return sql;
     });
 
@@ -72,11 +79,11 @@ public abstract class BaseService(
     protected async ValueTask<List<OrganizationEntity>> GetAdminOrganizationsAsync()
     {
         var sql = QueryAdminOrganizationSql.Value;
-        var enumerable = await DbContext.Database.GetDbConnection().QueryAsync<OrganizationEntity>(
+        var enumerable = (await DbContext.Database.GetDbConnection().QueryAsync<OrganizationEntity>(
             sql, new
             {
-                Session.UserId
-            });
+                UserId = "6641a8ec1c18c5058ce069a4"
+            })).ToList();
 
         return Build(enumerable);
     }
@@ -178,7 +185,7 @@ public abstract class BaseService(
         var entityDict = new Dictionary<string, OrganizationEntity>();
         foreach (var entity in enumerable)
         {
-            if (entity.Leaf)
+            if (entity.HasChild)
             {
                 organizations.Add(entity);
             }
@@ -286,7 +293,8 @@ public abstract class BaseService(
         public string Id { get; set; }
         public string Name { get; set; }
         public string ParentId { get; set; }
-        public bool Leaf { get; set; }
+        public string ParentName { get; set; }
+        public bool HasChild { get; set; }
         public string Path { get; set; }
 
         public void BuildPath(Dictionary<string, OrganizationEntity> dict)

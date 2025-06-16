@@ -3,7 +3,6 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dapper;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WildGoose;
@@ -70,6 +69,9 @@ else
 {
     builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
     {
+#if DEBUG
+        options.EnableSensitiveDataLogging();
+#endif
         options.UseNpgsql(connectionString, b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
     });
 }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,11 +19,17 @@ public class UserService(
     IOptions<DbOptions> dbOptions,
     ILogger<UserService> logger,
     IPasswordValidator<WildGoose.Domain.Entity.User> passwordValidator,
-    UserManager<WildGoose.Domain.Entity.User> userManager)
+    UserManager<WildGoose.Domain.Entity.User> userManager,
+    IOptions<JsonOptions> jsonOptions)
     : BaseService(dbContext, session, dbOptions, logger)
 {
     public async Task ResetPasswordByCaptchaAsync(ResetPasswordByCaptchaCommand command)
     {
+        if (command.ConfirmPassword != command.NewPassword)
+        {
+            throw new WildGooseFriendlyException(1, "两次输入的密码不一致");
+        }
+
         var password = command.NewPassword;
         var passwordValidatorResult =
             await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(), password);
@@ -35,17 +42,18 @@ public class UserService(
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
 
-        var result =
-            await userManager.VerifyChangePhoneNumberTokenAsync(user, command.Captcha, command.PhoneNumber);
-        if (!result)
-        {
-            // 验证失败的处理逻辑
-            throw new WildGooseFriendlyException(1, "验证码不正确");
-        }
+        // var result =
+        //     await userManager.VerifyChangePhoneNumberTokenAsync(user, command.Captcha, command.PhoneNumber);
+        // if (!result)
+        // {
+        //     // 验证失败的处理逻辑
+        //     throw new WildGooseFriendlyException(1, "验证码不正确");
+        // }
+        //
+        // // 验证成功，可以允许用户更改密码
+        // var token = await userManager.GeneratePasswordResetTokenAsync(user);
 
-        // 验证成功，可以允许用户更改密码
-        var token = await userManager.GeneratePasswordResetTokenAsync(user);
-        (await userManager.ResetPasswordAsync(user, token, password)).CheckErrors();
+        (await userManager.ResetPasswordAsync(user, command.Captcha, password)).CheckErrors();
 
         var extension = await DbContext.Set<UserExtension>()
             .FirstOrDefaultAsync(x => x.Id == user.Id);
@@ -86,44 +94,27 @@ public class UserService(
                 select t1;
         }
 
-        var organizations = await queryable
-            .AsNoTracking()
-            .OrderBy(x => x.Code)
-            .ToListAsync();
-
-        var organizationIds = organizations.Select(x => x.Id).ToList();
-
-        var extensionInfoList = await DbContext
-            .Set<WildGoose.Domain.Entity.Organization>()
+        var jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
+        var entities = await queryable
             .Include(x => x.Parent)
             .AsNoTracking()
-            .Where(x => organizationIds.Contains(x.Id))
-            .Select(x => new
+            .OrderBy(x => x.Code)
+            .Select(x => new OrganizationDto
             {
-                x.Id,
-                x.Parent,
+                Id = x.Id,
+                Name = x.Name,
+                ParentId = x.Parent.Id,
+                ParentName = x.Parent.Name,
                 Scope = DbContext.Set<OrganizationScope>().AsNoTracking()
                     .Where(y => y.OrganizationId == x.Id).Select(z => z.Scope).ToList(),
                 HasChild = DbContext
                     .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
-                    .Any(y => y.Parent.Id == x.Id)
-            }).ToListAsync();
-
-        return organizations.Select(x =>
-        {
-            var extensionInfo = extensionInfoList.First(y => y.Id == x.Id);
-            var a = new OrganizationDto
-            {
-                Id = x.Id,
-                Name = x.Name,
-                ParentId = extensionInfo.Parent?.Id,
-                ParentName = extensionInfo.Parent?.Name,
-                HasChild = extensionInfo.HasChild,
+                    .Any(y => y.Parent.Id == x.Id),
                 Code = x.Code,
-                Metadata = string.IsNullOrEmpty(x.Metadata) ? default : JsonDocument.Parse(x.Metadata),
-                Scope = extensionInfo.Scope,
-            };
-            return a;
-        });
+                Metadata = string.IsNullOrEmpty(x.Metadata)
+                    ? default
+                    : JsonSerializer.Deserialize<JsonElement>(x.Metadata, jsonSerializerOptions)
+            }).ToListAsync();
+        return entities;
     }
 }

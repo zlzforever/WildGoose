@@ -57,6 +57,6 @@ public static class WebApplicationBuilderExtensions
         builder.Services.TryAddSingleton<ScopeServiceProvider, HttpContextScopeServiceProvider>();
         builder.Services.TryAddScoped<HttpSession>(provider =>
             HttpSession.Create(provider.GetRequiredService<IHttpContextAccessor>()));
-        builder.Services.AddHostedService<GenerateTopLevelOrgService>();
+        builder.Services.AddHostedService<GenerateTopThreeLevelOrganizationsCacheFileService>();
     }
 }

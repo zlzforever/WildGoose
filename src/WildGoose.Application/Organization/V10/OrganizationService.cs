@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -50,8 +49,7 @@ public class OrganizationService(
         //     return await GetMyListAsync();
         // }
         // 非管理服务， 即便超管进来， 也可以一样的业务逻辑
-        // 
-        if (string.IsNullOrEmpty(query.ParentId) && !"all".Equals(query.Type, StringComparison.OrdinalIgnoreCase))
+        if ("my".Equals(query.Type, StringComparison.OrdinalIgnoreCase))
         {
             return await GetMyListAsync();
         }
@@ -205,15 +203,6 @@ public class OrganizationService(
         public string ParentId { get; set; }
         public string ParentName { get; set; }
         public bool HasChild { get; set; }
-        public string Code { get; set; }
-    }
-
-    class MetadataWithCode
-    {
-        /// <summary>
-        /// 
-        /// </summary>
-        [JsonPropertyName("code")]
         public string Code { get; set; }
     }
 }

@@ -32,11 +32,14 @@ public class UserService(
             throw new WildGooseFriendlyException(403, "访问受限");
         }
 
-        // 验证密码是否符合要求
-        var passwordValidatorResult =
-            await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(),
-                command.Password);
-        passwordValidatorResult.CheckErrors();
+        // 
+        // userManager.CreateAsync 是会校验的
+        // 
+        // // 验证密码是否符合要求
+        // var passwordValidatorResult =
+        //     await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(),
+        //         command.Password);
+        // passwordValidatorResult.CheckErrors();
 
         var normalizedUserName = userManager.NormalizeName(command.UserName);
         if (await userManager.Users.AnyAsync(x => x.NormalizedUserName == normalizedUserName))
