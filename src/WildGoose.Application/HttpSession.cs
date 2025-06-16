@@ -58,7 +58,7 @@ public class HttpSession : ISession
     {
         if (accessor?.HttpContext == null)
         {
-            return new HttpSession { Roles = Array.Empty<string>(), Subjects = Array.Empty<string>() };
+            return null;
         }
 
         var userName = accessor.HttpContext.User.GetValue(ClaimTypes.Name, JwtClaimTypes.Name);

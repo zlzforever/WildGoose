@@ -47,6 +47,7 @@ public class SeedData
                     Description = role.Description,
                     Statement = role.Statement
                 };
+                ((ICreation)entity).SetCreation("system", "system");
                 dbContext.Add(entity);
             }
 
@@ -71,6 +72,7 @@ public class SeedData
                 UserName = "admin",
                 EmailConfirmed = true
             };
+            ((ICreation)admin).SetCreation("system", "system");
             await userMgr.CreateAsync(admin, "Admin@2023");
             await userMgr.AddToRoleAsync(admin, "admin");
         }

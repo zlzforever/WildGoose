@@ -300,6 +300,10 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
     {
         var scope = this.GetService<ScopeServiceProvider>();
         var session = scope.GetService<ISession>();
+        if (session == null)
+        {
+            return;
+        }
 
         foreach (var entry in ChangeTracker.Entries())
         {
@@ -307,15 +311,12 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             {
                 case EntityState.Added:
                     ApplyConceptsForAddedEntity(entry, session.UserId, session.UserDisplayName);
-
                     break;
                 case EntityState.Modified:
                     ApplyConceptsForModifiedEntity(entry, session.UserId, session.UserDisplayName);
-
                     break;
                 case EntityState.Deleted:
                     ApplyConceptsForDeletedEntity(entry, session.UserId, session.UserDisplayName);
-
                     break;
                 case EntityState.Detached:
                     break;
