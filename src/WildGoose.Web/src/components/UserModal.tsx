@@ -61,6 +61,13 @@ const UserModal: React.FC<UserModalProps> = (props) => {
       if (!props.open) {
         return
       }
+      const res1 = await getAssignableRoles()
+      const roles = (res1.data as RoleBasicDto[]).map((x) => {
+        return {
+          value: x.id,
+          label: x.name,
+        }
+      })
       const cache: Dictionary<OrganizationTreeNode> = {}
       const res = await getSubOrganizationList("")
       const subOrganizations = (res.data as OrganizationDto[]) ?? []
@@ -111,14 +118,6 @@ const UserModal: React.FC<UserModalProps> = (props) => {
       }
       // 编辑
       else {
-        const res1 = await getAssignableRoles()
-        const roles = (res1.data as RoleBasicDto[]).map((x) => {
-          return {
-            value: x.id,
-            label: x.name,
-          }
-        })
-
         const values: UpdateUserDto = {
           organizations: [],
           roles: [],
@@ -159,10 +158,9 @@ const UserModal: React.FC<UserModalProps> = (props) => {
         values.roles = d.roles.map((x) => x.id)
 
         form.setFieldsValue(values)
-
-        setRoleOptions(roles)
       }
 
+      setRoleOptions(roles)
       setOrganizationTreeData(organizations)
       setOrganizationTreeDict(cache)
     }
