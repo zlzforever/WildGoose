@@ -61,8 +61,8 @@ const UserModal: React.FC<UserModalProps> = (props) => {
       if (!props.open) {
         return
       }
-      const res1 = await getAssignableRoles()
-      const roles = (res1.data as RoleBasicDto[]).map((x) => {
+      const roleReps = await getAssignableRoles()
+      const roles = (roleReps.data as RoleBasicDto[]).map((x) => {
         return {
           value: x.id,
           label: x.name,
