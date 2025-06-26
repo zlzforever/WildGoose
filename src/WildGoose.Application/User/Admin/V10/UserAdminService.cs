@@ -274,20 +274,34 @@ public class UserAdminService(
             throw new WildGooseFriendlyException(1, "用户名已经存在");
         }
 
-        if (await userDbSet.AnyAsync(x => x.Id != command.Id && x.PhoneNumber == command.PhoneNumber))
+        if (string.IsNullOrEmpty(command.PhoneNumber))
         {
-            throw new WildGooseFriendlyException(1, "手机号已经存在");
+            user.PhoneNumber = null;
+        }
+        else
+        {
+            if (await userDbSet.AnyAsync(x => x.Id != command.Id && x.PhoneNumber == command.PhoneNumber))
+            {
+                throw new WildGooseFriendlyException(1, "手机号已经存在");
+            }
         }
 
-        var normalizedEmail = userManager.NormalizeEmail(command.Email);
-        if (await userDbSet.AnyAsync(x => x.Id != command.Id && x.Email == normalizedEmail))
+        if (string.IsNullOrEmpty(command.Email))
         {
-            throw new WildGooseFriendlyException(1, "邮箱已经存在");
+            user.Email = null;
+        }
+        else
+        {
+            var normalizedEmail = userManager.NormalizeEmail(command.Email);
+            if (await userDbSet.AnyAsync(x => x.Id != command.Id && x.Email == normalizedEmail))
+            {
+                throw new WildGooseFriendlyException(1, "邮箱已经存在");
+            }
         }
 
         user.Code = command.Code;
         user.Name = command.Name;
-        user.Email = command.Email;
+
         user.PhoneNumber = command.PhoneNumber;
         user.UserName = command.UserName;
         await userManager.UpdateNormalizedEmailAsync(user);

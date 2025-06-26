@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace WildGoose.Domain;
 
 public static class Defaults
@@ -13,4 +15,5 @@ public static class Defaults
     public static string OrganizationUserTableName = "";
     public static string OrganizationAdministratorTableName = "";
     public static string OrganizationScopeTableName = "";
+    public static readonly Regex AllowedUserNameRegex = new(@"^[a-zA-Z0-9\u4e00-\u9fa5]+$", RegexOptions.Compiled);
 }
