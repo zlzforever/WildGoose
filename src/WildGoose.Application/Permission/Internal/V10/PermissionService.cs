@@ -4,6 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WildGoose.Application.Permission.Internal.V10.Queries;
+using WildGoose.Domain;
 using WildGoose.Domain.Entity;
 using WildGoose.Infrastructure;
 
@@ -11,7 +12,7 @@ namespace WildGoose.Application.Permission.Internal.V10;
 
 public class PermissionService(
     WildGooseDbContext dbContext,
-    HttpSession session,
+    ISession session,
     IOptions<DbOptions> dbOptions,
     IMemoryCache memoryCache,
     ILogger<PermissionService> logger)

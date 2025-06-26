@@ -16,16 +16,23 @@ using WildGoose.Infrastructure;
 
 namespace WildGoose.Application.Role.Admin.V10;
 
-public class RoleService(
+public class RoleAdminService(
     WildGooseDbContext dbContext,
-    HttpSession session,
+    ISession session,
     IOptions<DbOptions> dbOptions,
-    ILogger<RoleService> logger,
+    ILogger<RoleAdminService> logger,
     RoleManager<WildGoose.Domain.Entity.Role> roleManager)
     : BaseService(dbContext, session, dbOptions, logger)
 {
     public async Task<string> AddAsync(AddRoleCommand command)
     {
+        if (Defaults.AdminRole.Equals(command.Name, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.OrganizationAdmin.Equals(command.Name, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.UserAdmin.Equals(command.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new WildGooseFriendlyException(1, "禁止使用系统角色名");
+        }
+
         if (await roleManager.RoleExistsAsync(command.Name))
         {
             throw new WildGooseFriendlyException(1, "角色已经存在");
@@ -54,8 +61,9 @@ public class RoleService(
             throw new WildGooseFriendlyException(1, "角色不存在");
         }
 
-        if ("admin".Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            "organization-admin".Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+        if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw new WildGooseFriendlyException(1, "禁止删除系统角色");
         }

@@ -1,6 +1,6 @@
 namespace WildGoose.Domain.Entity;
 
-public class OrganizationTree
+public class OrganizationDetail
 {
     public string Id { get; set; }
     public string Name { get; set; }
@@ -12,4 +12,5 @@ public class OrganizationTree
     public string Metadata { get; set; }
     public long NId { get; set; }
     public int Level { get; set; }
+    public bool HasChild { get; set; }
 }

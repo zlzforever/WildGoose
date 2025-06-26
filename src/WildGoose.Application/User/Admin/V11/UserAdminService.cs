@@ -13,12 +13,11 @@ using WildGoose.Infrastructure;
 
 namespace WildGoose.Application.User.Admin.V11;
 
-public class UserService(
+public class UserAdminService(
     WildGooseDbContext dbContext,
-    HttpSession session,
+    ISession session,
     IOptions<DbOptions> dbOptions,
-    ILogger<UserService> logger,
-    IPasswordValidator<WildGoose.Domain.Entity.User> passwordValidator,
+    ILogger<UserAdminService> logger,
     UserManager<WildGoose.Domain.Entity.User> userManager,
     IOptions<DaprOptions> dapOptions,
     IOptions<WildGooseOptions> wildGooseOptions)
@@ -46,7 +45,7 @@ public class UserService(
         {
             throw new WildGooseFriendlyException(1, "用户名已经存在");
         }
-
+ 
         var user = new WildGoose.Domain.Entity.User
         {
             Id = ObjectId.GenerateNewId().ToString(),

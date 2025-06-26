@@ -178,6 +178,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             b.Property(x => x.Address).HasMaxLength(256);
             b.Property(x => x.Description).HasMaxLength(256);
             b.Property(x => x.Metadata).HasMaxLength(2000);
+            b.Property(x => x.NId).ValueGeneratedOnAdd();
 
             b.HasQueryFilter(x => !x.IsDeleted);
 
@@ -191,13 +192,13 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             b.Property(x => x.DeletionTime).UseUnixTime();
             b.Property(x => x.DeleterId).HasMaxLength(36);
             b.Property(x => x.DeleterName).HasMaxLength(256);
+
+            b.HasIndex(x => x.NId).IsUnique();
         });
 
         builder.Entity<OrganizationUser>(b =>
         {
-            b.ToTable(string.IsNullOrEmpty(options.OrganizationUserTableName)
-                ? $"{options.TablePrefix}organization_user"
-                : $"{options.TablePrefix}{options.OrganizationUserTableName}");
+            b.ToTable($"{options.TablePrefix}organization_user");
 
             b.Property(x => x.OrganizationId).HasMaxLength(36);
             b.Property(x => x.UserId).HasMaxLength(36);
@@ -255,7 +256,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
         var entryName = Assembly.GetEntryAssembly()?.GetName().Name;
         if (!"ef".Equals(entryName, StringComparison.OrdinalIgnoreCase))
         {
-            builder.Entity<OrganizationTree>().ToTable($"{options.TablePrefix}organization_tree");
+            builder.Entity<OrganizationDetail>().ToTable($"{options.TablePrefix}organization_detail");
         }
 
         if (options.UseUnderScoreCase)

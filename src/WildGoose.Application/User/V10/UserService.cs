@@ -15,10 +15,9 @@ namespace WildGoose.Application.User.V10;
 
 public class UserService(
     WildGooseDbContext dbContext,
-    HttpSession session,
+    ISession session,
     IOptions<DbOptions> dbOptions,
     ILogger<UserService> logger,
-    IPasswordValidator<WildGoose.Domain.Entity.User> passwordValidator,
     UserManager<WildGoose.Domain.Entity.User> userManager,
     IOptions<JsonOptions> jsonOptions)
     : BaseService(dbContext, session, dbOptions, logger)
@@ -31,9 +30,10 @@ public class UserService(
         }
 
         var password = command.NewPassword;
-        var passwordValidatorResult =
-            await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(), password);
-        passwordValidatorResult.CheckErrors();
+        // userManager.ResetPasswordAsync 本身就会做校验
+        // var passwordValidatorResult =
+        //     await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(), password);
+        // passwordValidatorResult.CheckErrors();
 
         var user = await userManager.Users.FirstOrDefaultAsync(x =>
             x.PhoneNumber == command.PhoneNumber || x.UserName == command.PhoneNumber);
@@ -53,8 +53,6 @@ public class UserService(
         // // 验证成功，可以允许用户更改密码
         // var token = await userManager.GeneratePasswordResetTokenAsync(user);
 
-        (await userManager.ResetPasswordAsync(user, command.Captcha, password)).CheckErrors();
-
         var extension = await DbContext.Set<UserExtension>()
             .FirstOrDefaultAsync(x => x.Id == user.Id);
         if (extension == null)
@@ -68,13 +66,13 @@ public class UserService(
             Utils.SetPasswordInfo(extension, password);
         }
 
-        await DbContext.SaveChangesAsync();
+        (await userManager.ResetPasswordAsync(user, command.Captcha, password)).CheckErrors();
     }
 
     public async Task<IEnumerable<OrganizationDto>> GetOrganizationsAsync(string userId, bool isAdministrator = false)
     {
-        IQueryable<WildGoose.Domain.Entity.Organization> queryable;
-        var organizationTable = DbContext.Set<WildGoose.Domain.Entity.Organization>();
+        IQueryable<OrganizationDetail> queryable;
+        var organizationTable = DbContext.Set<OrganizationDetail>();
         var organizationAdministratorTable = DbContext.Set<OrganizationAdministrator>();
         var organizationUserTable = DbContext.Set<OrganizationUser>();
         // 查询用户是机构管理员的机构
@@ -96,20 +94,18 @@ public class UserService(
 
         var jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
         var entities = await queryable
-            .Include(x => x.Parent)
+            // .Include(x => x.Parent)
             .AsNoTracking()
             .OrderBy(x => x.Code)
             .Select(x => new OrganizationDto
             {
                 Id = x.Id,
                 Name = x.Name,
-                ParentId = x.Parent.Id,
-                ParentName = x.Parent.Name,
+                ParentId = x.ParentId,
+                ParentName = x.ParentName,
                 Scope = DbContext.Set<OrganizationScope>().AsNoTracking()
                     .Where(y => y.OrganizationId == x.Id).Select(z => z.Scope).ToList(),
-                HasChild = DbContext
-                    .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
-                    .Any(y => y.Parent.Id == x.Id),
+                HasChild = x.HasChild,
                 Code = x.Code,
                 Metadata = string.IsNullOrEmpty(x.Metadata)
                     ? default
