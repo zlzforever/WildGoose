@@ -12,33 +12,35 @@ namespace WildGoose.Application;
 
 public class HttpSession : ISession
 {
-    public string TraceIdentifier { get; private init; }
+    public string TraceIdentifier { get; private set; }
 
-    public string UserId { get; private init; }
+    public string UserId { get; private set; }
 
-    public string UserName { get; private init; }
+    public string UserName { get; private set; }
 
-    public string UserDisplayName { get; private init; }
+    public string UserDisplayName { get; private set; }
 
-    public string Email { get; private init; }
+    public string Email { get; private set; }
 
-    public string PhoneNumber { get; private init; }
+    public string PhoneNumber { get; private set; }
 
-    public IReadOnlyCollection<string> Roles { get; private init; }
+    public IReadOnlyCollection<string> Roles { get; private set; }
 
     public IReadOnlyCollection<string> Subjects { get; private set; }
 
+    public void Load(ISession session)
+    {
+        TraceIdentifier = session.TraceIdentifier;
+        UserId = session.UserId;
+        UserName = session.UserName;
+        Email = session.Email;
+        PhoneNumber = session.PhoneNumber;
+        UserDisplayName = session.UserDisplayName;
+        Roles = session.Roles;
+        Subjects = session.Subjects;
+    }
+
     public HttpContext HttpContext { get; private init; }
-
-    public bool IsSupperAdmin()
-    {
-        return Roles.Contains(Defaults.AdminRole);
-    }
-
-    public bool IsOrganizationAdmin()
-    {
-        return Roles.Contains(Defaults.OrganizationAdmin);
-    }
 
     private static readonly HashSet<string> ChineseCultures = new()
     {

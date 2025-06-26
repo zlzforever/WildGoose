@@ -17,4 +17,6 @@ public interface ISession
     public IReadOnlyCollection<string> Roles { get; }
 
     public IReadOnlyCollection<string> Subjects { get; }
+    
+    void Load(ISession session);
 }

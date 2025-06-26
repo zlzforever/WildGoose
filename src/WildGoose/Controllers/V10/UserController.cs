@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WildGoose.Application.User.V10;
@@ -17,10 +18,16 @@ public class UserController(UserService userService) : ControllerBase
         return userService.ResetPasswordByCaptchaAsync(command);
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="isAdministrator">用户是否在对应机构任管理员</param>
+    /// <returns></returns>
     [HttpGet("{userId}/organizations")]
-    public Task<IEnumerable<OrganizationDto>> GetOrganizationsAsync([FromRoute] string userId,
-        [FromQuery] bool isAdministrator = false)
+    public Task<IEnumerable<OrganizationDto>> GetOrganizationsAsync([FromRoute, StringLength(36)] string userId,
+        [FromQuery] bool? isAdministrator = false)
     {
-        return userService.GetOrganizationsAsync(userId, isAdministrator);
+        return userService.GetOrganizationsAsync(userId, isAdministrator ?? false);
     }
 }

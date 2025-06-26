@@ -7,6 +7,11 @@
 ```
 cd src/WildGoose
 dotnet ef migrations add Init  -p ../WildGoose.Infrastructure
-dotnet ef migrations add AddOrgMetadata  -p ../WildGoose.Infrastructure
-dotnet ef migrations add AddUserDepartureTime  -p ../WildGoose.Infrastructure
+dotnet ef migrations add AddNIdToOrg  -p ../WildGoose.Infrastructure
+ 
+```
+
+``` 
+更新后，检查设置机构管理员后， 角色是否正确增加了
+锁定功能是否正常
 ```

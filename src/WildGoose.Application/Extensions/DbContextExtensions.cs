@@ -62,7 +62,7 @@ public static class DbContextExtensions
         params string[] organizationIds)
     {
         var t1 = context.Set<OrganizationAdministrator>().EntityType.GetTableName();
-        var t2 = context.Set<OrganizationTree>().EntityType.GetTableName();
+        var t2 = context.Set<OrganizationDetail>().EntityType.GetTableName();
 
         await using var conn = context.Database.GetDbConnection();
         // TODO: 是不是把 organizationId 传入 SQL 进行查询会更好

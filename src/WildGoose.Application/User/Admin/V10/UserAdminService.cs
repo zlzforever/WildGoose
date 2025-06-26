@@ -14,27 +14,43 @@ using WildGoose.Domain.Entity;
 using WildGoose.Domain.Extensions;
 using WildGoose.Domain.Utils;
 using WildGoose.Infrastructure;
+using ISession = WildGoose.Domain.ISession;
 
 namespace WildGoose.Application.User.Admin.V10;
 
-public class UserService(
+public class UserAdminService(
     WildGooseDbContext dbContext,
-    HttpSession session,
+    ISession session,
     IOptions<DbOptions> dbOptions,
-    ILogger<UserService> logger,
-    IPasswordValidator<WildGoose.Domain.Entity.User> passwordValidator,
+    ILogger<UserAdminService> logger,
     UserManager<WildGoose.Domain.Entity.User> userManager,
     IOptions<DaprOptions> dapOptions,
     IOptions<IdentityExtensionOptions> identityExtensionOptions,
     IObjectStorageService objectStorageService)
     : BaseService(dbContext, session, dbOptions, logger)
 {
-    private static readonly HashSet<string> ImagePostfixes = new() { ".webp", ".bmp", ".jpg", ".jpeg", ".png", ".gif" };
+    private static readonly HashSet<string> ImagePostfixes = [".webp", ".bmp", ".jpg", ".jpeg", ".png", ".gif"];
     private readonly IdentityExtensionOptions _identityExtensionOptions = identityExtensionOptions.Value;
     private readonly DaprOptions _daprOptions = dapOptions.Value;
 
     public async Task<PagedResult<UserDto>> GetAsync(GetUsersQuery query)
     {
+        if (!string.IsNullOrEmpty(query.OrganizationId))
+        {
+            if (!await HasOrganizationPermissionAsync(query.OrganizationId))
+            {
+                return new PagedResult<UserDto>(1, query.Limit, 0, new List<UserDto>());
+            }
+        }
+        // 查询不在任何机构的人
+        else
+        {
+            if (!Session.IsSupperAdmin() && !Session.Roles.Contains(Defaults.UserAdmin))
+            {
+                return new PagedResult<UserDto>(1, query.Limit, 0, new List<UserDto>());
+            }
+        }
+
         IQueryable<WildGoose.Domain.Entity.User> queryable;
         if (!string.IsNullOrEmpty(query.OrganizationId))
         {
@@ -124,85 +140,30 @@ public class UserService(
         return new PagedResult<UserDto>(result.Page, result.Limit, result.Total, data);
     }
 
-    public async Task AddRoleAsync(AddRoleCommand command)
-    {
-        var user = await DbContext.Set<WildGoose.Domain.Entity.User>()
-            .FirstOrDefaultAsync(x => x.Id == command.UserId);
-        if (user == null)
-        {
-            throw new WildGooseFriendlyException(1, "用户不存在");
-        }
-
-        await CheckUserPermissionAsync(user.Id);
-
-        var relationship = new IdentityUserRole<string>
-        {
-            UserId = user.Id,
-            RoleId = command.RoleId
-        };
-
-        await DbContext.AddAsync(relationship);
-        await DbContext.SaveChangesAsync();
-    }
-
-    public async Task DeleteRoleAsync(DeleteRoleCommand command)
-    {
-        var userExist = await DbContext.Set<WildGoose.Domain.Entity.User>()
-            .AnyAsync(x => x.Id == command.UserId);
-        if (!userExist)
-        {
-            throw new WildGooseFriendlyException(1, "用户不存在");
-        }
-
-        await CheckUserPermissionAsync(command.UserId);
-
-        var relationship = await DbContext.Set<IdentityUserRole<string>>()
-            .FirstOrDefaultAsync(x => x.RoleId == command.RoleId && x.UserId == command.UserId);
-
-        if (relationship != null)
-        {
-            DbContext.Remove(relationship);
-            await DbContext.SaveChangesAsync();
-        }
-    }
-
     public async Task<UserDto> AddAsync(AddUserCommand command)
     {
         // 验证密码是否符合要求
-        var passwordValidatorResult =
-            await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(),
-                command.Password);
-        passwordValidatorResult.CheckErrors();
+        // var passwordValidatorResult =
+        //     await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(),
+        //         command.Password);
+        // passwordValidatorResult.CheckErrors();
 
         // 查询当前用户管理的所有机构 ID
-        var organizationAdministrators = await DbContext.Set<OrganizationAdministrator>()
-            .Where(x => x.UserId == Session.UserId)
-            .Select(x => x.OrganizationId).ToListAsync();
-
-        if (!Session.IsSupperAdmin())
-        {
-            foreach (var organization in command.Organizations)
-            {
-                if (!organizationAdministrators.Contains(organization))
-                {
-                    throw new WildGooseFriendlyException(1, "没有权限添加用户到机构");
-                }
-            }
-        }
+        await VerifyOrganizationPermissionAsync(command.Organizations);
 
         if (command.Roles.Contains(Defaults.OrganizationAdminRoleId))
         {
-            throw new WildGooseFriendlyException(1, "用户不存在任何机构， 无法授于企业管理员");
+            throw new WildGooseFriendlyException(1, "设置非法角色： 企业管理员");
         }
 
         // 校验可授于角色
         await VerifyRolePermissionAsync(command.Roles);
 
         var normalizedUserName = userManager.NormalizeName(command.UserName);
-        if (await userManager.Users.AnyAsync(x => x.NormalizedUserName == normalizedUserName))
-        {
-            throw new WildGooseFriendlyException(1, "用户名已经存在");
-        }
+        // if (await userManager.Users.AnyAsync(x => x.NormalizedUserName == normalizedUserName))
+        // {
+        //     throw new WildGooseFriendlyException(1, "用户名已经存在");
+        // }
 
         var user = new WildGoose.Domain.Entity.User
         {
@@ -261,7 +222,10 @@ public class UserService(
 
         await CheckUserPermissionAsync(user.Id);
         DbContext.Remove(user);
-        await DbContext.SaveChangesAsync();
+
+        (await userManager.SetLockoutEndDateAsync(
+            user,
+            DateTimeOffset.MaxValue)).CheckErrors();
 
         var daprClient = GetDaprClient();
         if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
@@ -294,14 +258,7 @@ public class UserService(
 
         if (command.Organizations.Length == 0 && command.Roles.Contains(Defaults.OrganizationAdminRoleId))
         {
-            throw new WildGooseFriendlyException(1, "用户不存在任何机构， 无法授于企业管理员");
-        }
-
-        var normalizedUserName = userManager.NormalizeName(command.UserName);
-        if (await DbContext.Set<WildGoose.Domain.Entity.User>()
-                .AnyAsync(x => x.Id != command.Id && x.NormalizedUserName == normalizedUserName))
-        {
-            throw new WildGooseFriendlyException(1, "用户名已经存在");
+            throw new WildGooseFriendlyException(1, "无机构用户， 不可授于企业管理员");
         }
 
         var user = await userManager.FindByIdAsync(command.Id);
@@ -310,15 +267,30 @@ public class UserService(
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
 
+        var userDbSet = DbContext.Set<WildGoose.Domain.Entity.User>();
+        var normalizedUserName = userManager.NormalizeName(command.UserName);
+        if (await userDbSet.AnyAsync(x => x.Id != command.Id && x.NormalizedUserName == normalizedUserName))
+        {
+            throw new WildGooseFriendlyException(1, "用户名已经存在");
+        }
+
+        if (await userDbSet.AnyAsync(x => x.Id != command.Id && x.PhoneNumber == command.PhoneNumber))
+        {
+            throw new WildGooseFriendlyException(1, "手机号已经存在");
+        }
+
+        var normalizedEmail = userManager.NormalizeEmail(command.Email);
+        if (await userDbSet.AnyAsync(x => x.Id != command.Id && x.Email == normalizedEmail))
+        {
+            throw new WildGooseFriendlyException(1, "邮箱已经存在");
+        }
+
         user.Code = command.Code;
         user.Name = command.Name;
-
-        // 优化
-        await userManager.SetEmailAsync(user, command.Email);
-        await userManager.SetPhoneNumberAsync(user, command.PhoneNumber);
-        await userManager.SetUserNameAsync(user, command.UserName);
-
-        // TODO: 每次 SetUserNameAsync SetPhoneNumberAsync 都会调用 UpdateNormalizedUserNameAsync
+        user.Email = command.Email;
+        user.PhoneNumber = command.PhoneNumber;
+        user.UserName = command.UserName;
+        await userManager.UpdateNormalizedEmailAsync(user);
         await userManager.UpdateNormalizedUserNameAsync(user);
 
         var organizationIds = await UpdateOrganizationsAsync(user, command.Organizations);
@@ -447,6 +419,118 @@ public class UserService(
         return dto;
     }
 
+    public async Task ChangePasswordAsync(ChangePasswordCommand command)
+    {
+        var password = command.ConfirmPassword;
+        // ResetPasswordAsync 内部会校验密码是否符合规则
+        // var passwordValidatorResult =
+        //     await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(), password);
+        // passwordValidatorResult.CheckErrors();
+
+        var user = await userManager.FindByIdAsync(command.Id);
+        if (user == null)
+        {
+            throw new WildGooseFriendlyException(1, "用户不存在");
+        }
+
+        await CheckUserPermissionAsync(user.Id);
+
+        var extension = await DbContext.Set<UserExtension>()
+            .FirstOrDefaultAsync(x => x.Id == user.Id);
+        if (extension == null)
+        {
+            extension = new UserExtension { Id = user.Id };
+            Utils.SetPasswordInfo(extension, password);
+            await DbContext.AddAsync(extension);
+        }
+        else
+        {
+            Utils.SetPasswordInfo(extension, password);
+        }
+
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        (await userManager.ResetPasswordAsync(user, token, password)).CheckErrors();
+    }
+
+    public async Task DisableAsync(DisableUserCommand command)
+    {
+        var user = await DbContext.Set<WildGoose.Domain.Entity.User>()
+            .FirstOrDefaultAsync(x => x.Id == command.Id);
+        if (user == null)
+        {
+            throw new WildGooseFriendlyException(1, "用户不存在");
+        }
+
+        await CheckUserPermissionAsync(user.Id);
+
+        (await userManager.SetLockoutEndDateAsync(
+            user,
+            DateTimeOffset.MaxValue)).CheckErrors();
+
+        var daprClient = GetDaprClient();
+        if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
+        {
+            await daprClient.PublishEventAsync(_daprOptions.Pubsub, nameof(UserDisabledEvent),
+                new UserDisabledEvent
+                {
+                    UserId = user.Id
+                });
+        }
+    }
+
+    public async Task EnableAsync(EnableUserCommand command)
+    {
+        var user = await DbContext.Set<WildGoose.Domain.Entity.User>()
+            .FirstOrDefaultAsync(x => x.Id == command.Id);
+        if (user == null)
+        {
+            throw new WildGooseFriendlyException(1, "用户不存在");
+        }
+
+        await CheckUserPermissionAsync(user.Id);
+
+        (await userManager.SetLockoutEndDateAsync(
+            user,
+            DateTimeOffset.Now.LocalDateTime.AddMinutes(-1))).CheckErrors();
+
+        var daprClient = GetDaprClient();
+        if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
+        {
+            await daprClient.PublishEventAsync(_daprOptions.Pubsub, nameof(UserEnabledEvent),
+                new UserEnabledEvent
+                {
+                    UserId = user.Id
+                });
+        }
+    }
+
+    public async Task SetPictureAsync(SetPictureCommand command)
+    {
+        var tuple = GetFile();
+        var user = await DbContext.Set<WildGoose.Domain.Entity.User>()
+            .FirstOrDefaultAsync(x => x.Id == command.Id);
+        if (user == null)
+        {
+            throw new WildGooseFriendlyException(1, "用户不存在");
+        }
+
+        await CheckUserPermissionAsync(user.Id);
+        // 图片的文件名称会固定，每个用户会不一样，避免产生垃圾文件
+        var key = $"/usr/img/{user.Id}{tuple.Type}";
+
+        await using var stream = tuple.File.OpenReadStream();
+        var md5 = await CryptographyUtil.ComputeMd5Async(stream);
+
+        var ossResult = await objectStorageService.PutAsync(key, stream);
+        if (string.IsNullOrEmpty(ossResult))
+        {
+            throw new WildGooseFriendlyException(1, "上传头像失败");
+        }
+
+        user.Picture = $"{ossResult}?_v={md5}";
+        await DbContext.SaveChangesAsync();
+    }
+
     private async Task<List<string>> UpdateRolesAsync(WildGoose.Domain.Entity.User user, List<string> roleIds)
     {
         var userRoles = await DbContext.Set<IdentityUserRole<string>>()
@@ -486,11 +570,10 @@ public class UserService(
             .AsNoTracking()
             .Where(x => x.UserId == user.Id).ToListAsync();
         var originOrganizationIds = organizationUsers.Select(x => x.OrganizationId).ToList();
-        var addIdList = organizations.Except(originOrganizationIds).ToArray();
 
-        // TODO: 
-        // 判断当前用户对设置的机构有没有权限
-        // await VerifyOrganizationPermissionAsync(addIdList);
+        var addIdList = organizations.Except(originOrganizationIds).ToArray();
+        // 只查新增机构， 原有机构有可能是别的有权限的人设置的， 不需要校验
+        await VerifyOrganizationPermissionAsync(addIdList);
 
         // 如果删除了别人添加的机构， 也是允许的。若要加回来， 只能让有权限的人操作。
         var removeIdList = originOrganizationIds.Except(organizations).ToList();
@@ -504,6 +587,11 @@ public class UserService(
         }));
         DbContext.RemoveRange(removeList);
 
+        // TODO: 移除机构管理员
+        // var organizationUsers = await DbContext.Set<OrganizationAdministrator>()
+        //     .AsNoTracking()
+        //     .Where(x => x.UserId == user.Id).ToListAsync();
+
         foreach (var id in removeIdList)
         {
             originOrganizationIds.Remove(id);
@@ -513,123 +601,15 @@ public class UserService(
         return originOrganizationIds;
     }
 
-    public async Task ChangePasswordAsync(ChangePasswordCommand command)
-    {
-        var password = command.ConfirmPassword;
-        var passwordValidatorResult =
-            await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(), password);
-        passwordValidatorResult.CheckErrors();
-
-        var user = await userManager.FindByIdAsync(command.Id);
-        if (user == null)
-        {
-            throw new WildGooseFriendlyException(1, "用户不存在");
-        }
-
-        await CheckUserPermissionAsync(user.Id);
-
-        var extension = await DbContext.Set<UserExtension>()
-            .FirstOrDefaultAsync(x => x.Id == user.Id);
-        if (extension == null)
-        {
-            extension = new UserExtension { Id = user.Id };
-            Utils.SetPasswordInfo(extension, password);
-            await DbContext.AddAsync(extension);
-        }
-        else
-        {
-            Utils.SetPasswordInfo(extension, password);
-        }
-
-        var token = await userManager.GeneratePasswordResetTokenAsync(user);
-        (await userManager.ResetPasswordAsync(user, token, password)).CheckErrors();
-    }
-
-    public async Task DisableAsync(DisableUserCommand command)
-    {
-        var user = await DbContext.Set<WildGoose.Domain.Entity.User>()
-            .FirstOrDefaultAsync(x => x.Id == command.Id);
-        if (user == null)
-        {
-            throw new WildGooseFriendlyException(1, "用户不存在");
-        }
-
-        await CheckUserPermissionAsync(user.Id);
-
-        await userManager.SetLockoutEnabledAsync(user, true);
-        await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
-
-        var daprClient = GetDaprClient();
-        if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
-        {
-            await daprClient.PublishEventAsync(_daprOptions.Pubsub, nameof(UserDisabledEvent),
-                new UserDisabledEvent
-                {
-                    UserId = user.Id
-                });
-        }
-    }
-
-    public async Task EnableAsync(EnableUserCommand command)
-    {
-        var user = await DbContext.Set<WildGoose.Domain.Entity.User>()
-            .FirstOrDefaultAsync(x => x.Id == command.Id);
-        if (user == null)
-        {
-            throw new WildGooseFriendlyException(1, "用户不存在");
-        }
-
-        await CheckUserPermissionAsync(user.Id);
-
-        await userManager.SetLockoutEnabledAsync(user, false);
-        await userManager.SetLockoutEndDateAsync(user, null);
-
-        var daprClient = GetDaprClient();
-        if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
-        {
-            await daprClient.PublishEventAsync(_daprOptions.Pubsub, nameof(UserEnabledEvent),
-                new UserEnabledEvent
-                {
-                    UserId = user.Id
-                });
-        }
-    }
-
-    public async Task SetPictureAsync(SetPictureCommand command)
-    {
-        var tuple = GetFile();
-        var user = await DbContext.Set<WildGoose.Domain.Entity.User>()
-            .FirstOrDefaultAsync(x => x.Id == command.Id);
-        if (user == null)
-        {
-            throw new WildGooseFriendlyException(1, "用户不存在");
-        }
-
-        await CheckUserPermissionAsync(user.Id);
-        // 图片的文件名称会固定，每个用户会不一样，避免产生垃圾文件
-        var key = $"/user/picture/{user.Id}{tuple.Type}";
-
-        await using var stream = tuple.File.OpenReadStream();
-        var md5 = await CryptographyUtil.ComputeMd5Async(stream);
-
-        var ossResult = await objectStorageService.PutAsync(key, stream);
-        if (string.IsNullOrEmpty(ossResult))
-        {
-            throw new WildGooseFriendlyException(1, "上传头像失败");
-        }
-
-        user.Picture = $"{ossResult}?_v={md5}";
-        await DbContext.SaveChangesAsync();
-    }
-
     private (IFormFile File, string Type) GetFile()
     {
-        if (Session.HttpContext == null)
+        var httpSession = Session as HttpSession;
+        if (httpSession == null || httpSession.HttpContext == null)
         {
             throw new WildGooseFriendlyException(1, "HTTP 上下文异常");
         }
 
-        var file = Session.HttpContext.Request.Form.Files.FirstOrDefault();
+        var file = httpSession.HttpContext.Request.Form.Files.FirstOrDefault();
         if (file == null)
         {
             throw new WildGooseFriendlyException(1, "上传文件异常");
@@ -670,6 +650,24 @@ public class UserService(
             .Select(x => x.Name).ToListAsync();
     }
 
+    private async Task VerifyOrganizationPermissionAsync(string[] organizationIds)
+    {
+        var organizationAdministrators = await DbContext.Set<OrganizationAdministrator>()
+            .Where(x => x.UserId == Session.UserId)
+            .Select(x => x.OrganizationId).ToListAsync();
+
+        if (!Session.IsSupperAdmin())
+        {
+            foreach (var organization in organizationIds)
+            {
+                if (!organizationAdministrators.Contains(organization))
+                {
+                    throw new WildGooseFriendlyException(1, "没有管理机构的权限");
+                }
+            }
+        }
+    }
+
     private async Task<List<string>> SetRolesAsync(string userId,
         List<string> roleIds)
     {
@@ -708,4 +706,46 @@ public class UserService(
             .Select(x => x.Name).ToListAsync();
         return roles;
     }
+
+    // public async Task AddRoleAsync(AddRoleCommand command)
+    // {
+    //     var user = await DbContext.Set<WildGoose.Domain.Entity.User>()
+    //         .FirstOrDefaultAsync(x => x.Id == command.UserId);
+    //     if (user == null)
+    //     {
+    //         throw new WildGooseFriendlyException(1, "用户不存在");
+    //     }
+    //
+    //     await CheckUserPermissionAsync(user.Id);
+    //
+    //     var relationship = new IdentityUserRole<string>
+    //     {
+    //         UserId = user.Id,
+    //         RoleId = command.RoleId
+    //     };
+    //
+    //     await DbContext.AddAsync(relationship);
+    //     await DbContext.SaveChangesAsync();
+    // }
+
+    // public async Task DeleteRoleAsync(DeleteRoleCommand command)
+    // {
+    //     var userExist = await DbContext.Set<WildGoose.Domain.Entity.User>()
+    //         .AnyAsync(x => x.Id == command.UserId);
+    //     if (!userExist)
+    //     {
+    //         throw new WildGooseFriendlyException(1, "用户不存在");
+    //     }
+    //
+    //     await CheckUserPermissionAsync(command.UserId);
+    //
+    //     var relationship = await DbContext.Set<IdentityUserRole<string>>()
+    //         .FirstOrDefaultAsync(x => x.RoleId == command.RoleId && x.UserId == command.UserId);
+    //
+    //     if (relationship != null)
+    //     {
+    //         DbContext.Remove(relationship);
+    //         await DbContext.SaveChangesAsync();
+    //     }
+    // }
 }

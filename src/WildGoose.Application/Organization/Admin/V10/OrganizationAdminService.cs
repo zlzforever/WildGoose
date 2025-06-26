@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using WildGoose.Application.Dto;
+using WildGoose.Application.Extensions;
 using WildGoose.Application.Organization.Admin.V10.Command;
 using WildGoose.Application.Organization.Admin.V10.Dto;
 using WildGoose.Application.Organization.Admin.V10.Queries;
@@ -14,34 +15,47 @@ using WildGoose.Infrastructure;
 
 namespace WildGoose.Application.Organization.Admin.V10;
 
-public class OrganizationService(
+/// <summary>
+/// 超管 & 机构管理员可进
+/// </summary>
+/// <param name="dbContext"></param>
+/// <param name="session"></param>
+/// <param name="dbOptions"></param>
+/// <param name="logger"></param>
+/// <param name="userManager"></param>
+public class OrganizationAdminService(
     WildGooseDbContext dbContext,
-    HttpSession session,
+    ISession session,
     IOptions<DbOptions> dbOptions,
-    ILogger<OrganizationService> logger,
-    UserManager<WildGoose.Domain.Entity.User> userManager)
-    : BaseService(dbContext,
-        session, dbOptions,
-        logger)
+    ILogger<OrganizationAdminService> logger,
+    UserManager<WildGoose.Domain.Entity.User> userManager,
+    RoleManager<WildGoose.Domain.Entity.Role> roleManager)
+    : BaseService(dbContext, session, dbOptions, logger)
 {
     public async Task<OrganizationSimpleDto> AddAsync(AddOrganizationCommand command)
     {
-        // 只有超级管理员可以创建一级机构
-        if (string.IsNullOrEmpty(command.ParentId))
+        WildGoose.Domain.Entity.Organization parent = null;
+        if (string.IsNullOrWhiteSpace(command.ParentId))
         {
             if (!Session.IsSupperAdmin())
             {
-                throw new WildGooseFriendlyException(1, "权限不足")
-                {
-                    LogInfo = "只有超级管理员可以创建一级机构"
-                };
+                throw new WildGooseFriendlyException(1, "仅支持超级管理员创建一级机构");
             }
+
+            command.ParentId = null;
         }
         else
         {
+            parent = await DbContext
+                .Set<WildGoose.Domain.Entity.Organization>().FirstOrDefaultAsync(x => x.Id == command.ParentId);
+            if (parent == null)
+            {
+                throw new WildGooseFriendlyException(1, "父机构不存在");
+            }
+
             if (!await HasOrganizationPermissionAsync(command.ParentId))
             {
-                throw new WildGooseFriendlyException(1, "权限不足");
+                throw new WildGooseFriendlyException(1, "没有管理机构的权限");
             }
         }
 
@@ -52,7 +66,7 @@ public class OrganizationService(
         // }
 
         var organization = Create(command);
-        await SetParentAsync(organization, command.ParentId);
+        organization.Parent = parent;
 
         // 检查上级机构是否存在， 防止无权限的用户提供一个不存在的上级机构， 从而创建一级机构
         if (!Session.IsSupperAdmin() && organization.Parent == null)
@@ -85,21 +99,37 @@ public class OrganizationService(
     public async Task<OrganizationSimpleDto> UpdateAsync(UpdateOrganizationCommand command)
     {
         // parentId
-        var store = DbContext
+        var queryable = DbContext
             .Set<WildGoose.Domain.Entity.Organization>()
             .Include(x => x.Parent);
-        var organization = await store.FirstOrDefaultAsync(x => x.Id == command.Id);
+        var organization = await queryable.FirstOrDefaultAsync(x => x.Id == command.Id);
         if (organization == null)
         {
             throw new WildGooseFriendlyException(1, "机构不存在");
         }
 
-        // 若父节点无变化， 则只验证有没有管理自己的权限
+        WildGoose.Domain.Entity.Organization parent = null;
+
+        if (string.IsNullOrWhiteSpace(command.ParentId))
+        {
+            command.ParentId = null;
+        }
+        else
+        {
+            parent = await DbContext
+                .Set<WildGoose.Domain.Entity.Organization>().FirstOrDefaultAsync(x => x.Id == command.ParentId);
+            if (parent == null)
+            {
+                throw new WildGooseFriendlyException(1, "父机构不存在");
+            }
+        }
+
+        // 若父节点无变化， 则只验证有没有管理权限
         if (organization.Parent?.Id == command.ParentId)
         {
             if (!await HasOrganizationPermissionAsync(command.Id))
             {
-                throw new WildGooseFriendlyException(1, "权限不足");
+                throw new WildGooseFriendlyException(1, "没有管理机构的权限");
             }
         }
         else
@@ -111,17 +141,14 @@ public class OrganizationService(
             {
                 if (!Session.IsSupperAdmin())
                 {
-                    throw new WildGooseFriendlyException(1, "权限不足")
-                    {
-                        LogInfo = "只有超级管理员可以操作一级机构"
-                    };
+                    throw new WildGooseFriendlyException(1, "仅支持超级管理员操作一级机构");
                 }
             }
             else
             {
                 if (!await HasOrganizationPermissionAsync(command.ParentId))
                 {
-                    throw new WildGooseFriendlyException(1, "权限不足");
+                    throw new WildGooseFriendlyException(1, "没有管理机构的权限");
                 }
             }
         }
@@ -137,10 +164,8 @@ public class OrganizationService(
             organization.SetMetadata(command.Metadata);
         }
 
-        if (organization.Parent?.Id != command.ParentId)
-        {
-            await SetParentAsync(organization, command.ParentId);
-        }
+        organization.Parent = parent;
+
 
         // 机构管理员不应该在这里调整
         // var administrators = await (from relationship in DbContext.Set<OrganizationUser>()
@@ -168,10 +193,10 @@ public class OrganizationService(
         //     });
         // }
 
-        var scope = await DbContext.Set<OrganizationScope>()
+        var scopeList = await DbContext.Set<OrganizationScope>()
             .Where(x => x.OrganizationId == organization.Id)
             .ToListAsync();
-        DbContext.RemoveRange(scope);
+        DbContext.RemoveRange(scopeList);
         foreach (var v in command.Scope)
         {
             DbContext.Add(new OrganizationScope
@@ -197,10 +222,10 @@ public class OrganizationService(
 
     public async Task<string> DeleteAsync(string id)
     {
-        var store = DbContext
+        var queryable = DbContext
             .Set<WildGoose.Domain.Entity.Organization>()
             .Include(x => x.Parent);
-        var organization = await store.FirstOrDefaultAsync(x => x.Id == id);
+        var organization = await queryable.FirstOrDefaultAsync(x => x.Id == id);
         if (organization == null)
         {
             throw new WildGooseFriendlyException(1, "机构不存在");
@@ -211,17 +236,14 @@ public class OrganizationService(
         {
             if (!Session.IsSupperAdmin())
             {
-                throw new WildGooseFriendlyException(1, "权限不足")
-                {
-                    LogInfo = "只有超级管理员可以创建一级机构"
-                };
+                throw new WildGooseFriendlyException(1, "仅支持超级管理员操作一级机构");
             }
         }
         else
         {
             if (!await HasOrganizationPermissionAsync(organization.Parent.Id))
             {
-                throw new WildGooseFriendlyException(1, "权限不足");
+                throw new WildGooseFriendlyException(1, "没有管理机构的权限");
             }
         }
 
@@ -229,7 +251,7 @@ public class OrganizationService(
                 .Where(x => x.Parent.Id == id)
                 .AnyAsync())
         {
-            throw new WildGooseFriendlyException(1, "请先删除所有子机构再进行删除机构操作");
+            throw new WildGooseFriendlyException(1, "请先删除下级机构");
         }
 
         // comments 只是关系， 直接删除即可
@@ -291,7 +313,12 @@ public class OrganizationService(
             .Where(x => x.Id == query.Id)
             .Select(x => new
             {
-                x.Id, x.Name, x.Code, x.Address, x.Description, x.Metadata,
+                x.Id,
+                x.Name,
+                x.Code,
+                x.Address,
+                x.Description,
+                x.Metadata,
                 ParentId = x.Parent.Id,
                 ParentName = x.Parent.Name,
                 ParentParentId = x.Parent.Parent.Id
@@ -365,81 +392,83 @@ public class OrganizationService(
         return dto;
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="query"></param>
+    /// <returns></returns>
     public async Task<List<SubOrganizationDto>> GetSubListAsync(GetSubListQuery query)
     {
-        if (Session.IsSupperAdmin())
-        {
-            return await DbContext
-                .Set<WildGoose.Domain.Entity.Organization>()
-                .Include(x => x.Parent)
-                .AsNoTracking()
-                .Where(x => x.Parent.Id == query.ParentId)
-                .OrderBy(x => x.Code)
-                .Select(organization => new SubOrganizationDto
-                {
-                    Id = organization.Id,
-                    Name = organization.Name,
-                    ParentId = organization.Parent.Id,
-                    ParentName = organization.Parent.Name,
-                    HasChild = DbContext
-                        .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
-                        .Any(x => x.Parent.Id == organization.Id)
-                }).ToListAsync();
-        }
-
-        // 查询管理的机构
         if (string.IsNullOrEmpty(query.ParentId))
         {
-            var organizations = await GetAdminOrganizationsAsync();
-            var idList = organizations.Select(x => x.Id);
-            return await DbContext
-                .Set<WildGoose.Domain.Entity.Organization>()
-                .Include(x => x.Parent)
-                .AsNoTracking()
-                .Where(x => idList.Contains(x.Id))
-                .OrderBy(x => x.Code)
-                .Select(organization => new SubOrganizationDto
-                {
-                    Id = organization.Id,
-                    Name = organization.Name,
-                    ParentId = organization.Parent.Id,
-                    ParentName = organization.Parent.Name,
-                    HasChild = DbContext
-                        .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
-                        .Any(x => x.Parent.Id == organization.Id)
-                }).ToListAsync();
+            query.ParentId = null;
         }
 
-        // 机构信息只有名称、ID 非敏感信息， 直接给
-        // if (await HasOrganizationPermissionAsync(query.ParentId))
-        // {
-        return await DbContext
-            .Set<WildGoose.Domain.Entity.Organization>()
-            .Include(x => x.Parent)
-            .AsNoTracking()
-            .Where(x => x.Parent.Id == query.ParentId)
+        // 超管
+        if (Session.IsSupperAdmin())
+        {
+            return await GetSubListAsync(query.ParentId);
+        }
+
+        var adminOrganizationList = DbContext.Set<OrganizationDetail>()
+            .Where(x => DbContext.Set<OrganizationAdministrator>()
+                .Where(y => y.UserId == Session.UserId)
+                .Select(z => z.OrganizationId).Contains(x.Id));
+
+        // 机构管理员, 如果为空， 查询自己管理的机构
+        if (string.IsNullOrEmpty(query.ParentId))
+        {
+            var organizations = await adminOrganizationList
+                .AsNoTracking()
+                .OrderBy(x => x.Level)
+                .ToListAsync();
+            var list = organizations.Select(organization => new SubOrganizationDto
+            {
+                Id = organization.Id,
+                Name = organization.Name,
+                Code = organization.Code,
+                Path = organization.Path,
+                ParentId = organization.ParentId,
+                ParentName = organization.ParentName,
+                HasChild = organization.HasChild
+            }).ToList();
+            var result = new List<SubOrganizationDto>();
+            foreach (var dto in list)
+            {
+                if (result.Any(x => dto.Path.StartsWith(x.Path)))
+                {
+                    continue;
+                }
+
+                result.Add(dto);
+            }
+
+            return result;
+        }
+
+        var adminOrganizationPathList = adminOrganizationList.Select(x => x.Path);
+        var queryable = DbContext.Set<OrganizationDetail>()
+            .AsNoTracking().Where(x =>
+                x.ParentId == query.ParentId && adminOrganizationPathList.Any(y => y.StartsWith(x.Path)))
             .OrderBy(x => x.Code)
             .Select(organization => new SubOrganizationDto
             {
                 Id = organization.Id,
                 Name = organization.Name,
-                ParentId = organization.Parent.Id,
-                ParentName = organization.Parent.Name,
-                HasChild = DbContext
-                    .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
-                    .Any(x => x.Parent.Id == organization.Id)
-            }).ToListAsync();
-        //}
-
-        // Logger.LogWarning("用户 {UserId} 无访问机构 {OrganizationId} 的权限", Session.UserId, query.ParentId);
-        // return new List<SubOrganizationDto>();
+                Code = organization.Code,
+                Path = organization.Path,
+                ParentId = organization.ParentId,
+                ParentName = organization.ParentName,
+                HasChild = organization.HasChild
+            });
+        return await queryable.ToListAsync();
     }
 
     public async Task AddAdministratorAsync(AddAdministratorCommand command)
     {
         if (!await HasOrganizationPermissionAsync(command.Id))
         {
-            throw new WildGooseFriendlyException(1, "权限不足");
+            throw new WildGooseFriendlyException(1, "没有管理机构的权限");
         }
 
         var user = await userManager.FindByIdAsync(command.UserId);
@@ -453,9 +482,15 @@ public class OrganizationService(
             OrganizationId = command.Id,
             UserId = command.UserId
         };
-        // TODO: 如果多次添加是报异常还是？
-        await userManager.AddToRoleAsync(user, Defaults.OrganizationAdmin);
+
         await DbContext.AddAsync(relationship);
+
+        var userRoles = await userManager.GetRolesAsync(user);
+        if (!userRoles.Contains(Defaults.OrganizationAdmin))
+        {
+            await userManager.AddToRoleAsync(user, Defaults.OrganizationAdmin);
+        }
+
         await DbContext.SaveChangesAsync();
     }
 
@@ -463,7 +498,7 @@ public class OrganizationService(
     {
         if (!await HasOrganizationPermissionAsync(command.Id))
         {
-            throw new WildGooseFriendlyException(1, "权限不足");
+            throw new WildGooseFriendlyException(1, "没有管理机构的权限");
         }
 
         var user = await userManager.FindByIdAsync(command.UserId);
@@ -511,37 +546,53 @@ public class OrganizationService(
         return organization;
     }
 
-    private async Task SetParentAsync(WildGoose.Domain.Entity.Organization organization,
-        string parentId)
+    // private async Task SetParentAsync(WildGoose.Domain.Entity.Organization organization,
+    //     string parentId)
+    // {
+    //     organization.Parent = string.IsNullOrEmpty(parentId)
+    //         ? null
+    //         : await DbContext.Set<WildGoose.Domain.Entity.Organization>()
+    //             .FirstOrDefaultAsync(x => x.Id == parentId);
+    // }
+
+    private async Task<List<SubOrganizationDto>> GetSubListAsync(string parentId)
     {
-        organization.Parent = string.IsNullOrEmpty(parentId)
-            ? null
-            : await DbContext.Set<WildGoose.Domain.Entity.Organization>()
-                .FirstOrDefaultAsync(x => x.Id == parentId);
+        var query = DbContext.Set<OrganizationDetail>()
+            .AsNoTracking().Where(x => x.ParentId == parentId);
+
+        return await query.OrderBy(x => x.Code)
+            .Select(x => new SubOrganizationDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                ParentId = x.ParentId,
+                ParentName = x.ParentName,
+                HasChild = x.HasChild
+            }).ToListAsync();
     }
 
-//     private Task<bool> HasParentPermissionAsync(string organizationId)
-//     {
-//         var tb1 = DbContext.Set<WildGoose.Domain.Entity.Organization>().EntityType.GetTableName();
-//         var tb2 = DbContext.Set<OrganizationAdministrator>().EntityType.GetTableName();
-//         var sql = $$"""
-//                     SELECT id, name, parent_id FROM {{tb1}} WHERE id = (SELECT parent_id FROM {{tb1}} WHERE id = @OrganizationId);
-//                     WITH RECURSIVE recursion AS
-//                                        (SELECT t1.id, t1.name, t1.parent_id, true as leaf
-//                                         from {{tb1}} t1
-//                                         where (t1.id in (select distinct organization_id
-//                                                         from {{tb2}}
-//                                                         where user_id = @UserId) or t1.id = (SELECT parent_id FROM {{tb1}} WHERE id = @OrganizationId)) and t1.is_deleted <> true
-//                                         UNION ALL
-//                                         SELECT t2.id, t2.name, t2.parent_id, false
-//                                         from {{tb1}} t2,
-//                                              recursion t3
-//                                         WHERE t2.id = t3.parent_id)
-//                     SELECT distinct *
-//                     FROM recursion T;
-//                     """;
-//         return HasPermissionAsync(sql, organizationId);
-//     }
+    //     private Task<bool> HasParentPermissionAsync(string organizationId)
+    //     {
+    //         var tb1 = DbContext.Set<WildGoose.Domain.Entity.Organization>().EntityType.GetTableName();
+    //         var tb2 = DbContext.Set<OrganizationAdministrator>().EntityType.GetTableName();
+    //         var sql = $$"""
+    //                     SELECT id, name, parent_id FROM {{tb1}} WHERE id = (SELECT parent_id FROM {{tb1}} WHERE id = @OrganizationId);
+    //                     WITH RECURSIVE recursion AS
+    //                                        (SELECT t1.id, t1.name, t1.parent_id, true as leaf
+    //                                         from {{tb1}} t1
+    //                                         where (t1.id in (select distinct organization_id
+    //                                                         from {{tb2}}
+    //                                                         where user_id = @UserId) or t1.id = (SELECT parent_id FROM {{tb1}} WHERE id = @OrganizationId)) and t1.is_deleted <> true
+    //                                         UNION ALL
+    //                                         SELECT t2.id, t2.name, t2.parent_id, false
+    //                                         from {{tb1}} t2,
+    //                                              recursion t3
+    //                                         WHERE t2.id = t3.parent_id)
+    //                     SELECT distinct *
+    //                     FROM recursion T;
+    //                     """;
+    //         return HasPermissionAsync(sql, organizationId);
+    //     }
 
     // private async ValueTask<bool> HasPermissionAsync(string sql, string organizationId)
     // {

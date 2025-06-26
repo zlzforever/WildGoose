@@ -10,12 +10,17 @@ namespace WildGoose.Controllers.Admin.V10;
 [ApiController]
 [Route("api/admin/v1.0/organizations")]
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "admin, organization-admin")]
-public class OrganizationController(OrganizationService organizationService) : ControllerBase
+public class OrganizationController(OrganizationAdminService organizationAdminService) : ControllerBase
 {
+    /// <summary>
+    /// 1. 若 ParentId 为空，admin 则查询顶级机构；organization-admin 则查询他查管理的最顶级机构
+    /// </summary>
+    /// <param name="query"></param>
+    /// <returns></returns>
     [HttpGet("subList")]
     public Task<List<SubOrganizationDto>> GetSubListAsync([FromQuery] GetSubListQuery query)
     {
-        return organizationService.GetSubListAsync(query);
+        return organizationAdminService.GetSubListAsync(query);
     }
 
     /// <summary>
@@ -25,19 +30,19 @@ public class OrganizationController(OrganizationService organizationService) : C
     [HttpPost]
     public Task<OrganizationSimpleDto> AddAsync([FromBody] AddOrganizationCommand command)
     {
-        return organizationService.AddAsync(command);
+        return organizationAdminService.AddAsync(command);
     }
 
     [HttpGet("{id}")]
     public Task<OrganizationDetailDto> GetAsync([FromRoute] GetDetailQuery query)
     {
-        return organizationService.GetAsync(query);
+        return organizationAdminService.GetAsync(query);
     }
 
     [HttpDelete("{id}")]
     public Task<string> DeleteAsync([FromRoute] DeleteOrganizationCommand command)
     {
-        return organizationService.DeleteAsync(command.Id);
+        return organizationAdminService.DeleteAsync(command.Id);
     }
 
     [HttpPost("{id}")]
@@ -45,18 +50,18 @@ public class OrganizationController(OrganizationService organizationService) : C
         [FromBody] UpdateOrganizationCommand command)
     {
         command.Id = id;
-        return organizationService.UpdateAsync(command);
+        return organizationAdminService.UpdateAsync(command);
     }
 
     [HttpPost("{id}/administrators/{userId}")]
     public Task AddAdministratorAsync([FromRoute] AddAdministratorCommand command)
     {
-        return organizationService.AddAdministratorAsync(command);
+        return organizationAdminService.AddAdministratorAsync(command);
     }
 
     [HttpDelete("{id}/administrators/{userId}")]
     public Task AddAdministratorAsync([FromRoute] DeleteAdministratorCommand command)
     {
-        return organizationService.DeleteAdministratorAsync(command);
+        return organizationAdminService.DeleteAdministratorAsync(command);
     }
 }

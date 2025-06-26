@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -14,19 +15,25 @@ namespace WildGoose.Application.User.V10;
 
 public class UserService(
     WildGooseDbContext dbContext,
-    HttpSession session,
+    ISession session,
     IOptions<DbOptions> dbOptions,
     ILogger<UserService> logger,
-    IPasswordValidator<WildGoose.Domain.Entity.User> passwordValidator,
-    UserManager<WildGoose.Domain.Entity.User> userManager)
+    UserManager<WildGoose.Domain.Entity.User> userManager,
+    IOptions<JsonOptions> jsonOptions)
     : BaseService(dbContext, session, dbOptions, logger)
 {
     public async Task ResetPasswordByCaptchaAsync(ResetPasswordByCaptchaCommand command)
     {
+        if (command.ConfirmPassword != command.NewPassword)
+        {
+            throw new WildGooseFriendlyException(1, "两次输入的密码不一致");
+        }
+
         var password = command.NewPassword;
-        var passwordValidatorResult =
-            await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(), password);
-        passwordValidatorResult.CheckErrors();
+        // userManager.ResetPasswordAsync 本身就会做校验
+        // var passwordValidatorResult =
+        //     await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(), password);
+        // passwordValidatorResult.CheckErrors();
 
         var user = await userManager.Users.FirstOrDefaultAsync(x =>
             x.PhoneNumber == command.PhoneNumber || x.UserName == command.PhoneNumber);
@@ -35,17 +42,16 @@ public class UserService(
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
 
-        var result =
-            await userManager.VerifyChangePhoneNumberTokenAsync(user, command.Captcha, command.PhoneNumber);
-        if (!result)
-        {
-            // 验证失败的处理逻辑
-            throw new WildGooseFriendlyException(1, "验证码不正确");
-        }
-
-        // 验证成功，可以允许用户更改密码
-        var token = await userManager.GeneratePasswordResetTokenAsync(user);
-        (await userManager.ResetPasswordAsync(user, token, password)).CheckErrors();
+        // var result =
+        //     await userManager.VerifyChangePhoneNumberTokenAsync(user, command.Captcha, command.PhoneNumber);
+        // if (!result)
+        // {
+        //     // 验证失败的处理逻辑
+        //     throw new WildGooseFriendlyException(1, "验证码不正确");
+        // }
+        //
+        // // 验证成功，可以允许用户更改密码
+        // var token = await userManager.GeneratePasswordResetTokenAsync(user);
 
         var extension = await DbContext.Set<UserExtension>()
             .FirstOrDefaultAsync(x => x.Id == user.Id);
@@ -60,13 +66,13 @@ public class UserService(
             Utils.SetPasswordInfo(extension, password);
         }
 
-        await DbContext.SaveChangesAsync();
+        (await userManager.ResetPasswordAsync(user, command.Captcha, password)).CheckErrors();
     }
 
     public async Task<IEnumerable<OrganizationDto>> GetOrganizationsAsync(string userId, bool isAdministrator = false)
     {
-        IQueryable<WildGoose.Domain.Entity.Organization> queryable;
-        var organizationTable = DbContext.Set<WildGoose.Domain.Entity.Organization>();
+        IQueryable<OrganizationDetail> queryable;
+        var organizationTable = DbContext.Set<OrganizationDetail>();
         var organizationAdministratorTable = DbContext.Set<OrganizationAdministrator>();
         var organizationUserTable = DbContext.Set<OrganizationUser>();
         // 查询用户是机构管理员的机构
@@ -86,44 +92,25 @@ public class UserService(
                 select t1;
         }
 
-        var organizations = await queryable
+        var jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
+        var entities = await queryable
+            // .Include(x => x.Parent)
             .AsNoTracking()
             .OrderBy(x => x.Code)
-            .ToListAsync();
-
-        var organizationIds = organizations.Select(x => x.Id).ToList();
-
-        var extensionInfoList = await DbContext
-            .Set<WildGoose.Domain.Entity.Organization>()
-            .Include(x => x.Parent)
-            .AsNoTracking()
-            .Where(x => organizationIds.Contains(x.Id))
-            .Select(x => new
-            {
-                x.Id,
-                x.Parent,
-                Scope = DbContext.Set<OrganizationScope>().AsNoTracking()
-                    .Where(y => y.OrganizationId == x.Id).Select(z => z.Scope).ToList(),
-                HasChild = DbContext
-                    .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
-                    .Any(y => y.Parent.Id == x.Id)
-            }).ToListAsync();
-
-        return organizations.Select(x =>
-        {
-            var extensionInfo = extensionInfoList.First(y => y.Id == x.Id);
-            var a = new OrganizationDto
+            .Select(x => new OrganizationDto
             {
                 Id = x.Id,
                 Name = x.Name,
-                ParentId = extensionInfo.Parent?.Id,
-                ParentName = extensionInfo.Parent?.Name,
-                HasChild = extensionInfo.HasChild,
+                ParentId = x.ParentId,
+                ParentName = x.ParentName,
+                Scope = DbContext.Set<OrganizationScope>().AsNoTracking()
+                    .Where(y => y.OrganizationId == x.Id).Select(z => z.Scope).ToList(),
+                HasChild = x.HasChild,
                 Code = x.Code,
-                Metadata = string.IsNullOrEmpty(x.Metadata) ? default : JsonDocument.Parse(x.Metadata),
-                Scope = extensionInfo.Scope,
-            };
-            return a;
-        });
+                Metadata = string.IsNullOrEmpty(x.Metadata)
+                    ? default
+                    : JsonSerializer.Deserialize<JsonElement>(x.Metadata, jsonSerializerOptions)
+            }).ToListAsync();
+        return entities;
     }
 }

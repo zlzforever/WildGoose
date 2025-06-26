@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,8 +10,13 @@ using WildGoose.Infrastructure;
 
 namespace WildGoose.Application;
 
-public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : BackgroundService
+public class GenerateTopThreeLevelOrganizationsCacheFileService(
+    IServiceProvider serviceProvider,
+    IOptions<JsonOptions> jsonOptions,
+    ILogger<GenerateTopThreeLevelOrganizationsCacheFileService> logger) : BackgroundService
 {
+    private readonly JsonSerializerOptions _jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
+
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "data");
@@ -23,9 +29,7 @@ public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : Back
         {
             using var scope = serviceProvider.CreateScope();
             await using var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-            var logger = scope.ServiceProvider.GetRequiredService<ILogger<GenerateTopLevelOrgService>>();
-            var jsonOption = scope.ServiceProvider.GetRequiredService<IOptions<Microsoft.AspNetCore.Mvc.JsonOptions>>()
-                .Value;
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 var topList = await GetListAsync(dbContext, [null]);
@@ -33,9 +37,10 @@ public class GenerateTopLevelOrgService(IServiceProvider serviceProvider) : Back
                 var lv2List = await GetListAsync(dbContext, lv1List.Select(x => x.Id).ToList());
                 var lv3List = await GetListAsync(dbContext, lv2List.Select(x => x.Id).ToList());
                 var list = topList.Concat(lv1List).Concat(lv2List).Concat(lv3List).ToList();
-                var json = JsonSerializer.Serialize(list, jsonOption.JsonSerializerOptions);
+                var json = JsonSerializer.Serialize(list, _jsonSerializerOptions);
                 await File.WriteAllTextAsync($"{dir}/organizations.json", json, stoppingToken);
-                logger.LogInformation("更新组织机构缓存数据成功");
+
+                logger.LogInformation("Generate top three level organizations cache file success");
                 await Task.Delay(60 * 1000, stoppingToken);
             }
         }, stoppingToken);

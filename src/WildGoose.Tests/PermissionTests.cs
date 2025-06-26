@@ -3,7 +3,7 @@ using Xunit;
 
 namespace WildGoose.Tests;
 
-public class Tests
+public class PermissionTests
 {
     [Fact]
     public void AssertResource()

@@ -5,7 +5,7 @@ namespace WildGoose.Application.Extensions;
 
 public static class IdentityResultExtensions
 {
-    public static void CheckErrors(this IdentityResult identityResult, string defaultMessage = "未知错误")
+    public static void CheckErrors(this IdentityResult identityResult, string defaultMessage = "服务器内部错误")
     {
         if (identityResult.Succeeded)
         {

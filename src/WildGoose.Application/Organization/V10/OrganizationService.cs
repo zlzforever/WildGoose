@@ -1,11 +1,11 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using WildGoose.Application.Extensions;
 using WildGoose.Application.Organization.V10.Dto;
 using WildGoose.Application.Organization.V10.Queries;
+using WildGoose.Domain;
 using WildGoose.Domain.Entity;
 using WildGoose.Infrastructure;
 
@@ -13,7 +13,7 @@ namespace WildGoose.Application.Organization.V10;
 
 public class OrganizationService(
     WildGooseDbContext dbContext,
-    HttpSession session,
+    ISession session,
     IOptions<DbOptions> dbOptions,
     ILogger<OrganizationService> logger)
     : BaseService(dbContext, session, dbOptions, logger)
@@ -21,8 +21,7 @@ public class OrganizationService(
     public async Task<OrganizationSummaryDto> GetSummaryAsync(GetSummaryQuery query)
     {
         var organization = await DbContext
-            .Set<WildGoose.Domain.Entity.Organization>()
-            .Include(x => x.Parent)
+            .Set<OrganizationDetail>()
             .AsNoTracking()
             .Where(x => x.Id == query.Id)
             .Select(x => new OrganizationSummaryDto
@@ -30,8 +29,10 @@ public class OrganizationService(
                 Id = x.Id,
                 Name = x.Name,
                 Code = x.Code,
-                ParentId = x.Parent.Id,
-                ParentName = x.Parent.Name
+                ParentId = x.ParentId,
+                ParentName = x.ParentName,
+                Path = x.Path,
+                Branch = x.Branch
             }).FirstOrDefaultAsync();
         return organization;
     }
@@ -43,38 +44,37 @@ public class OrganizationService(
     /// <returns></returns>
     public async Task<List<SubOrganizationDto>> GetSubListAsync(GetSubListQuery query)
     {
-        // parentId 为空， 且不是超级管理员， 只能看到自己所在的机构
-        // if (string.IsNullOrEmpty(query.ParentId)
-        //     && !Session.IsSupperAdmin() && !"all".Equals(query.Type, StringComparison.OrdinalIgnoreCase))
-        // {
-        //     return await GetMyListAsync();
-        // }
-        // 非管理服务， 即便超管进来， 也可以一样的业务逻辑
-        // 
-        if (string.IsNullOrEmpty(query.ParentId) && !"all".Equals(query.Type, StringComparison.OrdinalIgnoreCase))
+        if (Session.IsSupperAdmin())
+        {
+            return [];
+        }
+
+        if (string.IsNullOrEmpty(query.ParentId))
+        {
+            query.ParentId = null;
+        }
+
+        if ("my".Equals(query.Type, StringComparison.OrdinalIgnoreCase))
         {
             return await GetMyListAsync();
         }
 
         var result = await DbContext
-            .Set<WildGoose.Domain.Entity.Organization>()
-            .Include(x => x.Parent)
+            .Set<OrganizationDetail>()
             .AsNoTracking()
-            .Where(x => x.Parent.Id == query.ParentId)
+            .Where(x => x.ParentId == query.ParentId)
             .OrderBy(x => x.Code)
             .Select(organization => new
             {
                 organization.Id,
                 organization.Name,
-                ParentId = organization.Parent.Id,
-                ParentName = organization.Parent.Name,
+                organization.ParentId,
+                organization.ParentName,
                 organization.Metadata,
                 organization.Code,
                 Scope = DbContext.Set<OrganizationScope>().AsNoTracking()
                     .Where(y => y.OrganizationId == organization.Id).Select(z => z.Scope).ToList(),
-                HasChild = DbContext
-                    .Set<WildGoose.Domain.Entity.Organization>().AsNoTracking()
-                    .Any(x => x.Parent.Id == organization.Id)
+                organization.HasChild
             }).ToListAsync();
         return result.Select(x => new SubOrganizationDto
         {
@@ -89,131 +89,152 @@ public class OrganizationService(
         }).ToList();
     }
 
-    public async Task<bool> ExistsUserAsync(ExistsUserQuery query)
-    {
-        var organizationUserTable = DbContext.Set<OrganizationUser>();
-        var organizationTable = DbContext.Set<WildGoose.Domain.Entity.Organization>();
-
-        var queryable = from t1 in organizationUserTable
-            join t2 in organizationTable on t1.OrganizationId equals t2.Id
-            where t1.UserId == query.UserId && t2.Code == query.Code
-            select t2.Id;
-
-        return await queryable.AnyAsync();
-    }
-
-    public async Task<bool> IsUserInOrganizationWithInheritanceAsync(
-        IsUserInOrganizationWithInheritanceQuery query)
-    {
-        var organizationUserTable = DbContext.Set<OrganizationUser>();
-        var organizationTable = DbContext.Set<WildGoose.Domain.Entity.Organization>();
-
-        var queryable = from t1 in organizationUserTable
-            join t2 in organizationTable on t1.OrganizationId equals t2.Id
-            where t1.UserId == query.UserId
-            select t2.Code;
-        var organizationList = await queryable.ToListAsync();
-        return organizationList.Any(x => query.Code.StartsWith(x));
-    }
+    // public async Task<bool> ExistsUserAsync(ExistsUserQuery query)
+    // {
+    //     var organizationUserTable = DbContext.Set<OrganizationUser>();
+    //     var organizationTable = DbContext.Set<WildGoose.Domain.Entity.Organization>();
+    //
+    //     var queryable = from t1 in organizationUserTable
+    //         join t2 in organizationTable on t1.OrganizationId equals t2.Id
+    //         where t1.UserId == query.UserId && t2.Code == query.Code
+    //         select t2.Id;
+    //
+    //     return await queryable.AnyAsync();
+    // }
+    //
+    // public async Task<bool> IsUserInOrganizationWithInheritanceAsync(
+    //     IsUserInOrganizationWithInheritanceQuery query)
+    // {
+    //     var organizationUserTable = DbContext.Set<OrganizationUser>();
+    //     var organizationTable = DbContext.Set<WildGoose.Domain.Entity.Organization>();
+    //
+    //     var queryable = from t1 in organizationUserTable
+    //         join t2 in organizationTable on t1.OrganizationId equals t2.Id
+    //         where t1.UserId == query.UserId
+    //         select t2.Code;
+    //     var organizationList = await queryable.ToListAsync();
+    //     return organizationList.Any(x => query.Code.StartsWith(x));
+    // }
 
     private async Task<List<SubOrganizationDto>> GetMyListAsync()
     {
-        var organizationTable = DbContext
-            .Set<WildGoose.Domain.Entity.Organization>()
-            .EntityType.GetTableName();
-        var organizationUserTable = DbContext
-            .Set<OrganizationUser>()
-            .EntityType.GetTableName();
-        var organizationScopeTableName = DbContext
-            .Set<OrganizationScope>()
-            .EntityType.GetTableName();
-        var sql = $$"""
-                    SELECT t1.id,
-                           t1.name,
-                           t1.metadata,
-                           t1.code,
-                           t3.scope,
-                           t4.id     as parent_id,
-                           t4.name   as parent_name,
-                           (SELECT true
-                            FROM {{organizationTable}} AS child
-                            WHERE child.parent_id = t1.id
-                            limit 1) as has_child
-                    FROM {{organizationTable}} t1
-                             JOIN {{organizationUserTable}} t2 ON t1.id = t2.organization_id
-                             LEFT JOIN {{organizationTable}} t4 ON t1.parent_id = t4.id
-                             LEFT JOIN {{organizationScopeTableName}} t3 ON t1.id = t3.organization_id
-                    WHERE NOT (t1.is_deleted)
-                      AND t2.user_id = @Id
-                    """;
-        if (DbOptions.EnableSensitiveDataLogging)
+        var myOrganizationsQueryable = DbContext.Set<OrganizationDetail>()
+            .Where(x => DbContext.Set<OrganizationUser>()
+                .Where(y => y.UserId == Session.UserId)
+                .Select(z => z.OrganizationId).Contains(x.Id));
+
+        var organizations = await myOrganizationsQueryable
+            .AsNoTracking()
+            .OrderBy(x => x.Level)
+            .ToListAsync();
+
+        if (organizations.Count == 0)
         {
-            Logger.LogInformation(sql);
+            return new List<SubOrganizationDto>();
         }
 
-        var conn = DbContext.Database.GetDbConnection();
-        var entities = (await
-                conn.QueryAsync<OrganizationWithScopeEntity>(sql, new { Id = Session.UserId }, commandTimeout: 30))
-            .ToList();
-        if (entities.Count == 0)
+        var scopes = await DbContext.Set<OrganizationScope>()
+            .AsNoTracking()
+            .Where(x => organizations.Select(z => z.Id).Any(y => y == x.OrganizationId))
+            .ToListAsync();
+        var list = organizations.Select(organization => new SubOrganizationDto
         {
-            return [];
-        }
-
-        var dict = new Dictionary<string, SubOrganizationDto>();
-        foreach (var entity in entities)
+            Id = organization.Id,
+            Name = organization.Name,
+            Code = organization.Code,
+            Path = organization.Path,
+            ParentId = organization.ParentId,
+            ParentName = organization.ParentName,
+            HasChild = organization.HasChild
+        }).ToList();
+        var result = new List<SubOrganizationDto>();
+        foreach (var dto in list)
         {
-            SubOrganizationDto dto;
-            if (!dict.TryGetValue(entity.Id, out var value))
+            if (result.Any(x => dto.Path.StartsWith(x.Path)))
             {
-                dto = new SubOrganizationDto
-                {
-                    Id = entity.Id,
-                    Name = entity.Name,
-                    Code = entity.Code,
-                    HasChild = entity.HasChild,
-                    ParentId = entity.ParentId,
-                    ParentName = entity.ParentName,
-                    Metadata = string.IsNullOrEmpty(entity.Metadata) ? null : JsonDocument.Parse(entity.Metadata),
-                    Scope = string.IsNullOrEmpty(entity.Scope)
-                        ? []
-                        : [entity.Scope]
-                };
-                dict.Add(entity.Id, dto);
+                continue;
             }
-            else
-            {
-                if (string.IsNullOrEmpty(entity.Scope))
-                {
-                    continue;
-                }
 
-                dto = value;
-                dto.Scope.Add(entity.Scope);
-            }
+            dto.Scope = scopes.Where(x => x.OrganizationId == dto.Id).Select(x => x.Scope).ToList();
+            result.Add(dto);
         }
 
-        return dict.Values.ToList();
+        return result;
+
+//         var sql = $$"""
+//                     SELECT t1.id,
+//                            t1.name,
+//                            t1.metadata,
+//                            t1.code,
+//                            t1.parent_id,
+//                            t1.parent_name,
+//                            t1.has_child,
+//                            t3.scope
+//                     FROM {{Defaults.OrganizationDetailTableName}} t1
+//                              JOIN {{Defaults.OrganizationUserTableName}} t2 ON t1.id = t2.organization_id
+//                              JOIN {{Defaults.OrganizationScopeTableName}} t3 ON t1.id = t3.organization_id
+//                     WHERE NOT (t1.is_deleted)
+//                       AND t2.user_id = @Id
+//                     """;
+//         if (DbOptions.EnableSensitiveDataLogging)
+//         {
+//             Logger.LogInformation(sql);
+//         }
+//
+//         var conn = DbContext.Database.GetDbConnection();
+//         var entities = (await
+//                 conn.QueryAsync<OrganizationWithScopeEntity>(sql, new { Id = Session.UserId }, commandTimeout: 30))
+//             .ToList();
+//         if (entities.Count == 0)
+//         {
+//             return [];
+//         }
+//
+//         var dict = new Dictionary<string, SubOrganizationDto>();
+//         foreach (var entity in entities)
+//         {
+//             SubOrganizationDto dto;
+//             if (!dict.TryGetValue(entity.Id, out var value))
+//             {
+//                 dto = new SubOrganizationDto
+//                 {
+//                     Id = entity.Id,
+//                     Name = entity.Name,
+//                     Code = entity.Code,
+//                     HasChild = entity.HasChild,
+//                     ParentId = entity.ParentId,
+//                     ParentName = entity.ParentName,
+//                     Metadata = string.IsNullOrEmpty(entity.Metadata) ? null : JsonDocument.Parse(entity.Metadata),
+//                     Scope = string.IsNullOrEmpty(entity.Scope)
+//                         ? []
+//                         : [entity.Scope]
+//                 };
+//                 dict.Add(entity.Id, dto);
+//             }
+//             else
+//             {
+//                 if (string.IsNullOrEmpty(entity.Scope))
+//                 {
+//                     continue;
+//                 }
+//
+//                 dto = value;
+//                 dto.Scope.Add(entity.Scope);
+//             }
+//         }
+//
+//         return dict.Values.ToList();
     }
 
-    class OrganizationWithScopeEntity
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string Metadata { get; set; }
-        public string Scope { get; set; }
-        public string ParentId { get; set; }
-        public string ParentName { get; set; }
-        public bool HasChild { get; set; }
-        public string Code { get; set; }
-    }
-
-    class MetadataWithCode
-    {
-        /// <summary>
-        /// 
-        /// </summary>
-        [JsonPropertyName("code")]
-        public string Code { get; set; }
-    }
+    // class OrganizationWithScopeEntity
+    // {
+    //     public string Id { get; set; }
+    //     public string Name { get; set; }
+    //     public string Metadata { get; set; }
+    //     public string Scope { get; set; }
+    //     public string ParentId { get; set; }
+    //     public string ParentName { get; set; }
+    //     public bool HasChild { get; set; }
+    //     public string Code { get; set; }
+    // }
 }

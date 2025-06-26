@@ -80,6 +80,11 @@ public class Organization : IDeletion
     /// </summary>
     public DateTimeOffset? DeletionTime { get; set; }
 
+    /// <summary>
+    /// 自增 ID
+    /// </summary>
+    public long NId { get; set; }
+
     public void SetMetadata(string metadata)
     {
         var value = string.IsNullOrEmpty(metadata)

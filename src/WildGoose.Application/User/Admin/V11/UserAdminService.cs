@@ -13,12 +13,11 @@ using WildGoose.Infrastructure;
 
 namespace WildGoose.Application.User.Admin.V11;
 
-public class UserService(
+public class UserAdminService(
     WildGooseDbContext dbContext,
-    HttpSession session,
+    ISession session,
     IOptions<DbOptions> dbOptions,
-    ILogger<UserService> logger,
-    IPasswordValidator<WildGoose.Domain.Entity.User> passwordValidator,
+    ILogger<UserAdminService> logger,
     UserManager<WildGoose.Domain.Entity.User> userManager,
     IOptions<DaprOptions> dapOptions,
     IOptions<WildGooseOptions> wildGooseOptions)
@@ -32,18 +31,21 @@ public class UserService(
             throw new WildGooseFriendlyException(403, "访问受限");
         }
 
-        // 验证密码是否符合要求
-        var passwordValidatorResult =
-            await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(),
-                command.Password);
-        passwordValidatorResult.CheckErrors();
+        // 
+        // userManager.CreateAsync 是会校验的
+        // 
+        // // 验证密码是否符合要求
+        // var passwordValidatorResult =
+        //     await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(),
+        //         command.Password);
+        // passwordValidatorResult.CheckErrors();
 
         var normalizedUserName = userManager.NormalizeName(command.UserName);
         if (await userManager.Users.AnyAsync(x => x.NormalizedUserName == normalizedUserName))
         {
             throw new WildGooseFriendlyException(1, "用户名已经存在");
         }
-
+ 
         var user = new WildGoose.Domain.Entity.User
         {
             Id = ObjectId.GenerateNewId().ToString(),
