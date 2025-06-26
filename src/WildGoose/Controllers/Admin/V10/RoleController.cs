@@ -11,27 +11,27 @@ namespace WildGoose.Controllers.Admin.V10;
 [ApiController]
 [Route("api/admin/v1.0/roles")]
 [Microsoft.AspNetCore.Authorization.Authorize]
-public class RoleController(RoleService roleService) : ControllerBase
+public class RoleController(RoleAdminService roleAdminService) : ControllerBase
 {
     [Microsoft.AspNetCore.Authorization.Authorize(Roles = "admin")]
     [HttpGet]
     public Task<PagedResult<RoleDto>> GetAsync([FromQuery] GetRolesQuery query)
     {
-        return roleService.GetRolesAsync(query);
+        return roleAdminService.GetRolesAsync(query);
     }
 
     [Microsoft.AspNetCore.Authorization.Authorize(Roles = "admin")]
     [HttpPost]
     public Task<string> CreateAsync([FromBody] AddRoleCommand command)
     {
-        return roleService.AddAsync(command);
+        return roleAdminService.AddAsync(command);
     }
 
     [Microsoft.AspNetCore.Authorization.Authorize(Roles = "admin")]
     [HttpDelete("{id}")]
     public async Task<string> DeleteAsync([FromRoute] DeleteRoleCommand command)
     {
-        await roleService.DeleteAsync(command);
+        await roleAdminService.DeleteAsync(command);
         return command.Id;
     }
 
@@ -39,7 +39,7 @@ public class RoleController(RoleService roleService) : ControllerBase
     [HttpGet("{id}")]
     public Task<RoleDto> GetAsync([FromRoute] GetRoleQuery query)
     {
-        return roleService.GetAsync(query);
+        return roleAdminService.GetAsync(query);
     }
 
     [Microsoft.AspNetCore.Authorization.Authorize(Roles = "admin")]
@@ -48,7 +48,7 @@ public class RoleController(RoleService roleService) : ControllerBase
         [FromBody] UpdateRoleCommand command)
     {
         command.Id = id;
-        await roleService.UpdateAsync(command);
+        await roleAdminService.UpdateAsync(command);
         return id;
     }
 
@@ -58,7 +58,7 @@ public class RoleController(RoleService roleService) : ControllerBase
         [FromBody] UpdateStatementCommand command)
     {
         command.Id = id;
-        await roleService.UpdateStatementAsync(command);
+        await roleAdminService.UpdateStatementAsync(command);
         return id;
     }
 
@@ -66,19 +66,19 @@ public class RoleController(RoleService roleService) : ControllerBase
     [HttpPost("assignableRoles")]
     public Task AddAssignableRoleAsync([FromBody] AddAssignableRoleCommand command)
     {
-        return roleService.AddAssignableRoleAsync(command);
+        return roleAdminService.AddAssignableRoleAsync(command);
     }
 
     [Microsoft.AspNetCore.Authorization.Authorize(Roles = "admin")]
     [HttpDelete("{id}/assignableRoles/{assignableRoleId}")]
     public Task AddAssignableRoleAsync([FromRoute] DeleteAssignableRoleCommand command)
     {
-        return roleService.DeleteAssignableRoleAsync(command);
+        return roleAdminService.DeleteAssignableRoleAsync(command);
     }
 
     [HttpGet("assignableRoles")]
     public Task<List<RoleBasicDto>> GetAssignableRolesAsync()
     {
-        return roleService.GetAssignableRolesAsync();
+        return roleAdminService.GetAssignableRolesAsync();
     }
 }

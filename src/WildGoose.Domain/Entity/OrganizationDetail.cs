@@ -9,4 +9,7 @@ public class OrganizationTree
     public string Path { get; set; }
     public string Branch { get; set; }
     public string Code { get; set; }
+    public string Metadata { get; set; }
+    public long NId { get; set; }
+    public int Level { get; set; }
 }

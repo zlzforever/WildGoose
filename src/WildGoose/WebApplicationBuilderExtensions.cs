@@ -45,18 +45,17 @@ public static class WebApplicationBuilderExtensions
     public static void RegisterServices(this WebApplicationBuilder builder)
     {
         // builder.Services.TryAddScoped<DomainService>();
-        builder.Services.TryAddScoped<OrganizationService>();
-        builder.Services.TryAddScoped<WildGoose.Application.Organization.V10.OrganizationService>();
-        builder.Services.TryAddScoped<UserService>();
-        builder.Services.TryAddScoped<WildGoose.Application.User.Admin.V11.UserService>();
-        builder.Services.TryAddScoped<RoleService>();
+        builder.Services.TryAddScoped<OrganizationAdminService>();
+        builder.Services.TryAddScoped<Application.Organization.V10.OrganizationService>();
+        builder.Services.TryAddScoped<UserAdminService>();
+        builder.Services.TryAddScoped<WildGoose.Application.User.Admin.V11.UserAdminService>();
+        builder.Services.TryAddScoped<RoleAdminService>();
         builder.Services.TryAddScoped<IObjectStorageService, ObjectStorageService>();
         builder.Services.TryAddScoped<Application.User.V10.UserService>();
-        builder.Services.TryAddScoped<ISession, HttpSession>();
+        builder.Services.TryAddScoped<ISession>(provider =>
+            HttpSession.Create(provider.GetRequiredService<IHttpContextAccessor>()));
         builder.Services.TryAddScoped<PermissionService>();
         builder.Services.TryAddSingleton<ScopeServiceProvider, HttpContextScopeServiceProvider>();
-        builder.Services.TryAddScoped<HttpSession>(provider =>
-            HttpSession.Create(provider.GetRequiredService<IHttpContextAccessor>()));
         builder.Services.AddHostedService<GenerateTopThreeLevelOrganizationsCacheFileService>();
     }
 }

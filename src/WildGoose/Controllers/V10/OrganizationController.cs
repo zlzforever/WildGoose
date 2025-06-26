@@ -29,7 +29,7 @@ public class OrganizationController(OrganizationService organizationService, IMe
     public async Task<IActionResult> GetBaseList()
     {
         var etag = HttpContext.Request.Headers.ETag.ToString();
-        var tuple = await memoryCache.GetOrCreateAsync("WG_API_V10_ORGANIZATIONS_BASE", async entry =>
+        var tuple = await memoryCache.GetOrCreateAsync("WG_API_V10_ORG_BASE", async entry =>
         {
             (string ETag, byte[] Data) result;
             if (System.IO.File.Exists(FilePath))
