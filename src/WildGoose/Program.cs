@@ -104,8 +104,17 @@ public class Program
             .AddErrorDescriber<IdentityErrorDescriber>()
             .AddDefaultTokenProviders()
             .AddUserConfirmation<DefaultUserConfirmation<User>>()
+            //.AddUserValidator<NewUserValidator<User>>()
             .AddEntityFrameworkStores<WildGooseDbContext>();
+        var serviceCollection = (ServiceCollection)builder.Services;
 
+        var items = serviceCollection.Where(x => x.ServiceType == typeof(IUserValidator<User>)).ToList();
+        foreach (var descriptor in items)
+        {
+            serviceCollection.Remove(descriptor);
+        }
+
+        builder.Services.AddScoped<IUserValidator<User>, NewUserValidator<User>>();
 // // TODO:
 // builder.Services.TryAddScoped<ISecurityStampValidator, SecurityStampValidator<User>>();
 // builder.Services.TryAddScoped<ITwoFactorSecurityStampValidator, TwoFactorSecurityStampValidator<User>>();
@@ -126,6 +135,7 @@ public class Program
                         .SetPreflightMaxAge(TimeSpan.FromDays(7));
                 });
         });
+
 
         var app = builder.Build();
 

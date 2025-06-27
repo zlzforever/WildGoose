@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
@@ -40,11 +39,11 @@ public class UserAdminService(
         //         command.Password);
         // passwordValidatorResult.CheckErrors();
 
-        var normalizedUserName = userManager.NormalizeName(command.UserName);
-        if (await userManager.Users.AnyAsync(x => x.NormalizedUserName == normalizedUserName))
-        {
-            throw new WildGooseFriendlyException(1, "用户名已经存在");
-        }
+        // var normalizedUserName = userManager.NormalizeName(command.UserName);
+        // if (await userManager.Users.AnyAsync(x => x.NormalizedUserName == normalizedUserName))
+        // {
+        //     throw new WildGooseFriendlyException(1, "用户名已经存在");
+        // }
  
         var user = new WildGoose.Domain.Entity.User
         {
@@ -52,7 +51,7 @@ public class UserAdminService(
             PhoneNumber = command.PhoneNumber,
             UserName = command.UserName,
             Name = command.Name,
-            NormalizedUserName = normalizedUserName
+            //NormalizedUserName = normalizedUserName
         };
 
         var userExtension = new UserExtension { Id = user.Id };

@@ -267,45 +267,47 @@ public class UserAdminService(
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
 
-        var userDbSet = DbContext.Set<WildGoose.Domain.Entity.User>();
-        var normalizedUserName = userManager.NormalizeName(command.UserName);
-        if (await userDbSet.AnyAsync(x => x.Id != command.Id && x.NormalizedUserName == normalizedUserName))
-        {
-            throw new WildGooseFriendlyException(1, "用户名已经存在");
-        }
+        // var userDbSet = DbContext.Set<WildGoose.Domain.Entity.User>();
+        // var normalizedUserName = userManager.NormalizeName(command.UserName);
+        // if (await userDbSet.AnyAsync(x => x.Id != command.Id && x.NormalizedUserName == normalizedUserName))
+        // {
+        //     throw new WildGooseFriendlyException(1, "用户名已经存在");
+        // }
 
-        if (string.IsNullOrEmpty(command.PhoneNumber))
-        {
-            user.PhoneNumber = null;
-        }
-        else
-        {
-            if (await userDbSet.AnyAsync(x => x.Id != command.Id && x.PhoneNumber == command.PhoneNumber))
-            {
-                throw new WildGooseFriendlyException(1, "手机号已经存在");
-            }
-        }
+        // if (string.IsNullOrEmpty(command.PhoneNumber))
+        // {
+        //     user.PhoneNumber = null;
+        // }
+        // else
+        // {
+        //     if (await userDbSet.AnyAsync(x => x.Id != command.Id && x.PhoneNumber == command.PhoneNumber))
+        //     {
+        //         throw new WildGooseFriendlyException(1, "手机号已经存在");
+        //     }
+        // }
 
-        if (string.IsNullOrEmpty(command.Email))
-        {
-            user.Email = null;
-        }
-        else
-        {
-            var normalizedEmail = userManager.NormalizeEmail(command.Email);
-            if (await userDbSet.AnyAsync(x => x.Id != command.Id && x.Email == normalizedEmail))
-            {
-                throw new WildGooseFriendlyException(1, "邮箱已经存在");
-            }
-        }
+        // if (string.IsNullOrEmpty(command.Email))
+        // {
+        //     user.Email = null;
+        // }
+        // else
+        // {
+        //     var normalizedEmail = userManager.NormalizeEmail(command.Email);
+        //     if (await userDbSet.AnyAsync(x => x.Id != command.Id && x.Email == normalizedEmail))
+        //     {
+        //         throw new WildGooseFriendlyException(1, "邮箱已经存在");
+        //     }
+        // }
 
         user.Code = command.Code;
         user.Name = command.Name;
 
         user.PhoneNumber = command.PhoneNumber;
         user.UserName = command.UserName;
-        await userManager.UpdateNormalizedEmailAsync(user);
-        await userManager.UpdateNormalizedUserNameAsync(user);
+
+        // userManager.UpdateAsync 会做用户名、用户合法性校验
+        // await userManager.UpdateNormalizedEmailAsync(user);
+        // await userManager.UpdateNormalizedUserNameAsync(user);
 
         var organizationIds = await UpdateOrganizationsAsync(user, command.Organizations);
         var roleIds = await UpdateRolesAsync(user, command.Roles);
@@ -326,7 +328,7 @@ public class UserAdminService(
             .Where(x => roleIds.Contains(x.Id))
             .Select(x => x.Name).ToListAsync();
 
-        await DbContext.SaveChangesAsync();
+        await userManager.UpdateAsync(user);
 
         return new UserDto
         {
