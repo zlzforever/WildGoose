@@ -486,7 +486,7 @@ public class UserAdminService(
 
         (await userManager.SetLockoutEndDateAsync(
             user,
-            DateTimeOffset.MaxValue)).CheckErrors();
+            DateTimeOffset.MaxValue.UtcDateTime)).CheckErrors();
 
         var daprClient = GetDaprClient();
         if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
@@ -513,9 +513,9 @@ public class UserAdminService(
         {
             await userManager.SetLockoutEnabledAsync(user, true);
         }
+
         (await userManager.SetLockoutEndDateAsync(
-            user,
-            DateTimeOffset.Now.LocalDateTime.AddMinutes(-1))).CheckErrors();
+            user, DateTimeOffset.Now.AddMinutes(-1).UtcDateTime)).CheckErrors();
 
         var daprClient = GetDaprClient();
         if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
