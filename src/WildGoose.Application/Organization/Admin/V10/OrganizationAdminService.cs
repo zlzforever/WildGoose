@@ -415,10 +415,12 @@ public class OrganizationAdminService(
         //         .Where(y => y.UserId == Session.UserId)
         //         .Select(z => z.OrganizationId).Contains(x.Id));
 
-        var adminOrganizationList = DbContext.Set<OrganizationDetail>().Join(DbContext.Set<OrganizationAdministrator>(),
-            organization => organization.Id,
-            admin => admin.OrganizationId,
-            (organization, admin) => organization);
+        var adminOrganizationList = DbContext.Set<OrganizationAdministrator>()
+            .Where(x => x.UserId == Session.UserId)
+            .Join(DbContext.Set<OrganizationDetail>(),
+                admin => admin.OrganizationId,
+                organization => organization.Id,
+                (admin, organization) => organization);
 
         // 机构管理员, 如果为空， 查询自己管理的机构
         if (string.IsNullOrEmpty(query.ParentId))
@@ -426,6 +428,7 @@ public class OrganizationAdminService(
             var organizations = await adminOrganizationList
                 .AsNoTracking()
                 .OrderBy(x => x.Level)
+                .ThenBy(x => x.Code)
                 .ToListAsync();
             var list = organizations.Select(organization => new SubOrganizationDto
             {
@@ -435,7 +438,8 @@ public class OrganizationAdminService(
                 Path = organization.Path,
                 ParentId = organization.ParentId,
                 ParentName = organization.ParentName,
-                HasChild = organization.HasChild
+                HasChild = organization.HasChild,
+                Level = organization.Level
             }).ToList();
             var result = new List<SubOrganizationDto>();
             foreach (var dto in list)
@@ -452,11 +456,11 @@ public class OrganizationAdminService(
         }
 
         // 33
-        var adminOrganizationPathList = adminOrganizationList.Select(x => x.Path);
-        var queryable = DbContext.Set<OrganizationDetail>()
-            .AsNoTracking().Where(x =>
-                x.ParentId == query.ParentId &&
-                adminOrganizationPathList.Any(y => y == x.Path || y.StartsWith(x.Path)))
+        var adminOrganizationPathList = adminOrganizationList.Select(x => x.Path).ToList();
+
+        var all = DbContext.Set<OrganizationDetail>().Where(x => x.ParentId == query.ParentId);
+        var queryable = all.Where(x =>
+                adminOrganizationPathList.Any(y => x.Path.StartsWith(y)))
             .OrderBy(x => x.Code)
             .Select(organization => new SubOrganizationDto
             {

@@ -73,7 +73,8 @@ public class OrganizationAdminServiceTests(WebApplicationFactoryFixture fixture)
         var organizationService = scope.ServiceProvider.GetRequiredService<OrganizationAdminService>();
         var list = await organizationService.GetSubListAsync(new GetSubListQuery
         {
-            // 南京
+            // 南京 65fd28c6ac42f1a071e1ed8c
+            // 67e4a99e370fa2bc6de04fc1
             ParentId = "65fd28c6ac42f1a071e1ed8c"
         });
         Assert.NotNull(list);

@@ -9,4 +9,5 @@ public class SubOrganizationDto
     public string ParentId { get; set; }
     public string ParentName { get; set; }
     public bool HasChild { get; set; }
+    public int Level { get; set; }
 }

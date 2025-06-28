@@ -20,11 +20,13 @@ public class BaseTests
     {
         session.Load(new TestSession
         {
+            // 67e4aae1370fa2bc6de04fc3
+            // 单元测试用户禁止删除 68540d88ed70c9c6b320673d
             UserId = "68540d88ed70c9c6b320673d",
             UserDisplayName = "单元测试用户禁止删除",
             UserName = "单元测试用户禁止删除",
             Roles = [Defaults.OrganizationAdmin],
-            Subjects = [Defaults.OrganizationAdmin, "67e4aae1370fa2bc6de04fc3"]
+            Subjects = [Defaults.OrganizationAdmin, "68540d88ed70c9c6b320673d"]
         });
     }
 
