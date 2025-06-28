@@ -479,6 +479,11 @@ public class UserAdminService(
 
         await CheckUserPermissionAsync(user.Id);
 
+        if (!user.LockoutEnabled)
+        {
+            await userManager.SetLockoutEnabledAsync(user, true);
+        }
+
         (await userManager.SetLockoutEndDateAsync(
             user,
             DateTimeOffset.MaxValue)).CheckErrors();
@@ -504,7 +509,10 @@ public class UserAdminService(
         }
 
         await CheckUserPermissionAsync(user.Id);
-
+        if (!user.LockoutEnabled)
+        {
+            await userManager.SetLockoutEnabledAsync(user, true);
+        }
         (await userManager.SetLockoutEndDateAsync(
             user,
             DateTimeOffset.Now.LocalDateTime.AddMinutes(-1))).CheckErrors();

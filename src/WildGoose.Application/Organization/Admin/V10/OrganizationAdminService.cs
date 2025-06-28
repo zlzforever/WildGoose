@@ -410,10 +410,15 @@ public class OrganizationAdminService(
             return await GetSubListAsync(query.ParentId);
         }
 
-        var adminOrganizationList = DbContext.Set<OrganizationDetail>()
-            .Where(x => DbContext.Set<OrganizationAdministrator>()
-                .Where(y => y.UserId == Session.UserId)
-                .Select(z => z.OrganizationId).Contains(x.Id));
+        // var adminOrganizationList = DbContext.Set<OrganizationDetail>()
+        //     .Where(x => DbContext.Set<OrganizationAdministrator>()
+        //         .Where(y => y.UserId == Session.UserId)
+        //         .Select(z => z.OrganizationId).Contains(x.Id));
+
+        var adminOrganizationList = DbContext.Set<OrganizationDetail>().Join(DbContext.Set<OrganizationAdministrator>(),
+            organization => organization.Id,
+            admin => admin.OrganizationId,
+            (organization, admin) => organization);
 
         // 机构管理员, 如果为空， 查询自己管理的机构
         if (string.IsNullOrEmpty(query.ParentId))
@@ -446,10 +451,12 @@ public class OrganizationAdminService(
             return result;
         }
 
+        // 33
         var adminOrganizationPathList = adminOrganizationList.Select(x => x.Path);
         var queryable = DbContext.Set<OrganizationDetail>()
             .AsNoTracking().Where(x =>
-                x.ParentId == query.ParentId && adminOrganizationPathList.Any(y => y.StartsWith(x.Path)))
+                x.ParentId == query.ParentId &&
+                adminOrganizationPathList.Any(y => y == x.Path || y.StartsWith(x.Path)))
             .OrderBy(x => x.Code)
             .Select(organization => new SubOrganizationDto
             {

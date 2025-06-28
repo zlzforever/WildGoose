@@ -24,7 +24,6 @@ public class Program
 
         builder.AddSerilog();
 
-
         var mvcBuilder = builder.Services.AddControllers(x =>
         {
             x.Filters.Add<ResponseWrapperFilter>();
@@ -55,34 +54,7 @@ public class Program
         builder.Services.Configure<WildGooseOptions>(builder.Configuration.GetSection("WildGoose"));
         builder.Services.Configure<DaprOptions>(builder.Configuration.GetSection("Dapr"));
 
-// Add services to the container.
-        var connectionString = builder.Configuration["DbContext:ConnectionString"] ??
-                               throw new InvalidOperationException(
-                                   "Connection string 'DbContext:ConnectionString' not found.");
-        var tablePrefix = builder.Configuration["DbContext:TablePrefix"] ?? string.Empty;
-        var databaseType = builder.Configuration["DbContext:DatabaseType"] ?? "PostgreSql";
-        if ("mysql".Equals(databaseType, StringComparison.OrdinalIgnoreCase))
-        {
-            builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
-            {
-#if DEBUG
-                options.EnableSensitiveDataLogging();
-#endif
-                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
-                    b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
-            });
-        }
-        else
-        {
-            builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
-            {
-#if DEBUG
-                options.EnableSensitiveDataLogging();
-#endif
-                options.UseNpgsql(connectionString,
-                    b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
-            });
-        }
+        AddEfCore(builder);
 
         builder.RegisterServices();
 
@@ -104,20 +76,16 @@ public class Program
             .AddErrorDescriber<IdentityErrorDescriber>()
             .AddDefaultTokenProviders()
             .AddUserConfirmation<DefaultUserConfirmation<User>>()
-            //.AddUserValidator<NewUserValidator<User>>()
+            .AddUserValidator<NewUserValidator<User>>()
             .AddEntityFrameworkStores<WildGooseDbContext>();
         var serviceCollection = (ServiceCollection)builder.Services;
 
-        var items = serviceCollection.Where(x => x.ServiceType == typeof(IUserValidator<User>)).ToList();
+        var items = serviceCollection.Where(x => x.ServiceType == typeof(IUserValidator<User>) &&
+                                                 x.ImplementationType != typeof(NewUserValidator<User>)).ToList();
         foreach (var descriptor in items)
         {
             serviceCollection.Remove(descriptor);
         }
-
-        builder.Services.AddScoped<IUserValidator<User>, NewUserValidator<User>>();
-// // TODO:
-// builder.Services.TryAddScoped<ISecurityStampValidator, SecurityStampValidator<User>>();
-// builder.Services.TryAddScoped<ITwoFactorSecurityStampValidator, TwoFactorSecurityStampValidator<User>>();
 
         var corsPolicyName = "___AllowSpecificOrigin";
         builder.Services.AddCors(options =>
@@ -135,7 +103,6 @@ public class Program
                         .SetPreflightMaxAge(TimeSpan.FromDays(7));
                 });
         });
-
 
         var app = builder.Build();
 
@@ -172,8 +139,40 @@ public class Program
         app.MapControllers()
             .RequireAuthorization("JWT")
             .RequireCors(corsPolicyName);
-        app.Run();
+        await app.RunAsync();
 
         Console.WriteLine("Bye");
+    }
+
+    private static void AddEfCore(WebApplicationBuilder builder)
+    {
+        // Add services to the container.
+        var connectionString = builder.Configuration["DbContext:ConnectionString"] ??
+                               throw new InvalidOperationException(
+                                   "Connection string 'DbContext:ConnectionString' not found.");
+        var tablePrefix = builder.Configuration["DbContext:TablePrefix"] ?? string.Empty;
+        var databaseType = builder.Configuration["DbContext:DatabaseType"] ?? "PostgreSql";
+        if ("mysql".Equals(databaseType, StringComparison.OrdinalIgnoreCase))
+        {
+            builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
+            {
+#if DEBUG
+                options.EnableSensitiveDataLogging();
+#endif
+                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+                    b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
+            });
+        }
+        else
+        {
+            builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
+            {
+#if DEBUG
+                options.EnableSensitiveDataLogging();
+#endif
+                options.UseNpgsql(connectionString,
+                    b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
+            });
+        }
     }
 }
