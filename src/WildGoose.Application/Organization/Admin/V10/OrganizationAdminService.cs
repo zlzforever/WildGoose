@@ -28,8 +28,7 @@ public class OrganizationAdminService(
     ISession session,
     IOptions<DbOptions> dbOptions,
     ILogger<OrganizationAdminService> logger,
-    UserManager<WildGoose.Domain.Entity.User> userManager,
-    RoleManager<WildGoose.Domain.Entity.Role> roleManager)
+    UserManager<WildGoose.Domain.Entity.User> userManager)
     : BaseService(dbContext, session, dbOptions, logger)
 {
     public async Task<OrganizationSimpleDto> AddAsync(AddOrganizationCommand command)

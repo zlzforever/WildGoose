@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using WildGoose.Domain;
@@ -39,10 +40,11 @@ public class GlobalExceptionFilter(ILogger<GlobalExceptionFilter> logger) : IExc
         context.ExceptionHandled = true;
     }
 
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
     class ApiResult
     {
         public int Code { get; set; }
         public bool Success { get; set; }
-        public string Msg { get; set; }
+        public string? Msg { get; set; }
     }
 }

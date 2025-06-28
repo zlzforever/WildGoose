@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Serilog;
+using Serilog.Events;
 using WildGoose.Application;
 using WildGoose.Application.Organization.Admin.V10;
 using WildGoose.Application.Permission.Internal.V10;
@@ -32,7 +33,11 @@ public static class WebApplicationBuilderExtensions
 
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
+                .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Authentication", LogEventLevel.Warning)
                 .Enrich.FromLogContext()
+                .Enrich.WithThreadId()
+                .Enrich.WithMachineName()
                 .WriteTo.Console()
                 .WriteTo.Async(x => x.File(logPath, rollingInterval: RollingInterval.Day))
                 .CreateLogger();
