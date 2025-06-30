@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using Dapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using WildGoose.Application;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
@@ -159,6 +160,10 @@ public class Program
 #if DEBUG
                 options.EnableSensitiveDataLogging();
 #endif
+                options.ConfigureWarnings(warnings =>
+                {
+                    warnings.Ignore(RelationalEventId.PendingModelChangesWarning);
+                });
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
                     b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
             });
@@ -170,6 +175,10 @@ public class Program
 #if DEBUG
                 options.EnableSensitiveDataLogging();
 #endif
+                options.ConfigureWarnings(warnings =>
+                {
+                    warnings.Ignore(RelationalEventId.PendingModelChangesWarning);
+                });
                 options.UseNpgsql(connectionString,
                     b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
             });
