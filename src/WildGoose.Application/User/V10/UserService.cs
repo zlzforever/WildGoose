@@ -93,24 +93,30 @@ public class UserService(
         }
 
         var jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
-        var entities = await queryable
+        var organizationDetails = await queryable
             // .Include(x => x.Parent)
             .AsNoTracking()
             .OrderBy(x => x.Code)
-            .Select(x => new OrganizationDto
+            .Select(x => new
             {
-                Id = x.Id,
-                Name = x.Name,
-                ParentId = x.ParentId,
-                ParentName = x.ParentName,
+                Organization = x,
                 Scope = DbContext.Set<OrganizationScope>().AsNoTracking()
                     .Where(y => y.OrganizationId == x.Id).Select(z => z.Scope).ToList(),
-                HasChild = x.HasChild,
-                Code = x.Code,
-                Metadata = string.IsNullOrEmpty(x.Metadata)
-                    ? default
-                    : JsonSerializer.Deserialize<JsonElement>(x.Metadata, jsonSerializerOptions)
             }).ToListAsync();
+
+        var entities = organizationDetails.Select(x => new OrganizationDto
+        {
+            Id = x.Organization.Id,
+            Name = x.Organization.Name,
+            ParentId = x.Organization.ParentId,
+            ParentName = x.Organization.ParentName,
+            Scope = x.Scope,
+            HasChild = x.Organization.HasChild,
+            Code = x.Organization.Code,
+            Metadata = string.IsNullOrEmpty(x.Organization.Metadata)
+                ? default
+                : JsonSerializer.Deserialize<JsonElement>(x.Organization.Metadata, jsonSerializerOptions)
+        }).ToList();
         return entities;
     }
 }
