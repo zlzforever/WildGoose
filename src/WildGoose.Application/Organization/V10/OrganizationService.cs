@@ -145,7 +145,8 @@ public class OrganizationService(
             Path = organization.Path,
             ParentId = organization.ParentId,
             ParentName = organization.ParentName,
-            HasChild = organization.HasChild
+            HasChild = organization.HasChild,
+            Metadata = string.IsNullOrEmpty(organization.Metadata) ? null : JsonDocument.Parse(organization.Metadata)
         }).ToList();
         var result = new List<SubOrganizationDto>();
         foreach (var dto in list)
