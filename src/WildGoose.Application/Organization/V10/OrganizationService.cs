@@ -52,11 +52,11 @@ public class OrganizationService(
         if (string.IsNullOrEmpty(query.ParentId))
         {
             query.ParentId = null;
-        }
 
-        if ("my".Equals(query.Type, StringComparison.OrdinalIgnoreCase))
-        {
-            return await GetMyListAsync();
+            if ("my".Equals(query.Type, StringComparison.OrdinalIgnoreCase))
+            {
+                return await GetMyListAsync();
+            }
         }
 
         var result = await DbContext
