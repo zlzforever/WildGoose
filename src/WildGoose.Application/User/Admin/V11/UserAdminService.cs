@@ -61,7 +61,7 @@ public class UserAdminService(
         var result = await userManager.CreateAsync(user, command.Password);
         // comments by lewis 20231117: _userManager 会自己调用 SaveChanges
         result.CheckErrors();
-
+        await DbContext.SaveChangesAsync();
         var daprClient = GetDaprClient();
         if (daprClient != null && !string.IsNullOrEmpty(dapOptions.Value.Pubsub))
         {

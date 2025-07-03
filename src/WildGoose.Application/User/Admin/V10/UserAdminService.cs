@@ -184,6 +184,7 @@ public class UserAdminService(
         var result = await userManager.CreateAsync(user, command.Password);
         // comments by lewis 20231117: _userManager 会自己调用 SaveChanges
         result.CheckErrors();
+        await DbContext.SaveChangesAsync();
 
         var daprClient = GetDaprClient();
         if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
@@ -226,6 +227,7 @@ public class UserAdminService(
         (await userManager.SetLockoutEndDateAsync(
             user,
             DateTimeOffset.MaxValue)).CheckErrors();
+        await DbContext.SaveChangesAsync();
 
         var daprClient = GetDaprClient();
         if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
@@ -466,6 +468,7 @@ public class UserAdminService(
 
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
         (await userManager.ResetPasswordAsync(user, token, password)).CheckErrors();
+        await DbContext.SaveChangesAsync();
     }
 
     public async Task DisableAsync(DisableUserCommand command)
@@ -487,7 +490,7 @@ public class UserAdminService(
         (await userManager.SetLockoutEndDateAsync(
             user,
             DateTimeOffset.MaxValue.UtcDateTime)).CheckErrors();
-
+        await DbContext.SaveChangesAsync();
         var daprClient = GetDaprClient();
         if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
         {
@@ -516,7 +519,7 @@ public class UserAdminService(
 
         (await userManager.SetLockoutEndDateAsync(
             user, DateTimeOffset.Now.AddMinutes(-1).UtcDateTime)).CheckErrors();
-
+        await DbContext.SaveChangesAsync();
         var daprClient = GetDaprClient();
         if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))
         {
@@ -622,6 +625,7 @@ public class UserAdminService(
         }
 
         originOrganizationIds.AddRange(addIdList);
+        await DbContext.SaveChangesAsync();
         return originOrganizationIds;
     }
 

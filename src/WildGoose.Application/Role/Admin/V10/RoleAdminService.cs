@@ -67,7 +67,7 @@ public class RoleAdminService(
         {
             throw new WildGooseFriendlyException(1, "禁止删除系统角色");
         }
-
+ 
         DbContext.Remove(role);
         await using var transaction = await DbContext.Database.BeginTransactionAsync();
         try
@@ -104,8 +104,7 @@ public class RoleAdminService(
 
     public async Task UpdateAsync(UpdateRoleCommand command)
     {
-        var role = await DbContext.Set<WildGoose.Domain.Entity.Role>()
-            .FirstOrDefaultAsync(x => x.Id == command.Id);
+        var role = await roleManager.FindByIdAsync(command.Id);
         if (role == null)
         {
             throw new WildGooseFriendlyException(1, "角色不存在");
