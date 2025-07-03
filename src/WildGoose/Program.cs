@@ -3,6 +3,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dapper;
+using Identity.Sm;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -24,7 +25,7 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         builder.AddSerilog();
-
+        builder.Configuration.AddEnvironmentVariables();
         var mvcBuilder = builder.Services.AddControllers(x =>
         {
             x.Filters.Add<ResponseWrapperFilter>();
@@ -79,6 +80,13 @@ public class Program
             .AddUserConfirmation<DefaultUserConfirmation<User>>()
             .AddUserValidator<NewUserValidator<User>>()
             .AddEntityFrameworkStores<WildGooseDbContext>();
+        if (bool.TryParse(builder.Configuration["ENABLE_SM3_PASSWORD_HASHER"],
+                out var enable) &&
+            enable)
+        {
+            builder.Services.AddSm3PasswordHasher<User>();
+        }
+
         var serviceCollection = (ServiceCollection)builder.Services;
 
         var items = serviceCollection.Where(x => x.ServiceType == typeof(IUserValidator<User>) &&
