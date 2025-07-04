@@ -306,6 +306,7 @@ public class UserAdminService(
 
         user.PhoneNumber = command.PhoneNumber;
         user.UserName = command.UserName;
+        user.Email = command.Email;
 
         // userManager.UpdateAsync 会做用户名、用户合法性校验
         // await userManager.UpdateNormalizedEmailAsync(user);
