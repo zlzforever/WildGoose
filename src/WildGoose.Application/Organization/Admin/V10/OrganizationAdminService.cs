@@ -22,13 +22,11 @@ namespace WildGoose.Application.Organization.Admin.V10;
 /// <param name="session"></param>
 /// <param name="dbOptions"></param>
 /// <param name="logger"></param>
-/// <param name="userManager"></param>
 public class OrganizationAdminService(
     WildGooseDbContext dbContext,
     ISession session,
     IOptions<DbOptions> dbOptions,
-    ILogger<OrganizationAdminService> logger,
-    UserManager<WildGoose.Domain.Entity.User> userManager)
+    ILogger<OrganizationAdminService> logger)
     : BaseService(dbContext, session, dbOptions, logger)
 {
     public async Task<OrganizationSimpleDto> AddAsync(AddOrganizationCommand command)
@@ -481,7 +479,8 @@ public class OrganizationAdminService(
             throw new WildGooseFriendlyException(1, "没有管理机构的权限");
         }
 
-        var user = await userManager.FindByIdAsync(command.UserId);
+        var user = await DbContext.Set<Domain.Entity.User>().AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == command.UserId);
         if (user == null)
         {
             throw new WildGooseFriendlyException(1, "用户不存在");
@@ -495,10 +494,18 @@ public class OrganizationAdminService(
 
         await DbContext.AddAsync(relationship);
 
-        var userRoles = await userManager.GetRolesAsync(user);
-        if (!userRoles.Contains(Defaults.OrganizationAdmin))
+        var usrRoleSet = DbContext.Set<IdentityUserRole<string>>();
+        var userRoles = await usrRoleSet.AsNoTracking()
+            .Where(x => x.UserId == command.UserId)
+            .ToListAsync();
+
+        if (userRoles.All(x => x.RoleId != Defaults.OrganizationAdminRoleId))
         {
-            await userManager.AddToRoleAsync(user, Defaults.OrganizationAdmin);
+            await usrRoleSet.AddAsync(new IdentityUserRole<string>
+            {
+                UserId = command.UserId,
+                RoleId = Defaults.OrganizationAdminRoleId
+            });
         }
 
         await DbContext.SaveChangesAsync();
@@ -511,7 +518,8 @@ public class OrganizationAdminService(
             throw new WildGooseFriendlyException(1, "没有管理机构的权限");
         }
 
-        var user = await userManager.FindByIdAsync(command.UserId);
+        var user = await DbContext.Set<Domain.Entity.User>().AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == command.UserId);
         if (user == null)
         {
             throw new WildGooseFriendlyException(1, "用户不存在");
@@ -529,7 +537,11 @@ public class OrganizationAdminService(
             // 若用户没有作为机构管理员， 则删除对应的角色
             if (relationships.Count == 1)
             {
-                await userManager.RemoveFromRoleAsync(user, Defaults.OrganizationAdmin);
+                var userRoleSet = DbContext.Set<IdentityUserRole<string>>();
+                var userRoles = await userRoleSet
+                    .Where(x => x.UserId == command.UserId && x.RoleId == Defaults.OrganizationAdminRoleId)
+                    .ToListAsync();
+                userRoleSet.RemoveRange(userRoles);
             }
         }
 

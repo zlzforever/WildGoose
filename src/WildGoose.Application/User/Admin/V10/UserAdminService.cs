@@ -331,6 +331,7 @@ public class UserAdminService(
             .Select(x => x.Name).ToListAsync();
 
         await userManager.UpdateAsync(user);
+        await DbContext.SaveChangesAsync();
 
         return new UserDto
         {
@@ -588,6 +589,7 @@ public class UserAdminService(
         }
 
         originUserRoleIds.AddRange(addIdList);
+
         return originUserRoleIds;
     }
 
@@ -625,7 +627,6 @@ public class UserAdminService(
         }
 
         originOrganizationIds.AddRange(addIdList);
-        await DbContext.SaveChangesAsync();
         return originOrganizationIds;
     }
 
