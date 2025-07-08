@@ -331,7 +331,7 @@ public class UserAdminService(
             .Where(x => roleIds.Contains(x.Id))
             .Select(x => x.Name).ToListAsync();
 
-        await userManager.UpdateAsync(user);
+        (await userManager.UpdateAsync(user)).CheckErrors();
         await DbContext.SaveChangesAsync();
 
         return new UserDto

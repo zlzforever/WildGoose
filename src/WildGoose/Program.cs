@@ -75,7 +75,7 @@ public class Program
                 o.SignIn.RequireConfirmedAccount = true;
             })
             .AddRoles<Role>()
-            .AddErrorDescriber<IdentityErrorDescriber>()
+            .AddErrorDescriber<ChineseIdentityErrorDescriber>()
             .AddDefaultTokenProviders()
             .AddUserConfirmation<DefaultUserConfirmation<User>>()
             .AddUserValidator<NewUserValidator<User>>()
