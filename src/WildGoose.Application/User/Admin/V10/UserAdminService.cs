@@ -223,11 +223,11 @@ public class UserAdminService(
 
         await CheckUserPermissionAsync(user.Id);
         DbContext.Remove(user);
+        await DbContext.SaveChangesAsync();
 
         (await userManager.SetLockoutEndDateAsync(
             user,
             DateTimeOffset.MaxValue)).CheckErrors();
-        await DbContext.SaveChangesAsync();
 
         var daprClient = GetDaprClient();
         if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))

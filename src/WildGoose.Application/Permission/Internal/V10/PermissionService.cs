@@ -47,7 +47,7 @@ public class PermissionService(
         var policies = new List<List<Statement>>();
         foreach (var role in Session.Roles)
         {
-            var statements = await memoryCache.GetOrCreateAsync($"PermissionService.Role.{role}",
+            var statements = await memoryCache.GetOrCreateAsync($"PermissionService:Statement:{role}",
                 async entry =>
                 {
                     var json = await DbContext
