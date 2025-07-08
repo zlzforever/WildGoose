@@ -1,32 +1,32 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace WildGoose;
+namespace WildGoose.Application;
 
 public class ChineseIdentityErrorDescriber : IdentityErrorDescriber
 {
     public override IdentityError DefaultError()
     {
-        return new IdentityError { Code = nameof(DefaultError), Description = $"未知错误！" };
+        return new IdentityError { Code = nameof(DefaultError), Description = "未知错误" };
     }
 
     public override IdentityError ConcurrencyFailure()
     {
-        return new IdentityError { Code = nameof(ConcurrencyFailure), Description = "并发错误，对象已被修改！" };
+        return new IdentityError { Code = nameof(ConcurrencyFailure), Description = "并发错误， 数据已被修改" };
     }
 
     public override IdentityError PasswordMismatch()
     {
-        return new IdentityError { Code = "Password", Description = "密码错误！" };
+        return new IdentityError { Code = "Password", Description = "密码错误" };
     }
 
     public override IdentityError InvalidToken()
     {
-        return new IdentityError { Code = nameof(InvalidToken), Description = "Invalid token." };
+        return new IdentityError { Code = nameof(InvalidToken), Description = "访问令牌不合法" };
     }
 
     public override IdentityError LoginAlreadyAssociated()
     {
-        return new IdentityError { Code = nameof(LoginAlreadyAssociated), Description = "当前用户已经登录！" };
+        return new IdentityError { Code = nameof(LoginAlreadyAssociated), Description = "当前用户已经登录" };
     }
 
     public override IdentityError InvalidUserName(string userName)
@@ -36,7 +36,7 @@ public class ChineseIdentityErrorDescriber : IdentityErrorDescriber
 
     public override IdentityError InvalidEmail(string email)
     {
-        return new IdentityError { Code = "Email", Description = $"邮箱 '{email}' 格式错误！" };
+        return new IdentityError { Code = "Email", Description = $"邮箱 '{email}' 格式错误" };
     }
 
     public override IdentityError DuplicateUserName(string userName)
@@ -62,13 +62,13 @@ public class ChineseIdentityErrorDescriber : IdentityErrorDescriber
     public override IdentityError UserAlreadyHasPassword()
     {
         return new IdentityError
-            { Code = nameof(UserAlreadyHasPassword), Description = "User already has a password set." };
+            { Code = nameof(UserAlreadyHasPassword), Description = "用户已经设置了密码" };
     }
 
     public override IdentityError UserLockoutNotEnabled()
     {
         return new IdentityError
-            { Code = nameof(UserLockoutNotEnabled), Description = "Lockout is not enabled for this user." };
+            { Code = nameof(UserLockoutNotEnabled), Description = "该用户不允许锁定" };
     }
 
     public override IdentityError UserAlreadyInRole(string role)

@@ -8,6 +8,10 @@ namespace WildGoose.Application;
 public class NewUserValidator<TUser> : UserValidator<TUser>
     where TUser : IdentityUser
 {
+    public NewUserValidator(IdentityErrorDescriber errors = null) : base(errors)
+    {
+    }
+
     public override async Task<IdentityResult> ValidateAsync(UserManager<TUser> manager, TUser user)
     {
         var errors = await ValidateUserName(manager, user);
