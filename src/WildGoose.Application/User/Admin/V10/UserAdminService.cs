@@ -203,7 +203,7 @@ public class UserAdminService(
             UserName = user.UserName,
             Name = user.Name,
             Organizations = organizations,
-            Enabled = !user.LockoutEnabled,
+            Enabled = user.IsEnabled,
             PhoneNumber = user.PhoneNumber,
             Roles = roles,
             IsAdministrator = false,
@@ -341,7 +341,7 @@ public class UserAdminService(
             UserName = user.UserName,
             Name = user.Name,
             Organizations = organizations,
-            Enabled = !user.LockoutEnabled,
+            Enabled = user.IsEnabled,
             PhoneNumber = user.PhoneNumber,
             Roles = roles,
             IsAdministrator = null,
@@ -521,8 +521,7 @@ public class UserAdminService(
             await userManager.SetLockoutEnabledAsync(user, true);
         }
 
-        (await userManager.SetLockoutEndDateAsync(
-            user, DateTimeOffset.Now.AddMinutes(-1).UtcDateTime)).CheckErrors();
+        (await userManager.SetLockoutEndDateAsync(user, null)).CheckErrors();
         await DbContext.SaveChangesAsync();
         var daprClient = GetDaprClient();
         if (daprClient != null && !string.IsNullOrEmpty(_daprOptions.Pubsub))

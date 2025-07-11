@@ -41,6 +41,8 @@ public class User : IdentityUser, IDeletion, ICreation, IModification
     /// </summary>
     public string Code { get; set; }
 
+    public bool IsEnabled => LockoutEnd == null || LockoutEnd < DateTimeOffset.Now.LocalDateTime;
+
     #region IDeletion
 
     /// <summary>
