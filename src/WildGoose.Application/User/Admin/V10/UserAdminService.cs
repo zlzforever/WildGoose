@@ -82,7 +82,7 @@ public class UserAdminService(
             queryable = queryable.Where(x => !x.LockoutEnabled);
         }
 
-        var now = DateTimeOffset.Now.ToLocalTime();
+        var now = DateTimeOffset.Now;
         var result = await queryable.OrderByDescending(x => x.CreationTime).Select(x => new
         {
             x.Id,
