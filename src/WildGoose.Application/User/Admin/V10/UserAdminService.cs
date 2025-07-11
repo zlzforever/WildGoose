@@ -82,14 +82,13 @@ public class UserAdminService(
             queryable = queryable.Where(x => !x.LockoutEnabled);
         }
 
-        var now = DateTimeOffset.Now;
         var result = await queryable.OrderByDescending(x => x.CreationTime).Select(x => new
         {
             x.Id,
             x.UserName,
             x.PhoneNumber,
             x.Name,
-            Enabled = x.LockoutEnd == null || x.LockoutEnd < now,
+            x.LockoutEnd,
             IsAdministrator = DbContext.Set<OrganizationAdministrator>()
                 .AsNoTracking().Any(y => y.UserId == x.Id && y.OrganizationId == query.OrganizationId),
             x.CreationTime
@@ -101,7 +100,7 @@ public class UserAdminService(
             Id = x.Id,
             UserName = x.UserName,
             Name = x.Name,
-            Enabled = x.Enabled,
+            Enabled = WildGoose.Domain.Entity.User.CheckEnabled(x.LockoutEnd),
             PhoneNumber = x.PhoneNumber,
             IsAdministrator = x.IsAdministrator,
             CreationTime = x.CreationTime.HasValue
