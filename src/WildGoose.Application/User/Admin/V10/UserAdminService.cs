@@ -82,13 +82,14 @@ public class UserAdminService(
             queryable = queryable.Where(x => !x.LockoutEnabled);
         }
 
+        var now = DateTimeOffset.Now.ToLocalTime();
         var result = await queryable.OrderByDescending(x => x.CreationTime).Select(x => new
         {
             x.Id,
             x.UserName,
             x.PhoneNumber,
             x.Name,
-            Enabled = !x.LockoutEnabled,
+            Enabled = x.LockoutEnd == null || x.LockoutEnd < now,
             IsAdministrator = DbContext.Set<OrganizationAdministrator>()
                 .AsNoTracking().Any(y => y.UserId == x.Id && y.OrganizationId == query.OrganizationId),
             x.CreationTime
@@ -514,6 +515,7 @@ public class UserAdminService(
         }
 
         await CheckUserPermissionAsync(user.Id);
+
         if (!user.LockoutEnabled)
         {
             await userManager.SetLockoutEnabledAsync(user, true);
