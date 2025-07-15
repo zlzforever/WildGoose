@@ -67,7 +67,7 @@ public class RoleAdminService(
         {
             throw new WildGooseFriendlyException(1, "禁止删除系统角色");
         }
- 
+
         DbContext.Remove(role);
         await using var transaction = await DbContext.Database.BeginTransactionAsync();
         try
@@ -293,7 +293,7 @@ public class RoleAdminService(
             {
                 Id = role.Id,
                 Name = role.Name
-            }).AsNoTracking().ToListAsync();
+            }).DistinctBy(x => x.Id).AsNoTracking().ToListAsync();
         return roles;
     }
 }
