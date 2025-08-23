@@ -293,7 +293,8 @@ public class RoleAdminService(
             {
                 Id = role.Id,
                 Name = role.Name
-            }).DistinctBy(x => x.Id).AsNoTracking().ToListAsync();
+            }).AsNoTracking().ToListAsync();
+        roles = roles.DistinctBy(x => x.Id).ToList();
         return roles;
     }
 }
