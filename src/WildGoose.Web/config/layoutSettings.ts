@@ -7,7 +7,7 @@ const Settings: ProLayoutProps & {
   pwa?: boolean
   logo?: string
 } = {
-  title: '访问控制',
+  title: '权限管理',
   prefixCls: 'wildgoose-web',
   fixSiderbar: true,
   layout: 'mix',

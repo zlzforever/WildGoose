@@ -8,6 +8,8 @@ declare global {
       pageSize: number
       applicationId: string
       oidc: any
+      icp?: string
+      copyright?: string
     }
   }
 
