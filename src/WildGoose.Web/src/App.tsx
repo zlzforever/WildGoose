@@ -190,8 +190,8 @@ function App() {
                           paddingBlockStart: 12,
                         }}
                       >
-                        <div>© 2023 Made with love</div>
-                        <div>by wildgoose</div>
+                        <div>{window.wildgoose.icp}</div>
+                        <div>{window.wildgoose.copyright}</div>
                       </div>
                     )
                   }}
