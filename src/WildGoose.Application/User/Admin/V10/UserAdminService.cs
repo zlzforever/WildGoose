@@ -214,6 +214,11 @@ public class UserAdminService(
 
     public async Task DeleteAsync(DeleteUserCommand command)
     {
+        if (command.Id == Session.UserId)
+        {
+            throw new WildGooseFriendlyException(1, "禁止删除自己");
+        }
+
         var user = await DbContext.Set<WildGoose.Domain.Entity.User>()
             .FirstOrDefaultAsync(x => x.Id == command.Id);
         if (user == null)
@@ -680,23 +685,60 @@ public class UserAdminService(
             .Select(x => x.Name).ToListAsync();
     }
 
-    private async Task VerifyOrganizationPermissionAsync(string[] organizationIds)
+    /// <summary>
+    /// 是否拥有管理某个机构的权限
+    /// </summary>
+    /// <param name="organizationId"></param>
+    /// <returns></returns>
+    public async Task VerifyOrganizationPermissionAsync(string[] organizationId)
     {
-        var organizationAdministrators = await DbContext.Set<OrganizationAdministrator>()
-            .Where(x => x.UserId == Session.UserId)
-            .Select(x => x.OrganizationId).ToListAsync();
-
-        if (!Session.IsSupperAdmin())
+        if (Session.IsSupperAdmin())
         {
-            foreach (var organization in organizationIds)
+            return;
+        }
+
+        var adminOrganizationPathList = DbContext.Set<OrganizationDetail>()
+            .Where(x => DbContext.Set<OrganizationAdministrator>()
+                .Where(y => y.UserId == Session.UserId)
+                .Select(z => z.OrganizationId).Contains(x.Id)).Select(x => x.Path);
+
+        var organizations = await DbContext.Set<OrganizationDetail>()
+            .AsNoTracking().Where(x => organizationId.Contains(x.Id)).Select(x => new
             {
-                if (!organizationAdministrators.Contains(organization))
-                {
-                    throw new WildGooseFriendlyException(1, "没有管理机构的权限");
-                }
+                x.Id, x.Path
+            }).ToListAsync();
+
+        foreach (var organization in organizations)
+        {
+            if (adminOrganizationPathList.Any(y => organization.Path.StartsWith(y)))
+            {
+                // 有权限则继续判断下一个机构
+            }
+            else
+            {
+                throw new WildGooseFriendlyException(1, "没有管理机构的权限");
             }
         }
     }
+
+    // private async Task VerifyOrganizationPermissionAsync(string[] organizationIds)
+    // {
+    //     // 当前用户可管理的机构
+    //     var organizationAdministrators = await DbContext.Set<OrganizationAdministrator>()
+    //         .Where(x => x.UserId == Session.UserId)
+    //         .Select(x => x.OrganizationId).ToListAsync();
+    //
+    //     if (!Session.IsSupperAdmin())
+    //     {
+    //         foreach (var organization in organizationIds)
+    //         {
+    //             if (!organizationAdministrators.Contains(organization))
+    //             {
+    //                 throw new WildGooseFriendlyException(1, "没有管理机构的权限");
+    //             }
+    //         }
+    //     }
+    // }
 
     private async Task<List<string>> SetRolesAsync(string userId,
         List<string> roleIds)
