@@ -48,7 +48,7 @@ const { Search } = Input
 
 type MenuItem = Required<MenuProps>["items"][number]
 
-const UserPage = () => {
+const UserPage = (props?: { breadcrumb?: boolean }) => {
   const [keyword, setKeyword] = useState("")
   const [status, setStatus] = useState("all")
   const [dataSource, setDataSource] = useState<UserDto[]>([])
@@ -562,7 +562,7 @@ const UserPage = () => {
         }}
         title={false}
         breadcrumbRender={() => {
-          return (
+          return (!props || props.breadcrumb !== false) && (
             <Breadcrumb
               style={{
                 marginTop: 10,

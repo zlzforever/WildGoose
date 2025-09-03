@@ -1,7 +1,7 @@
 import { ProConfigProvider } from "@ant-design/pro-provider"
 import "./App.css"
 import { ConfigProvider, Dropdown, Modal } from "antd"
-import { Route, Routes, useLocation, useNavigate } from "react-router-dom"
+import { Route, Routes, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import ProLayout, { ProSettings } from "@ant-design/pro-layout"
 import { LogoutOutlined } from "@ant-design/icons"
 import { useEffect, useState } from "react"
@@ -23,6 +23,8 @@ function App() {
     splitMenus: false,
   })
   const [pathname, setPathname] = useState(location.pathname)
+  const [searchParams] = useSearchParams()
+  const useLayout = searchParams.get("layout") !== "false"
 
   useEffect(() => {
     const fun = async () => {
@@ -117,6 +119,102 @@ function App() {
     routes: filterRoutesByPermission(routes.routes)
   };
 
+  const renderLayout = (childNode: React.ReactElement | null) => (
+    <ProLayout
+      avatarProps={{
+        src: AccoutImg,
+        size: "small",
+        title: user && user.profile && user.profile.name,
+        render: (_, dom) => {
+          return (
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: "logout",
+                    icon: <LogoutOutlined />,
+                    label: "退出登录",
+                    onClick: () => {
+                      onLogout()
+                    }
+                  }
+                ]
+              }}
+            >
+              {dom}
+            </Dropdown>
+          )
+        }
+      }}
+      // actionsRender={(props) => {
+      //   if (props.isMobile) return []
+      //   if (typeof window === 'undefined') return []
+      //   return [
+      //     props.layout !== 'side' && document.body.clientWidth > 1400 ? <SearchInput /> : undefined,
+
+      //     <SoundOutlined key="InfoCircleFilled" />,
+      //     <QuestionCircleFilled key="QuestionCircleFilled" />,
+      //     // <GithubFilled key="GithubFilled" />,
+      //   ]
+      // }}
+      headerTitleRender={(logo, title) => {
+        const defaultDom = (
+          <a>
+            {logo}
+            {title}
+          </a>
+        )
+        return defaultDom
+      }}
+      menuFooterRender={(props) => {
+        if (props?.collapsed) return undefined
+        return (
+          <div
+            style={{
+              textAlign: "center",
+              paddingBlockStart: 12,
+            }}
+          >
+            <div>{window.wildgoose.icp}</div>
+            <div>{window.wildgoose.copyright}</div>
+          </div>
+        )
+      }}
+      onMenuHeaderClick={() => {
+        // console.log(e)
+      }}
+      menuItemRender={(item, dom) => (
+        <div
+          onClick={() => {
+            const path = item.path || "/webcome"
+            navigate(path)
+            setPathname(path)
+          }}
+        >
+          {dom}
+        </div>
+      )}
+      route={filteredRoutes}
+      {...defaultLayoutSettings}
+      location={{
+        pathname,
+      }}
+      {...settings}
+    >
+      {childNode}
+    </ProLayout>
+  )
+
+  const renderMain = () => {
+    const routeMain = (
+      <Routes>
+        {canAccessRolePage() && (<Route path="/role" element={<RolePage breadcrumb={useLayout} />} />)}
+        {canAccessUserPage() && (<Route path="/user" element={<UserPage breadcrumb={useLayout} />} />)}
+      </Routes>
+    )
+    return useLayout ? renderLayout(routeMain) : routeMain
+  }
+
   return (
     <div
       id="socodb-layout"
@@ -132,101 +230,7 @@ function App() {
           }}
         >
           <Routes>
-            <Route
-              path="*"
-              element={
-                <ProLayout
-                  avatarProps={{
-                    src: AccoutImg,
-                    size: "small",
-                    title: user && user.profile && user.profile.name,
-                    render: (_, dom) => {
-                      return (
-                        <Dropdown
-                          menu={{
-                            items: [
-                              {
-                                key: "logout",
-                                icon: <LogoutOutlined />,
-                                label: "退出登录",
-                                onClick: () => {
-                                  onLogout()
-                                },
-                              },
-                            ],
-                          }}
-                        >
-                          {dom}
-                        </Dropdown>
-                      )
-                    },
-                  }}
-                  // actionsRender={(props) => {
-                  //   if (props.isMobile) return []
-                  //   if (typeof window === 'undefined') return []
-                  //   return [
-                  //     props.layout !== 'side' && document.body.clientWidth > 1400 ? <SearchInput /> : undefined,
-
-                  //     <SoundOutlined key="InfoCircleFilled" />,
-                  //     <QuestionCircleFilled key="QuestionCircleFilled" />,
-                  //     // <GithubFilled key="GithubFilled" />,
-                  //   ]
-                  // }}
-                  headerTitleRender={(logo, title) => {
-                    const defaultDom = (
-                      <a>
-                        {logo}
-                        {title}
-                      </a>
-                    )
-                    return defaultDom
-                  }}
-                  menuFooterRender={(props) => {
-                    if (props?.collapsed) return undefined
-                    return (
-                      <div
-                        style={{
-                          textAlign: "center",
-                          paddingBlockStart: 12,
-                        }}
-                      >
-                        <div>{window.wildgoose.icp}</div>
-                        <div>{window.wildgoose.copyright}</div>
-                      </div>
-                    )
-                  }}
-                  onMenuHeaderClick={() => {
-                    // console.log(e)
-                  }}
-                  menuItemRender={(item, dom) => (
-                    <div
-                      onClick={() => {
-                        const path = item.path || "/webcome"
-                        navigate(path)
-                        setPathname(path)
-                      }}
-                    >
-                      {dom}
-                    </div>
-                  )}
-                  route={filteredRoutes}
-                  {...defaultLayoutSettings}
-                  location={{
-                    pathname,
-                  }}
-                  {...settings}
-                >
-                  <Routes>
-                    {canAccessRolePage() && (
-                      <Route path="/role" element={<RolePage />} />
-                    )}
-                    {canAccessUserPage() && (
-                      <Route path="/user" element={<UserPage />} />
-                    )}
-                  </Routes>
-                </ProLayout>
-              }
-            />
+            <Route path="*" element={renderMain()} />
           </Routes>
         </ConfigProvider>
       </ProConfigProvider>
