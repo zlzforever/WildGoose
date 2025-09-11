@@ -51,6 +51,7 @@ type MenuItem = Required<MenuProps>["items"][number]
 
 const UserPage = (props?: { breadcrumb?: boolean }) => {
   const [keyword, setKeyword] = useState("")
+  const [organizationKeyword, setOrganizationKeyword] = useState("")
   const [status, setStatus] = useState("all")
   const [isAdmin, setIsAdmin] = useState<boolean>(false)
   const [dataSource, setDataSource] = useState<UserDto[]>([])
@@ -669,6 +670,9 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
               <Flex>
                 <Search
                   placeholder="请输入机构名称"
+                  onChange={(e) => {
+                    setOrganizationKeyword(e.target.value)
+                  }}
                   allowClear
                   style={{ width: 200, marginBottom: 20, marginRight: 10 }}
                 />

@@ -389,6 +389,57 @@ public class OrganizationAdminService(
         return dto;
     }
 
+    public async Task<List<OrganizationPathDto>> GetPathAsync(GetPathQuery query)
+    {
+        var queryable = DbContext
+            .Set<OrganizationDetail>()
+            .AsNoTracking()
+            .Where(x => x.Name.Contains(query.Keyword, StringComparison.OrdinalIgnoreCase));
+
+        if (!Session.IsSupperAdmin())
+        {
+            var adminOrganizationList = DbContext.Set<OrganizationAdministrator>()
+            .Where(x => x.UserId == Session.UserId)
+            .Join(DbContext.Set<OrganizationDetail>(), admin => admin.OrganizationId, organization => organization.Id, (admin, organization) => organization);
+
+            var adminOrganizationPathList = adminOrganizationList.Select(x => x.Path).ToList();
+            // 追加 scope 过滤
+            queryable = queryable.Where(x => adminOrganizationPathList.Any(y => x.Path.StartsWith(y)));
+        }
+
+        var pathList = await queryable.Take(8).Select(x => x.Path).ToListAsync();
+
+        // 根据查询结果的机构的 Path 获取所有父机构信息
+        var items = await DbContext
+            .Set<OrganizationDetail>()
+            .AsNoTracking()
+            .Where(x => pathList.Any(y => y.StartsWith(x.Path)))
+            .Select(x => new
+            {
+                x.Id,
+                x.Path,
+                x.ParentId,
+                x.Name
+            })
+            .ToListAsync();
+
+        var result = new List<OrganizationPathDto>();
+        foreach (var item in items)
+        {
+            var pathItems = items.Where(t => item.Path.StartsWith(t.Path)).OrderBy(t => t.Path).AsList();
+            result.Add(new OrganizationPathDto
+            {
+                Id = item.Id,
+                Name = item.Name,
+                FullName = string.Join(" > ", pathItems.Select(t => t.Name)),
+                ParentId = item.ParentId,
+                Path = pathItems.Select(t => t.Id).AsList()
+            });
+        }
+
+        return result;
+    }
+
     /// <summary>
     /// 
     /// </summary>
