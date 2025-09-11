@@ -43,6 +43,7 @@ import { ObjectId } from "bson"
 import { EventDataNode } from "antd/es/tree"
 import { ColumnType } from "antd/es/table"
 import IconFont from "../iconfont/IconFont"
+import { getUser } from "../lib/auth"
 
 const { Search } = Input
 
@@ -51,6 +52,7 @@ type MenuItem = Required<MenuProps>["items"][number]
 const UserPage = (props?: { breadcrumb?: boolean }) => {
   const [keyword, setKeyword] = useState("")
   const [status, setStatus] = useState("all")
+  const [isAdmin, setIsAdmin] = useState<boolean>(false)
   const [dataSource, setDataSource] = useState<UserDto[]>([])
   const [pagination, setPagination] = useState({
     current: 1,
@@ -218,6 +220,20 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
     })
   }
 
+  /**
+   * 设置用户是否 admin 状态
+   * todo: 未来可以考虑用全局 UserContext
+   */
+  useEffect(() => {
+    const parseIsAdmin = async () => {
+      const user = await getUser()
+      if (user && user.profile && user.profile.role) {
+        setIsAdmin(user.profile.role.includes("admin"))
+      }
+    }
+    parseIsAdmin()
+  }, [])
+
   useEffect(() => {
     clean()
     const init = async () => {
@@ -244,18 +260,22 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
           dict[x.id] = node
           return node
         })
-        data.push(defaultNode)
+
+        // 拥有 admin 角色才显示默认机构
+        if (isAdmin) {
+          data.push(defaultNode)
+        }
         setOrganizationTreeData(data)
         setOrganizationTreeSelectedKeys([organizations[0].id])
         loadUsers(organizations[0].id, "", "all", window.wildgoose.pageSize, 1)
       } else {
-        setOrganizationTreeData([defaultNode])
+        setOrganizationTreeData(isAdmin ? [defaultNode] : [])
         setOrganizationTreeSelectedKeys([""])
       }
       setOrganizationTreeDict(dict)
     }
     init()
-  }, [])
+  }, [isAdmin])
 
   const loadUsers = async (
     orgId: string,
@@ -516,7 +536,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
     return (
       <>
         {node.title}
-        <Dropdown
+        {isAdmin && (<Dropdown
           trigger={["click"]}
           key={node.key + "_dropdown"}
           menu={{
@@ -534,7 +554,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
               ev.stopPropagation()
             }}
           />
-        </Dropdown>
+        </Dropdown>)}
       </>
     )
   }
@@ -542,15 +562,25 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
   const onUserDelete = async () => {
     if (userSelectedKeys && userSelectedKeys.length > 0) {
       const key = userSelectedKeys[0]
-      await deleteUser(key)
-      message.success("操作成功")
-      await loadUsers(
-        organizationTreeSelectedKeys[0],
-        keyword,
-        status,
-        pagination.pageSize,
-        pagination.current
-      )
+      try {
+        await deleteUser(key)
+        message.success("操作成功")
+      } catch (err) {
+        if (typeof err === "string") {
+          // axios request 已提示错误
+          console.error(err)
+        } else if (err instanceof Error){
+          message.error(err.message ?? "未知错误")
+        }
+      } finally {
+        loadUsers(
+          organizationTreeSelectedKeys[0],
+          keyword,
+          status,
+          pagination.pageSize,
+          pagination.current
+        )
+      }
     }
   }
 
@@ -642,7 +672,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                   allowClear
                   style={{ width: 200, marginBottom: 20, marginRight: 10 }}
                 />
-                <Tooltip title="添加机构">
+                {isAdmin && (<Tooltip title="添加机构">
                   <Button
                     shape="circle"
                     onClick={() => {
@@ -655,7 +685,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                   >
                     <AppstoreAddOutlined />
                   </Button>
-                </Tooltip>
+                </Tooltip>)}
               </Flex>
               <Tree
                 className="organizationTree"
@@ -695,7 +725,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                     onChange={(e) => {
                       setKeyword(e.target.value)
                     }}
-                    placeholder="请输入用户名、手机号"
+                    placeholder="查询的账号、手机号"
                     allowClear
                     style={{ width: 220 }}
                     onSearch={() => {
@@ -781,8 +811,8 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                       >
                         修改密码
                       </Button>
-                      <Button type="primary">导出</Button>
-                      <Button type="primary">导入</Button>
+                      {/* <Button type="primary">导出</Button>
+                      <Button type="primary">导入</Button> */}
                     </Space>
                   </Flex>
                 </Space>
