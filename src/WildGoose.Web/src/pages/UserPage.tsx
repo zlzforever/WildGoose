@@ -343,12 +343,6 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
     setOrganizationTreeSelectedKeys([])
   }
 
-  useEffect(() => {
-    return () => {
-      // 防抖清理逻辑
-    }
-  }, [debouncedSearch])
-
   const loadUsers = async (
     orgId: string,
     q: string,
