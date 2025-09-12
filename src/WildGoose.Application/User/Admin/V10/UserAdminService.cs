@@ -74,12 +74,12 @@ public class UserAdminService(
 
         if ("disabled".Equals(query.Status, StringComparison.OrdinalIgnoreCase))
         {
-            queryable = queryable.Where(x => x.LockoutEnabled);
+            queryable = queryable.Where(x => x.LockoutEnabled && x.LockoutEnd > DateTimeOffset.Now);
         }
 
         if ("enabled".Equals(query.Status, StringComparison.OrdinalIgnoreCase))
         {
-            queryable = queryable.Where(x => !x.LockoutEnabled);
+            queryable = queryable.Where(x => !x.LockoutEnabled || x.LockoutEnd < DateTimeOffset.Now);
         }
 
         var result = await queryable.OrderByDescending(x => x.CreationTime).Select(x => new
@@ -227,6 +227,13 @@ public class UserAdminService(
         }
 
         await CheckUserPermissionAsync(user.Id);
+
+        // commit by henry at 2025/09/11
+        // SetLockoutEndDate 前应该检查用户是否支持设置锁定时长
+        if (!user.LockoutEnabled)
+        {
+            await userManager.SetLockoutEnabledAsync(user, true);
+        }
         // commit by henry at 2025/09/11 从先删除再锁定(会报错-该用户不允许锁定) 改成 先锁定再删除
          (await userManager.SetLockoutEndDateAsync(
             user,
