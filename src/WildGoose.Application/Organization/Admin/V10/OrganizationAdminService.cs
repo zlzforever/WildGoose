@@ -389,12 +389,12 @@ public class OrganizationAdminService(
         return dto;
     }
 
-    public async Task<List<OrganizationPathDto>> GetPathAsync(GetPathQuery query)
+    public async Task<List<OrganizationPathDto>> SearchAsync(GetPathQuery query)
     {
         var queryable = DbContext
             .Set<OrganizationDetail>()
             .AsNoTracking()
-            .Where(x => x.Name.Contains(query.Keyword, StringComparison.OrdinalIgnoreCase));
+            .Where(x => x.Name.Contains(query.Keyword));
 
         if (!Session.IsSupperAdmin())
         {
@@ -424,17 +424,23 @@ public class OrganizationAdminService(
             .ToListAsync();
 
         var result = new List<OrganizationPathDto>();
-        foreach (var item in items)
+
+        foreach (var path in pathList)
         {
-            var pathItems = items.Where(t => item.Path.StartsWith(t.Path)).OrderBy(t => t.Path).AsList();
-            result.Add(new OrganizationPathDto
+            var item = items.Where(t => t.Path == path).FirstOrDefault();
+
+            if (item != null)
             {
-                Id = item.Id,
-                Name = item.Name,
-                FullName = string.Join(" > ", pathItems.Select(t => t.Name)),
-                ParentId = item.ParentId,
-                Path = pathItems.Select(t => t.Id).AsList()
-            });
+                var pathItems = items.Where(t => item.Path.StartsWith(t.Path)).OrderBy(t => t.Path).AsList();
+                result.Add(new OrganizationPathDto
+                {
+                    Id = item.Id,
+                    Name = item.Name,
+                    FullName = string.Join(">", pathItems.Select(t => t.Name)),
+                    ParentId = item.ParentId,
+                    Path = pathItems.Select(t => t.Id).AsList()
+                });
+            }
         }
 
         return result;

@@ -6,17 +6,20 @@ import {
   Dropdown,
   Flex,
   Input,
+  Menu,
   MenuProps,
   Modal,
   Popconfirm,
   Select,
   Space,
+  Spin,
   Switch,
   Table,
   Tag,
   Tooltip,
   Tree,
   message,
+  Typography,
 } from "antd"
 import {
   getSubOrganizationList,
@@ -27,8 +30,9 @@ import {
   disableUser,
   addOrganizationAdministrator,
   deleteOrganizationAdministrator,
+  searchOrganization,
 } from "../services/wildgoose/api"
-import { Key, useEffect, useState } from "react"
+import { Key, useCallback, useEffect, useState } from "react"
 import OrganizationModal from "../components/OrganizationModal"
 import {
   AppstoreAddOutlined,
@@ -44,14 +48,20 @@ import { EventDataNode } from "antd/es/tree"
 import { ColumnType } from "antd/es/table"
 import IconFont from "../iconfont/IconFont"
 import { getUser } from "../lib/auth"
+import { debounce } from "lodash-es"
+import { ApartmentOutlined } from "@ant-design/icons"
 
 const { Search } = Input
+const { Text } = Typography
 
 type MenuItem = Required<MenuProps>["items"][number]
 
 const UserPage = (props?: { breadcrumb?: boolean }) => {
-  const [keyword, setKeyword] = useState("")
-  const [organizationKeyword, setOrganizationKeyword] = useState("")
+  const [keyword, setKeyword] = useState<string>("")
+  const [searchKeyword, setSearchKeyword] = useState<string>("")
+  const [searchResults, setSearchResults] = useState<MenuItem[]>([])
+  const [loading, setLoading] = useState(false)
+
   const [status, setStatus] = useState("all")
   const [isAdmin, setIsAdmin] = useState<boolean>(false)
   const [dataSource, setDataSource] = useState<UserDto[]>([])
@@ -278,6 +288,67 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
     init()
   }, [isAdmin])
 
+  const debouncedSearch = useCallback(
+    (keyword: string) => {
+      const searchFn = debounce(async (kw) => {
+        if (!kw.trim()) {
+          setSearchResults([])
+          return
+        }
+
+        setLoading(true)
+        try {
+          const res = await searchOrganization(keyword)
+          const results = (res.data as OrganizationSearchResultDto[]) ?? []
+          setSearchResults(results.map((t) => ({ 
+            key: t.id,
+            label: t.name,
+            title: t.fullName,
+            icon: <ApartmentOutlined /> 
+          })))
+        } catch (error) {
+          console.error("搜索出错:", error)
+        } finally {
+          setLoading(false)
+        }
+      }, 500)
+
+      searchFn(keyword)
+      return searchFn.cancel
+    },
+    [setSearchResults, setLoading]
+  )
+
+  const handleInputChange = (e: any) => {
+    setSearchKeyword(e.target.value)
+    debouncedSearch(e.target.value)
+  }
+
+  const handleSearch = (value: string, _: any, info?: { source?: "clear" | "input" }) => {
+    if (info?.source === "clear") {
+      setSearchKeyword("")
+      setSearchResults([])
+
+      // 重置原来的选中机构，以及选中的用户等
+      clearUserDataSource()
+    } else {
+      debouncedSearch(value)
+    }
+  }
+
+  const clearUserDataSource = () => {
+    setDataSource([])
+    setUserSelectedKeys([])
+    setUserSelected(undefined)
+    setOrganizationTreeSelectedKeys([])
+  }
+
+  useEffect(() => {
+    return () => {
+      // 防抖清理逻辑
+    }
+  }, [debouncedSearch])
+
   const loadUsers = async (
     orgId: string,
     q: string,
@@ -352,11 +423,6 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
       const key = keys[0] as string
       setOrganizationTreeSelectedKeys(keys as string[])
       loadUsers(key, "", "all", window.wildgoose.pageSize, 1)
-    } else {
-      setDataSource([])
-      setUserSelectedKeys([])
-      setUserSelected(undefined)
-      setOrganizationTreeSelectedKeys([])
     }
   }
 
@@ -585,6 +651,51 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
     }
   }
 
+  const onOrganizationClick: MenuProps["onClick"] = (e) => {
+    setKeyword("")
+    setStatus("all")
+    loadUsers(e.key, "", "all", window.wildgoose.pageSize, 1)
+  }
+
+  const renderTree = () => (
+    <Tree
+      className="organizationTree"
+      showLine
+      icon={<IconFont type="icon-zuzhijigou" />}
+      showIcon={true}
+      switcherIcon={<CaretDownOutlined />}
+      treeData={organizationTreeData}
+      loadData={onOrganizationTreeLoadData}
+      expandedKeys={organizationTreeExpandedKeys}
+      titleRender={organizationTreeTitleRender}
+      selectedKeys={organizationTreeSelectedKeys}
+      onSelect={onOrganizationSelect}
+      onExpand={(keys: Key[]) => {
+        setOrganizationTreeExpandedKeys(keys as string[])
+      }}
+    ></Tree>
+  )
+
+  const renderSearchResult = () =>
+    loading ? (
+      <div style={{ textAlign: "center", padding: "20px 0" }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16 }}>搜索中...</div>
+      </div>
+    ) : searchResults.length > 0 ? (
+      <Menu
+        inlineIndent={4}
+        onClick={onOrganizationClick}
+        style={{ width: 210 }}
+        mode="inline"
+        items={searchResults}
+      />
+    ) : (
+      <div style={{ textAlign: "center", padding: "20px 0" }}>
+        <Text type="secondary">没有找到匹配的结果</Text>
+      </div>
+    )
+
   return (
     <>
       <PageContainer
@@ -669,10 +780,10 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
             <Flex vertical>
               <Flex>
                 <Search
-                  placeholder="请输入机构名称"
-                  onChange={(e) => {
-                    setOrganizationKeyword(e.target.value)
-                  }}
+                  placeholder="输入关键词搜索..."
+                  value={searchKeyword}
+                  onChange={handleInputChange}
+                  onSearch={handleSearch}
                   allowClear
                   style={{ width: 200, marginBottom: 20, marginRight: 10 }}
                 />
@@ -691,22 +802,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                   </Button>
                 </Tooltip>)}
               </Flex>
-              <Tree
-                className="organizationTree"
-                showLine
-                icon={<IconFont type="icon-zuzhijigou" />}
-                showIcon={true}
-                switcherIcon={<CaretDownOutlined />}
-                treeData={organizationTreeData}
-                loadData={onOrganizationTreeLoadData}
-                expandedKeys={organizationTreeExpandedKeys}
-                titleRender={organizationTreeTitleRender}
-                selectedKeys={organizationTreeSelectedKeys}
-                onSelect={onOrganizationSelect}
-                onExpand={(keys: Key[]) => {
-                  setOrganizationTreeExpandedKeys(keys as string[])
-                }}
-              ></Tree>
+              {searchKeyword.trim() ? renderSearchResult() : renderTree()}
             </Flex>
           </Card>
           <Card style={{ width: "100%", overflow: "hidden" }}>

@@ -77,6 +77,15 @@ declare global {
     isAdministrator: boolean
   }
 
+  type OrganizationSearchResultDto = {
+    id: string
+    name: string
+    parentId: string
+    hasChild: boolean
+    path: string[]
+    fullName: string
+  }
+
   interface RoleBasicDto {
     id: string
     name: string

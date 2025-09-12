@@ -29,9 +29,9 @@ public class OrganizationController(OrganizationAdminService organizationAdminSe
     /// <param name="query"></param>
     /// <returns></returns>
     [HttpGet("search")]
-    public Task<List<OrganizationPathDto>> GetPathAsync([FromQuery] GetPathQuery query)
+    public Task<List<OrganizationPathDto>> SearchAsync([FromQuery] GetPathQuery query)
     {
-        return organizationAdminService.GetPathAsync(query);
+        return organizationAdminService.SearchAsync(query);
     }
 
     /// <summary>
