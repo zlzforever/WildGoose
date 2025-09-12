@@ -74,12 +74,12 @@ public class UserAdminService(
 
         if ("disabled".Equals(query.Status, StringComparison.OrdinalIgnoreCase))
         {
-            queryable = queryable.Where(x => x.LockoutEnabled && x.LockoutEnd > DateTimeOffset.Now);
+            queryable = queryable.Where(x => x.LockoutEnd > DateTimeOffset.Now);
         }
 
         if ("enabled".Equals(query.Status, StringComparison.OrdinalIgnoreCase))
         {
-            queryable = queryable.Where(x => !x.LockoutEnabled || x.LockoutEnd < DateTimeOffset.Now);
+            queryable = queryable.Where(x => x.LockoutEnd == null || x.LockoutEnd < DateTimeOffset.Now);
         }
 
         var result = await queryable.OrderByDescending(x => x.CreationTime).Select(x => new
