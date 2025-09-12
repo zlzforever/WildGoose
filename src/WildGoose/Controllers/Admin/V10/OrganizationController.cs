@@ -24,6 +24,17 @@ public class OrganizationController(OrganizationAdminService organizationAdminSe
     }
 
     /// <summary>
+    /// 根据关键词查询组织机构信息
+    /// </summary>
+    /// <param name="query"></param>
+    /// <returns></returns>
+    [HttpGet("search")]
+    public Task<List<OrganizationPathDto>> SearchAsync([FromQuery] GetPathQuery query)
+    {
+        return organizationAdminService.SearchAsync(query);
+    }
+
+    /// <summary>
     /// 添加机构
     /// </summary>
     /// <returns></returns>

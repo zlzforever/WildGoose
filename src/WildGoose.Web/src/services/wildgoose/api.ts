@@ -120,6 +120,17 @@ export async function getSubOrganizationList(parentId?: string) {
   return result.data
 }
 
+export async function searchOrganization(keyword: string) {
+  const result = await request.request<ApiResult>({
+    url: `${window.wildgoose.backend}/admin/v1.0/organizations/search`,
+    method: "GET",
+    params: {
+      keyword
+    },
+  })
+  return result.data
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function addOrganization(values: any) {
   return (
