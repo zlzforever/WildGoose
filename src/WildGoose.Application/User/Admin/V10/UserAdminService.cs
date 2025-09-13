@@ -90,7 +90,8 @@ public class UserAdminService(
             x.Name,
             x.LockoutEnd,
             IsAdministrator = DbContext.Set<OrganizationAdministrator>()
-                .AsNoTracking().Any(y => y.UserId == x.Id && y.OrganizationId == query.OrganizationId),
+                .AsNoTracking().Any(y => y.UserId == x.Id 
+                                         && y.OrganizationId == query.OrganizationId),
             x.CreationTime
         }).PagedQueryAsync(query.Page, query.Limit);
 
@@ -149,7 +150,7 @@ public class UserAdminService(
         // passwordValidatorResult.CheckErrors();
 
         // 查询当前用户管理的所有机构 ID
-        await VerifyOrganizationPermissionAsync(command.Organizations);
+        await HasOrganizationPermissionAsync(command.Organizations);
 
         if (command.Roles.Contains(Defaults.OrganizationAdminRoleId))
         {
@@ -608,7 +609,7 @@ public class UserAdminService(
 
         var addIdList = organizations.Except(originOrganizationIds).ToArray();
         // 只查新增机构， 原有机构有可能是别的有权限的人设置的， 不需要校验
-        await VerifyOrganizationPermissionAsync(addIdList);
+        await HasOrganizationPermissionAsync(addIdList);
 
         // 如果删除了别人添加的机构， 也是允许的。若要加回来， 只能让有权限的人操作。
         var removeIdList = originOrganizationIds.Except(organizations).ToList();
@@ -683,42 +684,6 @@ public class UserAdminService(
         return await DbContext.Set<WildGoose.Domain.Entity.Organization>()
             .Where(x => organizationIds.Contains(x.Id))
             .Select(x => x.Name).ToListAsync();
-    }
-
-    /// <summary>
-    /// 是否拥有管理某个机构的权限
-    /// </summary>
-    /// <param name="organizationId"></param>
-    /// <returns></returns>
-    public async Task VerifyOrganizationPermissionAsync(string[] organizationId)
-    {
-        if (Session.IsSupperAdmin())
-        {
-            return;
-        }
-
-        var adminOrganizationPathList = DbContext.Set<OrganizationDetail>()
-            .Where(x => DbContext.Set<OrganizationAdministrator>()
-                .Where(y => y.UserId == Session.UserId)
-                .Select(z => z.OrganizationId).Contains(x.Id)).Select(x => x.Path);
-
-        var organizations = await DbContext.Set<OrganizationDetail>()
-            .AsNoTracking().Where(x => organizationId.Contains(x.Id)).Select(x => new
-            {
-                x.Id, x.Path
-            }).ToListAsync();
-
-        foreach (var organization in organizations)
-        {
-            if (adminOrganizationPathList.Any(y => organization.Path.StartsWith(y)))
-            {
-                // 有权限则继续判断下一个机构
-            }
-            else
-            {
-                throw new WildGooseFriendlyException(1, "没有管理机构的权限");
-            }
-        }
     }
 
     // private async Task VerifyOrganizationPermissionAsync(string[] organizationIds)

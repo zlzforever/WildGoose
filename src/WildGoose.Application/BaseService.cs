@@ -119,7 +119,32 @@ public abstract class BaseService(
     /// </summary>
     /// <param name="organizationId"></param>
     /// <returns></returns>
-    public async ValueTask<bool> HasOrganizationPermissionAsync(string organizationId)
+    public Task<bool> HasOrganizationPermissionAsync(string organizationId)
+    {
+        // if (Session.IsSupperAdmin())
+        // {
+        //     return true;
+        // }
+        //
+        // var adminOrganizationPathList = DbContext.Set<OrganizationDetail>()
+        //     .Where(x => DbContext.Set<OrganizationAdministrator>()
+        //         .Where(y => y.UserId == Session.UserId)
+        //         .Select(z => z.OrganizationId).Contains(x.Id)).Select(x => x.Path);
+        //
+        // return await DbContext.Set<OrganizationDetail>()
+        //     .AsNoTracking().AnyAsync(x =>
+        //         x.Id == organizationId && adminOrganizationPathList.Any(y => x.Path.StartsWith(y)));
+
+
+        return HasOrganizationPermissionAsync([organizationId]);
+    }
+
+    /// <summary>
+    /// 是否拥有管理某个机构的权限
+    /// </summary>
+    /// <param name="organizationId"></param>
+    /// <returns></returns>
+    public async Task<bool> HasOrganizationPermissionAsync(string[] organizationId)
     {
         if (Session.IsSupperAdmin())
         {
@@ -131,9 +156,27 @@ public abstract class BaseService(
                 .Where(y => y.UserId == Session.UserId)
                 .Select(z => z.OrganizationId).Contains(x.Id)).Select(x => x.Path);
 
-        return await DbContext.Set<OrganizationDetail>()
-            .AsNoTracking().AnyAsync(x =>
-                x.Id == organizationId && adminOrganizationPathList.Any(y => x.Path.StartsWith(y)));
+        var organizations = await DbContext.Set<OrganizationDetail>()
+            .AsNoTracking().Where(x => organizationId.Contains(x.Id)).Select(x => new
+            {
+                x.Id, x.Path
+            }).ToListAsync();
+
+        foreach (var organization in organizations)
+        {
+            // admin: 3301
+            // 
+            if (adminOrganizationPathList.Any(y => organization.Path.StartsWith(y)))
+            {
+                // 有权限则继续判断下一个机构
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
