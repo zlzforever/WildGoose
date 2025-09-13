@@ -72,14 +72,15 @@ public class UserAdminService(
                 x.UserName.Contains(query.Q) || x.PhoneNumber.Contains(query.Q) || x.Email.Contains(query.Q));
         }
 
+        var now = DateTimeOffset.Now.ToLocalTime();
         if ("disabled".Equals(query.Status, StringComparison.OrdinalIgnoreCase))
         {
-            queryable = queryable.Where(x => x.LockoutEnd > DateTimeOffset.Now);
+            queryable = queryable.Where(x => x.LockoutEnd > now);
         }
 
         if ("enabled".Equals(query.Status, StringComparison.OrdinalIgnoreCase))
         {
-            queryable = queryable.Where(x => x.LockoutEnd == null || x.LockoutEnd < DateTimeOffset.Now);
+            queryable = queryable.Where(x => x.LockoutEnd == null || x.LockoutEnd < now);
         }
 
         var result = await queryable.OrderByDescending(x => x.CreationTime).Select(x => new
@@ -90,7 +91,7 @@ public class UserAdminService(
             x.Name,
             x.LockoutEnd,
             IsAdministrator = DbContext.Set<OrganizationAdministrator>()
-                .AsNoTracking().Any(y => y.UserId == x.Id 
+                .AsNoTracking().Any(y => y.UserId == x.Id
                                          && y.OrganizationId == query.OrganizationId),
             x.CreationTime
         }).PagedQueryAsync(query.Page, query.Limit);
@@ -235,8 +236,9 @@ public class UserAdminService(
         {
             await userManager.SetLockoutEnabledAsync(user, true);
         }
+
         // commit by henry at 2025/09/11 从先删除再锁定(会报错-该用户不允许锁定) 改成 先锁定再删除
-         (await userManager.SetLockoutEndDateAsync(
+        (await userManager.SetLockoutEndDateAsync(
             user,
             DateTimeOffset.MaxValue)).CheckErrors();
         DbContext.Remove(user);
