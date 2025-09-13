@@ -32,7 +32,7 @@ const baseStyle: React.CSSProperties = {
   textAlign: "left",
 }
 
-const RolePage: React.FC = () => {
+const RolePage = (props?: { breadcrumb?: boolean }) => {
   const { token } = theme.useToken()
   const [keyword] = useState<string>("")
   const [dataSource, setDataSource] = useState<RoleDto[]>([])
@@ -318,7 +318,7 @@ const RolePage: React.FC = () => {
         }}
         title={false}
         breadcrumbRender={() => {
-          return (
+          return (!props || props.breadcrumb !== false) && (
             <Breadcrumb
               style={{
                 marginTop: 10,

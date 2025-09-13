@@ -99,24 +99,20 @@ instance.interceptors.response.use(
       handle401()
     }
 
+    let errorInfo = "未知错误"
     const apiResult = error.response?.data as ApiResult
-    if (!apiResult) {
-      message.error("未知错误")
-    } else {
-      if (apiResult.errors || message.error.length > 0) {
-        const msg = apiResult.errors.map((x) => {
-          return "\n".concat(...x.messages)
-        })
-        message.error(msg)
-      } else {
-        if (apiResult.msg) {
-          message.error(apiResult.msg)
-        } else {
-          message.error("未知错误")
-        }
+    if (apiResult) {
+      if (apiResult.errors && apiResult.errors.length > 0) {
+        errorInfo = apiResult.errors.map(x => "\n".concat(...x.messages)).join("")
+      } else if (apiResult.msg) {
+        errorInfo = apiResult.msg
       }
     }
-    return error
+    message.error(errorInfo)
+    // commit by henry at 2025/09/11
+    // 请求发生错误直接抛出异常，否则不会中断后续操作，包括提示操作成功的信息，应该添加异常捕获并作后续处理
+    // throw string 用于区分异常类型
+    throw errorInfo
   }
 )
 

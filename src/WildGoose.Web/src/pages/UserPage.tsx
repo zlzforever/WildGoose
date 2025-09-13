@@ -6,17 +6,20 @@ import {
   Dropdown,
   Flex,
   Input,
+  Menu,
   MenuProps,
   Modal,
   Popconfirm,
   Select,
   Space,
+  Spin,
   Switch,
   Table,
   Tag,
   Tooltip,
   Tree,
   message,
+  Typography,
 } from "antd"
 import {
   getSubOrganizationList,
@@ -27,8 +30,9 @@ import {
   disableUser,
   addOrganizationAdministrator,
   deleteOrganizationAdministrator,
+  searchOrganization,
 } from "../services/wildgoose/api"
-import { Key, useEffect, useState } from "react"
+import { Key, useCallback, useEffect, useState } from "react"
 import OrganizationModal from "../components/OrganizationModal"
 import {
   AppstoreAddOutlined,
@@ -43,14 +47,23 @@ import { ObjectId } from "bson"
 import { EventDataNode } from "antd/es/tree"
 import { ColumnType } from "antd/es/table"
 import IconFont from "../iconfont/IconFont"
+import { getUser } from "../lib/auth"
+import { debounce } from "lodash-es"
+import { ApartmentOutlined } from "@ant-design/icons"
 
 const { Search } = Input
+const { Text } = Typography
 
 type MenuItem = Required<MenuProps>["items"][number]
 
-const UserPage = () => {
-  const [keyword, setKeyword] = useState("")
+const UserPage = (props?: { breadcrumb?: boolean }) => {
+  const [keyword, setKeyword] = useState<string>("")
+  const [searchKeyword, setSearchKeyword] = useState<string>("")
+  const [searchResults, setSearchResults] = useState<MenuItem[]>([])
+  const [loading, setLoading] = useState(false)
+
   const [status, setStatus] = useState("all")
+  const [isAdmin, setIsAdmin] = useState<boolean>(false)
   const [dataSource, setDataSource] = useState<UserDto[]>([])
   const [pagination, setPagination] = useState({
     current: 1,
@@ -218,6 +231,20 @@ const UserPage = () => {
     })
   }
 
+  /**
+   * 设置用户是否 admin 状态
+   * todo: 未来可以考虑用全局 UserContext
+   */
+  useEffect(() => {
+    const parseIsAdmin = async () => {
+      const user = await getUser()
+      if (user && user.profile && user.profile.role) {
+        setIsAdmin(user.profile.role.includes("admin"))
+      }
+    }
+    parseIsAdmin()
+  }, [])
+
   useEffect(() => {
     clean()
     const init = async () => {
@@ -244,18 +271,77 @@ const UserPage = () => {
           dict[x.id] = node
           return node
         })
-        data.push(defaultNode)
+
+        // 拥有 admin 角色才显示默认机构
+        if (isAdmin) {
+          data.push(defaultNode)
+        }
         setOrganizationTreeData(data)
         setOrganizationTreeSelectedKeys([organizations[0].id])
         loadUsers(organizations[0].id, "", "all", window.wildgoose.pageSize, 1)
       } else {
-        setOrganizationTreeData([defaultNode])
+        setOrganizationTreeData(isAdmin ? [defaultNode] : [])
         setOrganizationTreeSelectedKeys([""])
       }
       setOrganizationTreeDict(dict)
     }
     init()
-  }, [])
+  }, [isAdmin])
+
+  const debouncedSearch = useCallback(
+    (keyword: string) => {
+      const searchFn = debounce(async (kw) => {
+        if (!kw.trim()) {
+          setSearchResults([])
+          return
+        }
+
+        setLoading(true)
+        try {
+          const res = await searchOrganization(keyword)
+          const results = (res.data as OrganizationSearchResultDto[]) ?? []
+          setSearchResults(results.map((t) => ({ 
+            key: t.id,
+            label: t.name,
+            title: t.fullName,
+            icon: <ApartmentOutlined /> 
+          })))
+        } catch (error) {
+          console.error("搜索出错:", error)
+        } finally {
+          setLoading(false)
+        }
+      }, 500)
+
+      searchFn(keyword)
+      return searchFn.cancel
+    },
+    [setSearchResults, setLoading]
+  )
+
+  const handleInputChange = (e: any) => {
+    setSearchKeyword(e.target.value)
+    debouncedSearch(e.target.value)
+  }
+
+  const handleSearch = (value: string, _: any, info?: { source?: "clear" | "input" }) => {
+    if (info?.source === "clear") {
+      setSearchKeyword("")
+      setSearchResults([])
+
+      // 重置原来的选中机构，以及选中的用户等
+      clearUserDataSource()
+    } else {
+      debouncedSearch(value)
+    }
+  }
+
+  const clearUserDataSource = () => {
+    setDataSource([])
+    setUserSelectedKeys([])
+    setUserSelected(undefined)
+    setOrganizationTreeSelectedKeys([])
+  }
 
   const loadUsers = async (
     orgId: string,
@@ -331,11 +417,6 @@ const UserPage = () => {
       const key = keys[0] as string
       setOrganizationTreeSelectedKeys(keys as string[])
       loadUsers(key, "", "all", window.wildgoose.pageSize, 1)
-    } else {
-      setDataSource([])
-      setUserSelectedKeys([])
-      setUserSelected(undefined)
-      setOrganizationTreeSelectedKeys([])
     }
   }
 
@@ -516,7 +597,7 @@ const UserPage = () => {
     return (
       <>
         {node.title}
-        <Dropdown
+        {isAdmin && (<Dropdown
           trigger={["click"]}
           key={node.key + "_dropdown"}
           menu={{
@@ -534,7 +615,7 @@ const UserPage = () => {
               ev.stopPropagation()
             }}
           />
-        </Dropdown>
+        </Dropdown>)}
       </>
     )
   }
@@ -542,17 +623,72 @@ const UserPage = () => {
   const onUserDelete = async () => {
     if (userSelectedKeys && userSelectedKeys.length > 0) {
       const key = userSelectedKeys[0]
-      await deleteUser(key)
-      message.success("操作成功")
-      await loadUsers(
-        organizationTreeSelectedKeys[0],
-        keyword,
-        status,
-        pagination.pageSize,
-        pagination.current
-      )
+      try {
+        await deleteUser(key)
+        message.success("操作成功")
+      } catch (err) {
+        if (typeof err === "string") {
+          // axios request 已提示错误
+          console.error(err)
+        } else if (err instanceof Error){
+          message.error(err.message ?? "未知错误")
+        }
+      } finally {
+        loadUsers(
+          organizationTreeSelectedKeys[0],
+          keyword,
+          status,
+          pagination.pageSize,
+          pagination.current
+        )
+      }
     }
   }
+
+  const onOrganizationClick: MenuProps["onClick"] = (e) => {
+    setKeyword("")
+    setStatus("all")
+    loadUsers(e.key, "", "all", window.wildgoose.pageSize, 1)
+  }
+
+  const renderTree = () => (
+    <Tree
+      className="organizationTree"
+      showLine
+      icon={<IconFont type="icon-zuzhijigou" />}
+      showIcon={true}
+      switcherIcon={<CaretDownOutlined />}
+      treeData={organizationTreeData}
+      loadData={onOrganizationTreeLoadData}
+      expandedKeys={organizationTreeExpandedKeys}
+      titleRender={organizationTreeTitleRender}
+      selectedKeys={organizationTreeSelectedKeys}
+      onSelect={onOrganizationSelect}
+      onExpand={(keys: Key[]) => {
+        setOrganizationTreeExpandedKeys(keys as string[])
+      }}
+    ></Tree>
+  )
+
+  const renderSearchResult = () =>
+    loading ? (
+      <div style={{ textAlign: "center", padding: "20px 0" }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16 }}>搜索中...</div>
+      </div>
+    ) : searchResults.length > 0 ? (
+      <Menu
+        inlineIndent={4}
+        onClick={onOrganizationClick}
+        style={{ width: 210 }}
+        mode="inline"
+        items={searchResults}
+      />
+    ) : (
+      <div style={{ textAlign: "center", padding: "20px 0" }}>
+        <Text type="secondary">没有找到匹配的结果</Text>
+      </div>
+    )
 
   return (
     <>
@@ -562,7 +698,7 @@ const UserPage = () => {
         }}
         title={false}
         breadcrumbRender={() => {
-          return (
+          return (!props || props.breadcrumb !== false) && (
             <Breadcrumb
               style={{
                 marginTop: 10,
@@ -638,11 +774,14 @@ const UserPage = () => {
             <Flex vertical>
               <Flex>
                 <Search
-                  placeholder="请输入机构名称"
+                  placeholder="输入关键词搜索..."
+                  value={searchKeyword}
+                  onChange={handleInputChange}
+                  onSearch={handleSearch}
                   allowClear
                   style={{ width: 200, marginBottom: 20, marginRight: 10 }}
                 />
-                <Tooltip title="添加机构">
+                {isAdmin && (<Tooltip title="添加机构">
                   <Button
                     shape="circle"
                     onClick={() => {
@@ -655,24 +794,9 @@ const UserPage = () => {
                   >
                     <AppstoreAddOutlined />
                   </Button>
-                </Tooltip>
+                </Tooltip>)}
               </Flex>
-              <Tree
-                className="organizationTree"
-                showLine
-                icon={<IconFont type="icon-zuzhijigou" />}
-                showIcon={true}
-                switcherIcon={<CaretDownOutlined />}
-                treeData={organizationTreeData}
-                loadData={onOrganizationTreeLoadData}
-                expandedKeys={organizationTreeExpandedKeys}
-                titleRender={organizationTreeTitleRender}
-                selectedKeys={organizationTreeSelectedKeys}
-                onSelect={onOrganizationSelect}
-                onExpand={(keys: Key[]) => {
-                  setOrganizationTreeExpandedKeys(keys as string[])
-                }}
-              ></Tree>
+              {searchKeyword.trim() ? renderSearchResult() : renderTree()}
             </Flex>
           </Card>
           <Card style={{ width: "100%", overflow: "hidden" }}>
@@ -695,7 +819,7 @@ const UserPage = () => {
                     onChange={(e) => {
                       setKeyword(e.target.value)
                     }}
-                    placeholder="请输入用户名、手机号"
+                    placeholder="查询的账号、手机号"
                     allowClear
                     style={{ width: 220 }}
                     onSearch={() => {
@@ -781,8 +905,8 @@ const UserPage = () => {
                       >
                         修改密码
                       </Button>
-                      <Button type="primary">导出</Button>
-                      <Button type="primary">导入</Button>
+                      {/* <Button type="primary">导出</Button>
+                      <Button type="primary">导入</Button> */}
                     </Space>
                   </Flex>
                 </Space>
