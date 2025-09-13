@@ -72,7 +72,7 @@ public class UserAdminService(
                 x.UserName.Contains(query.Q) || x.PhoneNumber.Contains(query.Q) || x.Email.Contains(query.Q));
         }
 
-        var now = DateTimeOffset.Now.ToLocalTime();
+        var now = DateTimeOffset.Now.ToUniversalTime();
         if ("disabled".Equals(query.Status, StringComparison.OrdinalIgnoreCase))
         {
             queryable = queryable.Where(x => x.LockoutEnd > now);
