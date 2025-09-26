@@ -173,6 +173,7 @@ public class UserAdminService(
             PhoneNumber = command.PhoneNumber,
             UserName = command.UserName,
             Name = command.Name,
+            GivenName = command.Name,
             NormalizedUserName = normalizedUserName
         };
 
@@ -318,6 +319,7 @@ public class UserAdminService(
 
         user.Code = command.Code;
         user.Name = command.Name;
+        user.GivenName = command.Name;
 
         user.PhoneNumber = command.PhoneNumber;
         user.UserName = command.UserName;
