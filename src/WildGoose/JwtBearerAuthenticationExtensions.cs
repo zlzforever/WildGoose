@@ -6,10 +6,17 @@ using WildGoose.Filters;
 
 namespace WildGoose;
 
-public static class IdentityServerExtensions
+public static class JwtBearerAuthenticationExtensions
 {
     public static void ConfigureIdentityServer(this IServiceCollection services, IConfiguration configuration)
     {
+        var authority = configuration["JwtBearer:Authority"];
+        if (string.IsNullOrEmpty(authority))
+        {
+            throw new ApplicationException(
+                "JwtBearer:Authority is null or empty. Please check your configuration. https://qcn6sgdfwyfj.feishu.cn/wiki/O4QEwz6idiwHFsk8V3EcLE7Unpf?fromScene=spaceOverview#share-VPlFdJAwSo2Oyyxs7XPcWHy4nQd");
+        }
+
         var authenticationBuilder = services.AddAuthentication(x =>
             {
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -25,15 +32,34 @@ public static class IdentityServerExtensions
                         return Task.CompletedTask;
                     }
                 };
-                options.Authority = configuration["JwtBearer:Authority"];
+
+                options.Authority = authority;
                 options.RequireHttpsMetadata = "true".Equals(configuration["JwtBearer:RequireHttpsMetadata"],
                     StringComparison.OrdinalIgnoreCase);
+                options.MetadataAddress = configuration["JwtBearer:MetadataAddress"] ?? string.Empty;
+                // 试验性代码，authority 不设计 https/requireHttpsMetadata
+                if (!options.RequireHttpsMetadata && string.IsNullOrEmpty(options.MetadataAddress))
+                {
+                    var metadataAddress =
+                        options.Authority.Replace("https://", "http://", StringComparison.OrdinalIgnoreCase);
+                    if (!metadataAddress.EndsWith("/", StringComparison.Ordinal))
+                    {
+                        metadataAddress += "/";
+                    }
+
+                    options.MetadataAddress = metadataAddress + ".well-known/openid-configuration";
+                }
+
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateAudience =
                         "true".Equals(configuration["JwtBearer:ValidateAudience"], StringComparison.OrdinalIgnoreCase),
                     ValidateIssuer = "true".Equals(configuration["JwtBearer:ValidateIssuer"],
                         StringComparison.OrdinalIgnoreCase),
+                    ValidIssuer = configuration["JwtBearer:ValidIssuer"],
+                    ValidAudience = configuration["JwtBearer:ValidAudience"],
+                    ValidateLifetime = "true".Equals(configuration["JwtBearer:ValidateLifetime"],
+                        StringComparison.OrdinalIgnoreCase)
                 };
             });
         authenticationBuilder.AddScheme<TokenAuthOptions, TokenAuthHandler>("SecurityToken",
