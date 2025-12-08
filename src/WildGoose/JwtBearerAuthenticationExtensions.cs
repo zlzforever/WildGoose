@@ -8,7 +8,7 @@ namespace WildGoose;
 
 public static class JwtBearerAuthenticationExtensions
 {
-    public static void ConfigureIdentityServer(this IServiceCollection services, IConfiguration configuration)
+    public static void AddJwtBearerAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         var authority = configuration["JwtBearer:Authority"];
         if (string.IsNullOrEmpty(authority))
@@ -57,9 +57,7 @@ public static class JwtBearerAuthenticationExtensions
                     ValidateIssuer = "true".Equals(configuration["JwtBearer:ValidateIssuer"],
                         StringComparison.OrdinalIgnoreCase),
                     ValidIssuer = configuration["JwtBearer:ValidIssuer"],
-                    ValidAudience = configuration["JwtBearer:ValidAudience"],
-                    ValidateLifetime = "true".Equals(configuration["JwtBearer:ValidateLifetime"],
-                        StringComparison.OrdinalIgnoreCase)
+                    ValidAudience = configuration["JwtBearer:ValidAudience"]
                 };
             });
         authenticationBuilder.AddScheme<TokenAuthOptions, TokenAuthHandler>("SecurityToken",

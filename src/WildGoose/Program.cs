@@ -47,7 +47,6 @@ public class Program
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
 // builder.Services.AddSwaggerGen();
-        builder.Services.ConfigureIdentityServer(builder.Configuration);
         builder.Services.AddResponseCaching();
         var identity = builder.Configuration.GetSection("Identity");
         builder.Services.Configure<IdentityOptions>(identity);
@@ -67,6 +66,7 @@ public class Program
             o.DefaultScheme = IdentityConstants.ApplicationScheme;
             o.DefaultSignInScheme = IdentityConstants.ExternalScheme;
         }).AddIdentityCookies();
+        builder.Services.AddJwtBearerAuthentication(builder.Configuration);
         builder.Services.AddMemoryCache();
         builder.Services.AddHealthChecks();
         builder.Services.AddIdentityCore<User>(o =>
@@ -135,7 +135,7 @@ public class Program
             logger.LogInformation("No Applying migrations");
         }
 
-        SeedData.Init(app.Services).GetAwaiter().GetResult();
+        await SeedData.Init(app.Services);
 
         app.UseRouting();
         var healthCheckPath = Environment.GetEnvironmentVariable("HEALTH_CHECK_PATH") ?? "/healthz";
