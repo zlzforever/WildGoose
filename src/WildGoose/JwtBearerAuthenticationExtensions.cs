@@ -87,7 +87,7 @@ public static class JwtBearerAuthenticationExtensions
                     // 检查是否已有成功的认证
                     return context.User.Identities.Any(i => i.IsAuthenticated);
                 });
-                policy.AddAuthenticationSchemes("Bearer");
+                policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
                 policy.RequireAuthenticatedUser();
                 policy.RequireClaim("scope", apiName);
             });

@@ -7,6 +7,7 @@ using Identity.Sm;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.IdentityModel.Logging;
 using WildGoose.Application;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
@@ -116,6 +117,8 @@ public class Program
         var app = builder.Build();
 
         var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Program");
+        LogHelper.Logger = new SerilogIdentityLogger(logger);
+
         var rootFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot");
         if (!Directory.Exists(rootFolder))
         {

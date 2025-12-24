@@ -1,9 +1,11 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+﻿FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443
+RUN apt-get update &&\
+    apt-get install -y iputils-ping net-tools curl && apt-get clean
 
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /workspace
 COPY "./src/WildGoose/WildGoose.csproj" "/workspace/src/WildGoose/"
 COPY "./src/WildGoose.Application/WildGoose.Application.csproj" "/workspace/src/WildGoose.Application/"
@@ -13,10 +15,10 @@ COPY "./src/WildGoose.Tests/WildGoose.Tests.csproj" "/workspace/src/WildGoose.Te
 COPY "./WildGoose.sln" "/workspace/WildGoose.sln"
 RUN dotnet restore .
 COPY . .
-RUN dotnet build -c Debug
+RUN dotnet build
 
 FROM build AS publish
-RUN dotnet publish -c Debug -o /app/publish /p:UseAppHost=false
+RUN dotnet publish  -o /app/publish
 
 FROM base AS final
 WORKDIR /app
