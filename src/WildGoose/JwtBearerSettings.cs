@@ -14,6 +14,13 @@ public class JwtBearerSettings
     // ReSharper disable once UnusedAutoPropertyAccessor.Global
     public string? MetadataAddress { get; set; }
 
+    /// <summary>
+    /// Authority: https  && RequireHttpsMetadata: true ->  MetadataAddress: ""
+    /// Authority: https  && RequireHttpsMetadata: false ->  MetadataAddress: "http://"
+    /// Authority: http  && RequireHttpsMetadata: true ->  MetadataAddress: ""
+    /// Authority: http  && RequireHttpsMetadata: true ->  MetadataAddress: "http://"
+    /// </summary>
+    /// <returns></returns>
     public string GetMetadataAddress()
     {
         // 试验性代码，authority 不设计 https/requireHttpsMetadata

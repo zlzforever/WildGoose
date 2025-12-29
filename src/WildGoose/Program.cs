@@ -13,6 +13,7 @@ using WildGoose.Domain;
 using WildGoose.Domain.Entity;
 using WildGoose.Filters;
 using WildGoose.Infrastructure;
+using WildGoose.Middlewares;
 
 namespace WildGoose;
 
@@ -140,6 +141,7 @@ public class Program
 
         await SeedData.Init(app.Services);
 
+        app.UseMiddleware<DecryptRequestMiddleware>();
         app.UseRouting();
         var healthCheckPath = Environment.GetEnvironmentVariable("HEALTH_CHECK_PATH") ?? "/healthz";
         app.UseHealthChecks(healthCheckPath);
