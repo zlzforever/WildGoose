@@ -7,9 +7,17 @@ public class DecryptRequestMiddleware(RequestDelegate next)
 {
     private const string VersionHeader = "Z-Encrypt-Version";
     private const string KeyHeader = "Z-Encrypt-Key";
+    private static readonly string[] HttpMethods = ["POST", "PUT", "PATCH"];
 
     public async Task InvokeAsync(HttpContext context, ILogger<DecryptRequestMiddleware> logger)
     {
+        // 仅 POST/PUT/PATCH 需要解密
+        if (HttpMethods.All(x => !x.Equals(context.Request.Method, StringComparison.InvariantCultureIgnoreCase)))
+        {
+            await next(context);
+            return;
+        }
+
         var encryptVersion = context.Request.Headers[VersionHeader].ElementAtOrDefault(0);
         var encryptKey = context.Request.Headers[KeyHeader].ElementAtOrDefault(0);
 

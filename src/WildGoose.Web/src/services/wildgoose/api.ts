@@ -1,4 +1,5 @@
 import { ApiResult, request } from "../../lib/request"
+import { createRequest } from "../../lib/userRequest"
 
 export interface GetRolesQuery {
   q: string | undefined
@@ -125,7 +126,7 @@ export async function searchOrganization(keyword: string) {
     url: `${window.wildgoose.backend}/admin/v1.0/organizations/search`,
     method: "GET",
     params: {
-      keyword
+      keyword,
     },
   })
   return result.data
@@ -215,13 +216,8 @@ export async function updateUser(id: string, values: any) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function addUser(values: any) {
-  return (
-    await request.request<ApiResult>({
-      url: `${window.wildgoose.backend}/admin/v1.0/users`,
-      method: "POST",
-      data: values,
-    })
-  ).data
+  const { post } = createRequest({ baseURL: window.wildgoose.backend })
+  return (await post("/admin/v1.0/users", values)).data
 }
 
 export async function deleteUser(id: string) {
@@ -257,11 +253,8 @@ export interface ChangePasswordCommand {
 }
 
 export async function changePassword(id: string, command: ChangePasswordCommand) {
-  const res = await request.request({
-    url: `${window.wildgoose.backend}/admin/v1.0/users/${id}/password`,
-    method: "POST",
-    data: command,
-  })
+  const { post } = createRequest({ baseURL: window.wildgoose.backend })
+  const res = await post(`/admin/v1.0/users/${id}/password`, command)
   return res.data
 }
 
