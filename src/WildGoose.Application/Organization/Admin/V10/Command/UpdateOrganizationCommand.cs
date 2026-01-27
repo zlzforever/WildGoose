@@ -1,0 +1,50 @@
+using System.ComponentModel.DataAnnotations;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+
+namespace WildGoose.Application.Organization.Admin.V10.Command;
+
+public class UpdateOrganizationCommand
+{
+    internal string Id { get; set; }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [StringLength(36)]
+    public string ParentId { get; set; }
+
+    /// <summary>
+    /// 名称
+    /// </summary>
+    [Required, StringLength(50),
+     RegularExpression(NameLimiter.Pattern, ErrorMessage = NameLimiter.Message)]
+    public string Name { get; set; }
+
+    /// <summary>
+    /// 编号
+    /// </summary>
+    [StringLength(50)]
+    public string Code { get; set; }
+
+    /// <summary>
+    /// 描述
+    /// </summary>
+    [StringLength(256)]
+    public string Address { get; set; }
+
+    /// <summary>
+    /// 描述
+    /// </summary>
+    [StringLength(256)]
+    public string Description { get; set; }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [StringLength(2000)]
+    public string Metadata { get; set; }
+
+    public string[] Scope { get; set; } = Array.Empty<string>();
+
+    public string[] Administrators { get; set; } = Array.Empty<string>();
+}

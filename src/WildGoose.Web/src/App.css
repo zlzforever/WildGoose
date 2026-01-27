@@ -1,0 +1,73 @@
+#root {
+  width: 100%;
+  margin: 0 auto;
+  word-break: break-all;
+}
+
+/* #region 插件样式 */
+.ant-page-header-no-children {
+  height: 20px;
+}
+.ant-modal {
+  padding-bottom: 0;
+}
+.ant-modal .ant-modal-header {
+  padding-bottom: 10px;
+}
+/* #endregion */
+
+/* #region 组织机构tree样式 */
+.ant-tree.organizationTree .ant-tree-treenode {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.ant-tree.organizationTree .ant-tree-treenode:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+.ant-tree.organizationTree .ant-tree-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ant-tree.organizationTree .ant-tree-node-content-wrapper {
+  width: 100%;
+  text-align: left;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.ant-tree.organizationTree .ant-tree-node-content-wrapper:hover {
+  background: transparent;
+}
+.ant-tree.organizationTree .ant-tree-node-content-wrapper .ant-tree-iconEle {
+  flex-shrink: 0;
+}
+.ant-tree.organizationTree .ant-tree-node-content-wrapper .ant-tree-title {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ant-tree.organizationTree .ant-tree-treenode-selected,
+.ant-tree.organizationTree .ant-tree-treenode-selected:hover {
+  background-color: var(--site-light-color);
+  color: var(--site-primary-color);
+}
+.ant-tree.organizationTree .ant-tree-indent,
+.ant-tree.organizationTree .ant-tree-switcher-leaf-line {
+  visibility: hidden;
+}
+.ant-tree.organizationTree:hover .ant-tree-indent,
+.ant-tree.organizationTree:hover .ant-tree-switcher-leaf-line {
+  visibility: visible;
+}
+/* #endregion */
+/* #region pro*/
+body .ant-pro-global-header-header-actions-avatar >div{
+  color: rgba(0, 0, 0, 0.85);
+}
+/* #endregion */

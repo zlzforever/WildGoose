@@ -1,0 +1,23 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Login docker regsitry
+      run: docker login -u ${{ secrets.DOCKER_USER }} -p  ${{ secrets.DOCKER_PASSWORD }}
+    - uses: actions/checkout@v3
+    - name: Build the Docker image
+      run: docker build . --file api.Dockerfile --tag zlzforever/wildgoose-api:20251224.7
+    - name: Publish the Docker image
+      run: docker push zlzforever/wildgoose-api:20251224.7
+      

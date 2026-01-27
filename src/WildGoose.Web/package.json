@@ -1,0 +1,49 @@
+{
+  "name": "wildgoose-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ant-design/icons": "5.2.6",
+    "@ant-design/pro-layout": "7.17.13",
+    "@ant-design/pro-provider": "2.13.3",
+    "ace-builds": "1.31.2",
+    "antd": "5.11.0",
+    "axios": "1.6.1",
+    "bson": "6.2.0",
+    "dayjs": "1.11.10",
+    "oidc-client": "1.11.5",
+    "crypto-js": "4.2.0",
+    "react": "18.2.0",
+    "react-ace": "10.1.0",
+    "react-dom": "18.2.0",
+    "react-router-dom": "6.18.0",
+    "lodash-es": "4.17.21"
+  },
+  "devDependencies": {
+    "@types/react": "18.2.37",
+    "@types/react-dom": "18.2.15",
+    "@types/lodash-es": "4.17.12",
+    "@types/crypto-js": "4.2.2",
+    "@typescript-eslint/eslint-plugin": "6.10.0",
+    "@typescript-eslint/parser": "6.10.0",
+    "@vitejs/plugin-react": "4.2.0",
+    "eslint": "8.53.0",
+    "eslint-plugin-react-hooks": "4.6.0",
+    "eslint-plugin-react-refresh": "0.4.4",
+    "typescript": "5.2.2",
+    "vite": "5.0.0",
+    "vite-plugin-compression": "^0.5.1",
+    "vite-plugin-top-level-await": "1.3.1"
+  },
+  "resolutions": {
+    "**/vite-plugin-top-level-await/@swc/core": "1.6.13"
+  },
+  "packageManager": "pnpm@10.26.1+sha512.664074abc367d2c9324fdc18037097ce0a8f126034160f709928e9e9f95d98714347044e5c3164d65bd5da6c59c6be362b107546292a8eecb7999196e5ce58fa"
+}

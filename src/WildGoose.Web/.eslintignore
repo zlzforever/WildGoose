@@ -1,0 +1,8 @@
+node_modules/
+build/
+coverage/
+dist/
+mock
+public
+.history
+/config
