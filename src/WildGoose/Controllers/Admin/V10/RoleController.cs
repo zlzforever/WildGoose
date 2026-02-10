@@ -13,36 +13,36 @@ namespace WildGoose.Controllers.Admin.V10;
 [Microsoft.AspNetCore.Authorization.Authorize]
 public class RoleController(RoleAdminService roleAdminService) : ControllerBase
 {
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "SUPER")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Defaults.SuperPolicy)]
     [HttpGet]
-    public Task<PagedResult<RoleDto>> Get([FromQuery] GetRolesQuery query)
+    public Task<PagedResult<RoleDto>> GetList([FromQuery] GetRolesQuery query)
     {
         return roleAdminService.GetRolesAsync(query);
     }
 
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "SUPER")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Defaults.SuperPolicy)]
     [HttpPost]
     public Task<string> Create([FromBody] AddRoleCommand command)
     {
         return roleAdminService.AddAsync(command);
     }
 
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "SUPER")]
-    [HttpDelete("{id}")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Defaults.SuperPolicy)]
+    [HttpPost("{id}/delete")]
     public async Task<string> Delete([FromRoute] DeleteRoleCommand command)
     {
         await roleAdminService.DeleteAsync(command);
         return command.Id;
     }
 
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "SUPER")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Defaults.SuperPolicy)]
     [HttpGet("{id}")]
     public Task<RoleDto> Get([FromRoute] GetRoleQuery query)
     {
         return roleAdminService.GetAsync(query);
     }
 
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "SUPER")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Defaults.SuperPolicy)]
     [HttpPost("{id}")]
     public async Task<string> Update([FromRoute, Required, StringLength(36)] string id,
         [FromBody] UpdateRoleCommand command)
@@ -52,7 +52,7 @@ public class RoleController(RoleAdminService roleAdminService) : ControllerBase
         return id;
     }
 
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "SUPER")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Defaults.SuperPolicy)]
     [HttpPost("{id}/statement")]
     public async Task<string> UpdateStatement([FromRoute, Required, StringLength(36)] string id,
         [FromBody] UpdateStatementCommand command)
@@ -62,15 +62,17 @@ public class RoleController(RoleAdminService roleAdminService) : ControllerBase
         return id;
     }
 
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "SUPER")]
-    [HttpPost("assignableRoles")]
-    public Task AddAssignableRole([FromBody] AddAssignableRoleCommand command)
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Defaults.SuperPolicy)]
+    [HttpPost("{id}/assignableRoles")]
+    public Task AddAssignableRole([FromRoute, Required, StringLength(36)] string id,
+        [FromBody] AddAssignableRoleCommand command)
     {
+        command.Id = id;
         return roleAdminService.AddAssignableRoleAsync(command);
     }
 
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "SUPER")]
-    [HttpDelete("{id}/assignableRoles/{assignableRoleId}")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Defaults.SuperPolicy)]
+    [HttpPost("{id}/assignableRoles/{assignableRoleId}/delete")]
     public Task AddAssignableRole([FromRoute] DeleteAssignableRoleCommand command)
     {
         return roleAdminService.DeleteAssignableRoleAsync(command);

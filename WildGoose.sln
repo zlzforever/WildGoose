@@ -17,6 +17,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		web.Dockerfile = web.Dockerfile
 		docker-entrypoint.sh = docker-entrypoint.sh
 		backend.yml = .github/workflows/backend.yml
+		web-docker-image.yml = .github/workflows/web-docker-image.yml
+		testdata.sql = testdata.sql
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WildGoose.Tests", "src\WildGoose.Tests\WildGoose.Tests.csproj", "{05A68C09-9301-477B-B318-43F9DB9CA9A3}"

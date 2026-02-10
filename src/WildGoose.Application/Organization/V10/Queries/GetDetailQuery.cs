@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace WildGoose.Application.Organization.V10.Queries;
 
-public class GetSummaryQuery
+public class GetDetailQuery
 {
     /// <summary>
     /// 

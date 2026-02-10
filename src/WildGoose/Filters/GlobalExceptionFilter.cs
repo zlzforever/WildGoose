@@ -16,8 +16,8 @@ public class GlobalExceptionFilter(ILogger<GlobalExceptionFilter> logger) : IExc
 
         if (context.Exception is WildGooseFriendlyException e)
         {
-            logger.LogError("{LogInfo} {Exception}", e.LogInfo, e);
-            context.Result = new BadRequestObjectResult(new ApiResult
+            logger.LogError(e, "{LogInfo}", e.LogInfo);
+            context.Result = new ObjectResult(new ApiResult
             {
                 Success = false,
                 Msg = e.Message,
@@ -26,7 +26,7 @@ public class GlobalExceptionFilter(ILogger<GlobalExceptionFilter> logger) : IExc
         }
         else
         {
-            logger.LogError("{Exception}", context.Exception);
+            logger.LogError(context.Exception, context.Exception.Message);
             context.HttpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
             context.Result =
                 new ObjectResult(new ApiResult

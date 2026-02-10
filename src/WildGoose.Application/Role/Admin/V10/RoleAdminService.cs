@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
@@ -21,8 +22,9 @@ public class RoleAdminService(
     ISession session,
     IOptions<DbOptions> dbOptions,
     ILogger<RoleAdminService> logger,
+    IMemoryCache memoryCache,
     RoleManager<WildGoose.Domain.Entity.Role> roleManager)
-    : BaseService(dbContext, session, dbOptions, logger)
+    : BaseService(dbContext, session, dbOptions, logger, memoryCache)
 {
     public async Task<string> AddAsync(AddRoleCommand command)
     {
@@ -65,25 +67,16 @@ public class RoleAdminService(
             Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
-            throw new WildGooseFriendlyException(1, "禁止删除系统角色");
+            throw new WildGooseFriendlyException(1, "禁止操作系统角色信息");
         }
 
-        DbContext.Remove(role);
         await using var transaction = await DbContext.Database.BeginTransactionAsync();
         try
         {
-            var tableName = DbContext.Set<IdentityUserRole<string>>()
-                .EntityType.GetTableName();
-
-            Debug.Assert(tableName != null);
-
-#pragma warning disable EF1002
-            await DbContext.Database.ExecuteSqlRawAsync(
-#pragma warning restore EF1002
-                $$"""
-                  DELETE FROM {{tableName}} WHERE role_id = {0}
-                  """, role.Id);
-            await DbContext.SaveChangesAsync();
+            await DbContext.Set<IdentityUserRole<string>>().Where(x => x.RoleId == role.Id)
+                .ExecuteDeleteAsync();
+            await DbContext.Set<WildGoose.Domain.Entity.Role>().Where(x => x.Id == role.Id)
+                .ExecuteDeleteAsync();
             await transaction.CommitAsync();
         }
         catch (Exception e)
@@ -110,6 +103,13 @@ public class RoleAdminService(
             throw new WildGooseFriendlyException(1, "角色不存在");
         }
 
+        if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new WildGooseFriendlyException(1, "禁止操作系统角色信息");
+        }
+
         role.Name = command.Name;
         role.NormalizedName = roleManager.NormalizeKey(command.Name);
         role.Description = command.Description;
@@ -134,6 +134,13 @@ public class RoleAdminService(
             throw new WildGooseFriendlyException(1, "角色不存在");
         }
 
+        if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new WildGooseFriendlyException(1, "禁止操作系统角色信息");
+        }
+
         var options = new JsonSerializerOptions
         {
             WriteIndented = false,
@@ -151,14 +158,14 @@ public class RoleAdminService(
             queryable = queryable.Where(x => x.Name.Contains(query.Q));
         }
 
-        var result = await queryable.Select(x => new
+        var result = await queryable.OrderByDescending(x => x.LastModificationTime).Select(x => new
             {
                 x.Id,
                 x.Name,
                 x.Version,
                 x.Description,
                 x.LastModificationTime
-            }).OrderByDescending(x => x.Id)
+            })
             .PagedQueryAsync(query.Page, query.Limit);
 
         var dtoList = result.Data.Select(x => new RoleDto
@@ -168,7 +175,7 @@ public class RoleAdminService(
             Version = x.Version,
             Description = x.Description,
             LastModificationTime = x.LastModificationTime.HasValue
-                ? x.LastModificationTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                ? x.LastModificationTime.Value.ToLocalTime().ToString(Defaults.SecondTimeFormat)
                 : "-"
         }).ToList();
         var roleIdList = result.Data.Select(x => x.Id).ToList();
@@ -217,28 +224,37 @@ public class RoleAdminService(
                 ? "[]"
                 : role.Statement,
             LastModificationTime = role.LastModificationTime.HasValue
-                ? role.LastModificationTime.Value.ToString("yyyy-MM-dd HH:mm:ss")
+                ? role.LastModificationTime.Value.ToString(Defaults.SecondTimeFormat)
                 : "-"
         };
     }
 
-
     public async Task AddAssignableRoleAsync(AddAssignableRoleCommand command)
     {
-        IQueryable<RoleAssignableRole> queryable = DbContext.Set<RoleAssignableRole>();
-        var groups = command.GroupBy(x => x.Id);
-        foreach (var group in groups)
+        var role = await DbContext.Set<WildGoose.Domain.Entity.Role>()
+            .AsNoTracking()
+            .Where(x => x.Id == command.Id)
+            .FirstOrDefaultAsync();
+        if (role == null)
         {
-            var assignableRoles = group.Select(x => x.AssignableRoleId).ToList();
-            queryable = queryable.Where(item =>
-                item.RoleId == group.Key && assignableRoles.Contains(item.AssignableId));
+            return;
         }
 
-        var existList = await queryable.AsNoTracking().ToListAsync();
-
-        foreach (var dto in command)
+        if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
-            var exists = existList.Any(y => y.RoleId == dto.Id && y.AssignableId == dto.AssignableRoleId);
+            throw new WildGooseFriendlyException(1, "禁止操作系统角色信息");
+        }
+
+        var existList = await DbContext.Set<RoleAssignableRole>().AsNoTracking()
+            .Where(x => x.RoleId == command.Id)
+            .Select(x => x.AssignableId)
+            .ToListAsync();
+
+        foreach (var assignableRoleId in command.AssignableRoleIds)
+        {
+            var exists = existList.Contains(assignableRoleId);
             if (exists)
             {
                 continue;
@@ -246,8 +262,8 @@ public class RoleAdminService(
 
             var relationship = new RoleAssignableRole
             {
-                RoleId = dto.Id,
-                AssignableId = dto.AssignableRoleId
+                RoleId = command.Id,
+                AssignableId = assignableRoleId
             };
             await DbContext.AddAsync(relationship);
         }
@@ -270,7 +286,7 @@ public class RoleAdminService(
 
     public async Task<List<RoleBasicDto>> GetAssignableRolesAsync()
     {
-        if (Session.IsSupperAdmin())
+        if (Session.IsSupperAdminOrUserAdmin())
         {
             return DbContext.Set<WildGoose.Domain.Entity.Role>()
                 .AsNoTracking()

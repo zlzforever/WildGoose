@@ -1,7 +1,7 @@
 namespace WildGoose.Application.Organization.V10.Dto;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
-public class OrganizationSummaryDto
+public class OrganizationDetailDto
 {
     public string Id { get; set; }
     public string Name { get; set; }

@@ -11,6 +11,7 @@ public class WebApplicationFactoryFixture : IDisposable
 
     public WebApplicationFactoryFixture()
     {
+        Environment.SetEnvironmentVariable("ENABLE_SM3_PASSWORD_HASHER", "true");
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
             .WriteTo.Console()

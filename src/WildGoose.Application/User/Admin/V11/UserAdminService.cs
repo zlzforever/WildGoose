@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
@@ -17,10 +18,11 @@ public class UserAdminService(
     ISession session,
     IOptions<DbOptions> dbOptions,
     ILogger<UserAdminService> logger,
+    IMemoryCache memoryCache,
     UserManager<WildGoose.Domain.Entity.User> userManager,
     IOptions<DaprOptions> dapOptions,
     IOptions<WildGooseOptions> wildGooseOptions)
-    : BaseService(dbContext, session, dbOptions, logger)
+    : BaseService(dbContext, session, dbOptions, logger, memoryCache)
 {
     public async Task<UserDto> AddAsync(AddUserCommand command)
     {
@@ -30,21 +32,11 @@ public class UserAdminService(
             throw new WildGooseFriendlyException(403, "访问受限");
         }
 
-        // 
-        // userManager.CreateAsync 是会校验的
-        // 
-        // // 验证密码是否符合要求
-        // var passwordValidatorResult =
-        //     await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(),
-        //         command.Password);
-        // passwordValidatorResult.CheckErrors();
+        if (string.IsNullOrEmpty(command.Password))
+        {
+            command.Password = PasswordGenerator.GeneratePassword();
+        }
 
-        // var normalizedUserName = userManager.NormalizeName(command.UserName);
-        // if (await userManager.Users.AnyAsync(x => x.NormalizedUserName == normalizedUserName))
-        // {
-        //     throw new WildGooseFriendlyException(1, "用户名已经存在");
-        // }
- 
         var user = new WildGoose.Domain.Entity.User
         {
             Id = ObjectId.GenerateNewId().ToString(),
@@ -62,15 +54,11 @@ public class UserAdminService(
         // comments by lewis 20231117: _userManager 会自己调用 SaveChanges
         result.CheckErrors();
         await DbContext.SaveChangesAsync();
-        var daprClient = GetDaprClient();
-        if (daprClient != null && !string.IsNullOrEmpty(dapOptions.Value.Pubsub))
+
+        await PublishEventAsync(dapOptions.Value, new UserAddedEvent
         {
-            await daprClient.PublishEventAsync(dapOptions.Value.Pubsub, nameof(UserAddedEvent),
-                new UserAddedEvent
-                {
-                    UserId = user.Id
-                });
-        }
+            UserId = user.Id
+        });
 
         return new UserDto
         {
@@ -83,7 +71,7 @@ public class UserAdminService(
             Roles = [],
             IsAdministrator = false,
             CreationTime = user.CreationTime.HasValue
-                ? user.CreationTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                ? user.CreationTime.Value.ToLocalTime().ToString(Defaults.SecondTimeFormat)
                 : "-"
         };
     }

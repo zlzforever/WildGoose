@@ -63,6 +63,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
   const [loading, setLoading] = useState(false)
 
   const [status, setStatus] = useState("all")
+  const [isRecursive, setIsRecursive] = useState("true")
   const [isAdmin, setIsAdmin] = useState<boolean>(false)
   const [dataSource, setDataSource] = useState<UserDto[]>([])
   const [pagination, setPagination] = useState({
@@ -113,6 +114,13 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
       dataIndex: "isAdministrator",
       key: "isAdministrator",
       render: (_: unknown, record) => {
+        if (
+          !organizationTreeSelectedKeys ||
+          organizationTreeSelectedKeys.length === 0 ||
+          organizationTreeSelectedKeys[0] === ""
+        ) {
+          return <></>
+        }
         return (
           <>
             <Switch
@@ -300,12 +308,14 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
         try {
           const res = await searchOrganization(keyword)
           const results = (res.data as OrganizationSearchResultDto[]) ?? []
-          setSearchResults(results.map((t) => ({ 
-            key: t.id,
-            label: t.name,
-            title: t.fullName,
-            icon: <ApartmentOutlined /> 
-          })))
+          setSearchResults(
+            results.map((t) => ({
+              key: t.id,
+              label: t.name,
+              title: t.fullName,
+              icon: <ApartmentOutlined />,
+            })),
+          )
         } catch (error) {
           console.error("搜索出错:", error)
         } finally {
@@ -316,7 +326,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
       searchFn(keyword)
       return searchFn.cancel
     },
-    [setSearchResults, setLoading]
+    [setSearchResults, setLoading],
   )
 
   const handleInputChange = (e: any) => {
@@ -348,12 +358,13 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
     q: string,
     status: string,
     limit: number,
-    page: number
+    page: number,
   ) => {
     const res = await getUsers({
       organizationId: orgId,
       q: q,
       limit: limit,
+      isRecursive: isRecursive === "true",
       status: status,
       page: page,
     })
@@ -361,7 +372,6 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
     // 若正常返回分页数据
     if (result) {
       setDataSource(result.data)
-
       setUserSelectedKeys([])
       setUserSelected(undefined)
       setPagination({
@@ -597,25 +607,27 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
     return (
       <>
         {node.title}
-        {isAdmin && (<Dropdown
-          trigger={["click"]}
-          key={node.key + "_dropdown"}
-          menu={{
-            items,
-            onClick: (ev: any) => {
-              ev && ev.domEvent && ev.domEvent.stopPropagation()
-            },
-          }}
-          placement="bottomLeft"
-          arrow={false}
-        >
-          <MoreOutlined
-            style={{ fontSize: 20 }}
-            onClick={(ev: any) => {
-              ev.stopPropagation()
+        {isAdmin && (
+          <Dropdown
+            trigger={["click"]}
+            key={node.key + "_dropdown"}
+            menu={{
+              items,
+              onClick: (ev: any) => {
+                ev && ev.domEvent && ev.domEvent.stopPropagation()
+              },
             }}
-          />
-        </Dropdown>)}
+            placement="bottomLeft"
+            arrow={false}
+          >
+            <MoreOutlined
+              style={{ fontSize: 20 }}
+              onClick={(ev: any) => {
+                ev.stopPropagation()
+              }}
+            />
+          </Dropdown>
+        )}
       </>
     )
   }
@@ -630,7 +642,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
         if (typeof err === "string") {
           // axios request 已提示错误
           console.error(err)
-        } else if (err instanceof Error){
+        } else if (err instanceof Error) {
           message.error(err.message ?? "未知错误")
         }
       } finally {
@@ -639,7 +651,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
           keyword,
           status,
           pagination.pageSize,
-          pagination.current
+          pagination.current,
         )
       }
     }
@@ -698,20 +710,22 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
         }}
         title={false}
         breadcrumbRender={() => {
-          return (!props || props.breadcrumb !== false) && (
-            <Breadcrumb
-              style={{
-                marginTop: 10,
-              }}
-              items={[
-                {
-                  title: "首页",
-                },
-                {
-                  title: "用户管理",
-                },
-              ]}
-            />
+          return (
+            (!props || props.breadcrumb !== false) && (
+              <Breadcrumb
+                style={{
+                  marginTop: 10,
+                }}
+                items={[
+                  {
+                    title: "首页",
+                  },
+                  {
+                    title: "用户管理",
+                  },
+                ]}
+              />
+            )
           )
         }}
       >
@@ -746,7 +760,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
               keyword,
               status,
               pagination.pageSize,
-              pagination.current
+              pagination.current,
             )
           }}
           onClose={() => {
@@ -781,20 +795,22 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                   allowClear
                   style={{ width: 200, marginBottom: 20, marginRight: 10 }}
                 />
-                {isAdmin && (<Tooltip title="添加机构">
-                  <Button
-                    shape="circle"
-                    onClick={() => {
-                      setOrganizationModalParams({
-                        id: "",
-                        parent: undefined,
-                      })
-                      setOrganizationModalOpen(true)
-                    }}
-                  >
-                    <AppstoreAddOutlined />
-                  </Button>
-                </Tooltip>)}
+                {isAdmin && (
+                  <Tooltip title="添加机构">
+                    <Button
+                      shape="circle"
+                      onClick={() => {
+                        setOrganizationModalParams({
+                          id: "",
+                          parent: undefined,
+                        })
+                        setOrganizationModalOpen(true)
+                      }}
+                    >
+                      <AppstoreAddOutlined />
+                    </Button>
+                  </Tooltip>
+                )}
               </Flex>
               {searchKeyword.trim() ? renderSearchResult() : renderTree()}
             </Flex>
@@ -814,6 +830,17 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                       { value: "enabled", label: "已启用" },
                       { value: "disabled", label: "已暂停" },
                     ]}
+                  />{" "}
+                  <Select
+                    defaultValue="true"
+                    style={{ width: 165 }}
+                    onChange={(v) => {
+                      setIsRecursive(v)
+                    }}
+                    options={[
+                      { value: "true", label: "展示全部成员" },
+                      { value: "false", label: "仅展示部门直属成员" },
+                    ]}
                   />
                   <Search
                     onChange={(e) => {
@@ -829,7 +856,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                           keyword,
                           status,
                           pagination.pageSize,
-                          pagination.current
+                          pagination.current,
                         )
                       }
                     }}
@@ -923,7 +950,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                       keyword,
                       status,
                       pagination.pageSize,
-                      page
+                      page,
                     )
                   },
                 }}

@@ -1,5 +1,4 @@
 namespace WildGoose.Application.Organization.Admin.V10.Dto;
-// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 public class OrganizationSimpleDto
 {

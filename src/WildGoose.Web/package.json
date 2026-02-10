@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 5173",
+    "dev": "vite --port 5174",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
@@ -42,8 +42,6 @@
     "vite-plugin-compression": "^0.5.1",
     "vite-plugin-top-level-await": "1.3.1"
   },
-  "resolutions": {
-    "**/vite-plugin-top-level-await/@swc/core": "1.6.13"
-  },
+  "resolutions": {},
   "packageManager": "pnpm@10.26.1+sha512.664074abc367d2c9324fdc18037097ce0a8f126034160f709928e9e9f95d98714347044e5c3164d65bd5da6c59c6be362b107546292a8eecb7999196e5ce58fa"
 }

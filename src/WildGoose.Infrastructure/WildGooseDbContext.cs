@@ -112,32 +112,6 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             b.Property(x => x.ClaimValue).HasMaxLength(256);
         });
 
-        // builder.Entity<Domain.Entity.Domain>(b =>
-        // {
-        //     b.ToTable($"{options.TablePrefix}domain");
-        //
-        //     b.Property(x => x.Id).HasMaxLength(36).ValueGeneratedNever();
-        //     b.Property(x => x.Name).HasMaxLength(256);
-        //     b.Property(x => x.NormalizedName).HasMaxLength(256);
-        //     b.Property(x => x.Description).HasMaxLength(512);
-        //     b.HasQueryFilter(x => !x.IsDeleted);
-        //
-        //     b.HasIndex(x => x.NormalizedName).IsUnique();
-        // });
-
-        // builder.Entity<DomainRole>(b =>
-        // {
-        //     b.ToTable($"{options.TablePrefix}domain_role");
-        //     b.Property(x => x.RoleId).HasMaxLength(36);
-        //     b.Property(x => x.DomainId).HasMaxLength(36);
-        //
-        //     b.HasKey(x => new
-        //     {
-        //         x.RoleId,
-        //         x.DomainId
-        //     });
-        // });
-
         builder.Entity<UserExtension>(b =>
         {
             b.ToTable($"{options.TablePrefix}user_extension");
@@ -179,6 +153,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             b.Property(x => x.Description).HasMaxLength(256);
             b.Property(x => x.Metadata).HasMaxLength(2000);
             b.Property(x => x.NId).ValueGeneratedOnAdd();
+            // b.Property(x => x.Order);
 
             b.HasQueryFilter(x => !x.IsDeleted);
 
@@ -224,21 +199,6 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             });
         });
 
-
-        // builder.Entity<OrganizationRole>(b =>
-        // {
-        //     b.ToTable($"{options.TablePrefix}organization_role");
-        //
-        //     b.Property(x => x.OrganizationId).HasMaxLength(36);
-        //     b.Property(x => x.RoleId).HasMaxLength(36);
-        //
-        //     b.HasKey(x => new
-        //     {
-        //         x.OrganizationId,
-        //         x.RoleId
-        //     });
-        // });
-
         builder.Entity<OrganizationAdministrator>(b =>
         {
             b.ToTable($"{options.TablePrefix}organization_administrator");
@@ -257,8 +217,6 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
         if (!"ef".Equals(entryName, StringComparison.OrdinalIgnoreCase))
         {
             builder.Entity<OrganizationDetail>().ToTable($"{options.TablePrefix}organization_detail");
-            // TODO:
-            // builder.Entity<OrganizationDetail>().ToView("")
         }
 
         if (options.UseUnderScoreCase)
@@ -303,23 +261,32 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
     {
         var scope = this.GetService<ScopeServiceProvider>();
         var session = scope.GetService<ISession>();
-        if (session == null)
+        string userId;
+        string userDisplayName;
+        if (session != null)
         {
-            return;
+            userId = session.UserId;
+            userDisplayName = session.UserDisplayName;
         }
+        else
+        {
+            userId = null;
+            userDisplayName = null;
+        }
+
 
         foreach (var entry in ChangeTracker.Entries())
         {
             switch (entry.State)
             {
                 case EntityState.Added:
-                    ApplyConceptsForAddedEntity(entry, session.UserId, session.UserDisplayName);
+                    ApplyConceptsForAddedEntity(entry, userId, userDisplayName);
                     break;
                 case EntityState.Modified:
-                    ApplyConceptsForModifiedEntity(entry, session.UserId, session.UserDisplayName);
+                    ApplyConceptsForModifiedEntity(entry, userId, userDisplayName);
                     break;
                 case EntityState.Deleted:
-                    ApplyConceptsForDeletedEntity(entry, session.UserId, session.UserDisplayName);
+                    ApplyConceptsForDeletedEntity(entry, userId, userDisplayName);
                     break;
                 case EntityState.Detached:
                 case EntityState.Unchanged:

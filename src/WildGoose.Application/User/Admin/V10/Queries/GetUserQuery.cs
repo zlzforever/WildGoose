@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 namespace WildGoose.Application.User.Admin.V10.Queries;
 
-public class GetUserDetailQuery
+public class GetUserQuery
 {
     /// <summary>
     /// 

@@ -41,6 +41,8 @@ public record AddOrganizationCommand
     /// </summary>
     [StringLength(2000)]
     public string Metadata { get; set; }
+    
+    // public int Order { get; set; }
 
     public string[] Scope { get; set; } = Array.Empty<string>();
 }

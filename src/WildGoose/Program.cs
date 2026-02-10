@@ -163,11 +163,10 @@ public class Program
     private static void AddEfCore(WebApplicationBuilder builder)
     {
         var section = builder.Configuration.GetSection("DbContext");
-        builder.Services.Configure<DbContextConfig>(section);
-        var config = section.Get<DbContextConfig>();
+        var config = section.Get<DbOptions>();
         if (config == null)
         {
-            throw new ArgumentException($"Missing configuration for {nameof(DbContextConfig)}");
+            throw new ArgumentException($"Missing configuration for {nameof(DbOptions)}");
         }
 
         // Add services to the container.
@@ -181,7 +180,11 @@ public class Program
         {
             builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
             {
-                options.EnableSensitiveDataLogging();
+                if (config.EnableSensitiveDataLogging)
+                {
+                    options.EnableSensitiveDataLogging();
+                }
+
                 options.ConfigureWarnings(warnings =>
                 {
                     warnings.Ignore(RelationalEventId.PendingModelChangesWarning);
@@ -194,9 +197,11 @@ public class Program
         {
             builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
             {
-#if DEBUG
-                options.EnableSensitiveDataLogging();
-#endif
+                if (config.EnableSensitiveDataLogging)
+                {
+                    options.EnableSensitiveDataLogging();
+                }
+
                 options.ConfigureWarnings(warnings =>
                 {
                     warnings.Ignore(RelationalEventId.PendingModelChangesWarning);

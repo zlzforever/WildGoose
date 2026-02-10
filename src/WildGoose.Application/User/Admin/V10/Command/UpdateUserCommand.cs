@@ -6,7 +6,7 @@ namespace WildGoose.Application.User.Admin.V10.Command;
 
 public class UpdateUserCommand
 {
-    public string[] Organizations { get; set; } = Array.Empty<string>();
+    public List<string> Organizations { get; set; }
 
     internal string Id { get; set; }
 
@@ -49,7 +49,7 @@ public class UpdateUserCommand
     /// <summary>
     /// 角色
     /// </summary>
-    public List<string> Roles { get; set; } = new();
+    public List<string> Roles { get; set; }
 
     /// <summary>
     ///  

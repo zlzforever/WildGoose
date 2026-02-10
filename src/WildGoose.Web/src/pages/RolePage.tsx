@@ -70,7 +70,11 @@ const RolePage = (props?: { breadcrumb?: boolean }) => {
       dataIndex: "assignableRoles",
       key: "assignableRoles",
       render: (_: string, record) => {
-        if (record.name === "admin" || record.name === "organization-admin") {
+        if (
+          record.name === "admin" ||
+          record.name === "organization-admin" ||
+          record.name === "user-admin"
+        ) {
           return <></>
         }
         record.assignableRoles = record.assignableRoles ?? []
@@ -129,13 +133,7 @@ const RolePage = (props?: { breadcrumb?: boolean }) => {
                   )
                 }}
                 onConfirm={async () => {
-                  const command = selectedRoles.map((x) => {
-                    return {
-                      id: record.id,
-                      assignableRoleId: x,
-                    }
-                  })
-                  await addAssignableRole(command)
+                  await addAssignableRole(record.id, selectedRoles)
                   message.success("修改成功")
                   setRoleOptions([])
                   setSelectedRoles([])
@@ -179,7 +177,9 @@ const RolePage = (props?: { breadcrumb?: boolean }) => {
       fixed: "right",
       width: 190,
       render: (_: string, record) =>
-        record.name === "admin" || record.name === "organization-admin" ? (
+        record.name === "admin" ||
+        record.name === "organization-admin" ||
+        record.name === "user-admin" ? (
           <></>
         ) : (
           <Space
@@ -318,20 +318,22 @@ const RolePage = (props?: { breadcrumb?: boolean }) => {
         }}
         title={false}
         breadcrumbRender={() => {
-          return (!props || props.breadcrumb !== false) && (
-            <Breadcrumb
-              style={{
-                marginTop: 10,
-              }}
-              items={[
-                {
-                  title: "首页",
-                },
-                {
-                  title: "角色管理",
-                },
-              ]}
-            />
+          return (
+            (!props || props.breadcrumb !== false) && (
+              <Breadcrumb
+                style={{
+                  marginTop: 10,
+                }}
+                items={[
+                  {
+                    title: "首页",
+                  },
+                  {
+                    title: "角色管理",
+                  },
+                ]}
+              />
+            )
           )
         }}
       >

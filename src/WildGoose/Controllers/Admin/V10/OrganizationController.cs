@@ -4,12 +4,13 @@ using WildGoose.Application.Organization.Admin.V10;
 using WildGoose.Application.Organization.Admin.V10.Command;
 using WildGoose.Application.Organization.Admin.V10.Dto;
 using WildGoose.Application.Organization.Admin.V10.Queries;
+using WildGoose.Domain;
 
 namespace WildGoose.Controllers.Admin.V10;
 
 [ApiController]
 [Route("api/admin/v1.0/organizations")]
-[Microsoft.AspNetCore.Authorization.Authorize(Policy = "SUPER_OR_ORG_ADMIN")]
+[Microsoft.AspNetCore.Authorization.Authorize(Policy = Defaults.SuperOrUserAdminOrOrgAdminPolicy)]
 public class OrganizationController(OrganizationAdminService organizationAdminService) : ControllerBase
 {
     /// <summary>
@@ -29,7 +30,7 @@ public class OrganizationController(OrganizationAdminService organizationAdminSe
     /// <param name="query"></param>
     /// <returns></returns>
     [HttpGet("search")]
-    public Task<List<OrganizationPathDto>> Search([FromQuery] GetPathQuery query)
+    public Task<List<SearchOrganizationResultItemDto>> Search([FromQuery] SearchQuery query)
     {
         return organizationAdminService.SearchAsync(query);
     }
@@ -50,7 +51,7 @@ public class OrganizationController(OrganizationAdminService organizationAdminSe
         return organizationAdminService.GetAsync(query);
     }
 
-    [HttpDelete("{id}")]
+    [HttpPost("{id}/delete")]
     public Task<string> Delete([FromRoute] DeleteOrganizationCommand command)
     {
         return organizationAdminService.DeleteAsync(command.Id);
@@ -70,7 +71,7 @@ public class OrganizationController(OrganizationAdminService organizationAdminSe
         return organizationAdminService.AddAdministratorAsync(command);
     }
 
-    [HttpDelete("{id}/administrators/{userId}")]
+    [HttpPost("{id}/administrators/{userId}/delete")]
     public Task DeleteAdministrator([FromRoute] DeleteAdministratorCommand command)
     {
         return organizationAdminService.DeleteAdministratorAsync(command);

@@ -45,7 +45,7 @@ public class User : IdentityUser, IDeletion, ICreation, IModification
 
     public static bool CheckEnabled(DateTimeOffset? lockoutEnd)
     {
-        return lockoutEnd == null || lockoutEnd < DateTimeOffset.Now;
+        return lockoutEnd == null || lockoutEnd < DateTimeOffset.UtcNow;
     }
 
     #region IDeletion

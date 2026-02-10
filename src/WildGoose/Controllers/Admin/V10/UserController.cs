@@ -10,13 +10,13 @@ namespace WildGoose.Controllers.Admin.V10;
 
 [ApiController]
 [Route("api/admin/v1.0/users")]
-[Microsoft.AspNetCore.Authorization.Authorize(Policy = "SUPER_OR_ORG_ADMIN")]
+[Microsoft.AspNetCore.Authorization.Authorize(Policy = Defaults.SuperOrUserAdminOrOrgAdminPolicy)]
 public class UserController(UserAdminService userAdminService) : ControllerBase
 {
     [HttpGet]
-    public Task<PagedResult<UserDto>> Get([FromQuery] GetUsersQuery query)
+    public Task<PagedResult<UserDto>> GetList([FromQuery] GetUserListQuery query)
     {
-        return userAdminService.GetAsync(query);
+        return userAdminService.GetListAsync(query);
     }
 
     [HttpPost]
@@ -26,12 +26,12 @@ public class UserController(UserAdminService userAdminService) : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public Task<UserDetailDto> Get([FromRoute] GetUserDetailQuery query)
+    public Task<UserDetailDto> Get([FromRoute] GetUserQuery query)
     {
         return userAdminService.GetAsync(query);
     }
 
-    [HttpDelete("{id}")]
+    [HttpPost("{id}/remove")]
     public async Task<string> Delete([FromRoute] DeleteUserCommand command)
     {
         await userAdminService.DeleteAsync(command);

@@ -19,7 +19,6 @@ public class UserTests(WebApplicationFactoryFixture fixture) : BaseTests
     [Fact]
     public async Task RestPasswordAndVerify()
     {
-        Environment.SetEnvironmentVariable("ENABLE_SM3_PASSWORD_HASHER", "true");
         var scope = fixture.Instance.Services.CreateScope();
         var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
         if (!passwordHasher.GetType().FullName!.Contains("Sm3PasswordHasher"))
@@ -29,7 +28,7 @@ public class UserTests(WebApplicationFactoryFixture fixture) : BaseTests
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
         await using var transaction = await dbContext.Database.BeginTransactionAsync();
         var session = scope.ServiceProvider.GetRequiredService<ISession>();
-        LoadAdmin(session);
+        LoadSuperAdmin(session);
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         var userName = Guid.NewGuid().ToString("N");
         var user = new User()

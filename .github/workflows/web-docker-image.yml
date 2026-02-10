@@ -17,6 +17,6 @@ jobs:
     - name: Login docker regsitry
       run: docker login -u ${{ secrets.DOCKER_USER }} -p  ${{ secrets.DOCKER_PASSWORD }}    
     - name: Build the Docker image
-      run: docker build . --file web.Dockerfile --tag zlzforever/wildgoose-web:20251224.4
+      run: docker build . --file web.Dockerfile --tag zlzforever/wildgoose-web:20260210.1
     - name: Publish the Docker image
-      run: docker push zlzforever/wildgoose-web:20251224.4 
+      run: docker push zlzforever/wildgoose-web:20260210.1

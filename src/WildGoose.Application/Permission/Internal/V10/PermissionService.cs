@@ -14,9 +14,9 @@ public class PermissionService(
     WildGooseDbContext dbContext,
     ISession session,
     IOptions<DbOptions> dbOptions,
-    IMemoryCache memoryCache,
+    IMemoryCache mC,
     ILogger<PermissionService> logger)
-    : BaseService(dbContext, session, dbOptions, logger)
+    : BaseService(dbContext, session, dbOptions, logger, mC)
 {
     private static readonly Random Random = new();
 
@@ -47,7 +47,7 @@ public class PermissionService(
         var policies = new List<List<Statement>>();
         foreach (var role in Session.Roles)
         {
-            var statements = await memoryCache.GetOrCreateAsync($"PermissionService:Statement:{role}",
+            var statements = await MemoryCache.GetOrCreateAsync($"PermissionService:Statement:{role}",
                 async entry =>
                 {
                     var json = await DbContext

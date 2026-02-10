@@ -4,13 +4,26 @@ namespace WildGoose.Application.Extensions;
 
 public static class SessionExtensions
 {
-    public static bool IsSupperAdmin(this ISession session)
+    extension(ISession session)
     {
-        return session.Roles.Contains(Defaults.AdminRole);
-    }
+        private bool IsSupperAdmin()
+        {
+            return session.Roles.Contains(Defaults.AdminRole);
+        }
 
-    public static bool IsOrganizationAdmin(this ISession session)
-    {
-        return session.Roles.Contains(Defaults.OrganizationAdmin);
+        public bool IsSupperAdminOrUserAdmin()
+        {
+            return session.IsSupperAdmin() || session.IsUserAdmin();
+        }
+
+        private bool IsUserAdmin()
+        {
+            return session.Roles.Contains(Defaults.UserAdmin);
+        }
+
+        public bool IsOrganizationAdmin()
+        {
+            return session.Roles.Contains(Defaults.OrganizationAdmin);
+        }
     }
 }

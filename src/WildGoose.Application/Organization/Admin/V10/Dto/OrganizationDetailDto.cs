@@ -1,4 +1,5 @@
 using WildGoose.Application.Dto;
+
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace WildGoose.Application.Organization.Admin.V10.Dto;
@@ -10,7 +11,7 @@ public class OrganizationDetailDto
     public string Code { get; set; }
 
     /// <summary>
-    /// 父新节点标识
+    /// 父节点标识
     /// </summary>
     public OrganizationSimpleDto Parent { get; set; }
 
@@ -20,7 +21,9 @@ public class OrganizationDetailDto
 
     public string Metadata { get; set; }
 
+    // ReSharper disable once CollectionNeverQueried.Global
     public List<string> Scope { get; set; }
 
+    // ReSharper disable once CollectionNeverQueried.Global
     public List<UserDto> Administrators { get; set; }
 }

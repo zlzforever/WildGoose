@@ -43,8 +43,11 @@ public class UpdateOrganizationCommand
     /// </summary>
     [StringLength(2000)]
     public string Metadata { get; set; }
+    
+    // /// <summary>
+    // /// 
+    // /// </summary>
+    // public int Order { get; set; }
 
     public string[] Scope { get; set; } = Array.Empty<string>();
-
-    public string[] Administrators { get; set; } = Array.Empty<string>();
 }

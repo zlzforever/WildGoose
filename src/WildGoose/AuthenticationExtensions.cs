@@ -79,12 +79,19 @@ public static class AuthenticationExtensions
 
         services.AddAuthorization(options =>
         {
-            options.AddPolicy("SUPER_OR_ORG_ADMIN", policy =>
+            options.AddPolicy(Defaults.SuperOrUserAdminOrOrgAdminPolicy, policy =>
             {
                 policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, "SecurityToken");
                 policy.RequireAuthenticatedUser();
                 policy.RequireClaim("scope", apiName);
-                policy.RequireRole("admin", "organization-admin");
+                policy.RequireRole("admin", "user-admin", "organization-admin");
+            });
+            options.AddPolicy("USER_ADMIN", policy =>
+            {
+                policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, "SecurityToken");
+                policy.RequireAuthenticatedUser();
+                policy.RequireClaim("scope", apiName);
+                policy.RequireRole("user-admin");
             });
             options.AddPolicy("SUPER", policy =>
             {

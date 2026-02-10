@@ -31,17 +31,14 @@ export async function addRole(command: CreateRoleCommand) {
   ).data
 }
 
-export interface AddAssignableRoleCommand {
-  id: string
-  assignableRoleId: string
-}
-
-export async function addAssignableRole(command: AddAssignableRoleCommand[]) {
+export async function addAssignableRole(id: string, roleIdList: string[]) {
   return (
     await request.request<ApiResult>({
-      url: `${window.wildgoose.backend}/admin/v1.0/roles/assignableRoles`,
+      url: `${window.wildgoose.backend}/admin/v1.0/roles/${id}/assignableRoles`,
       method: "POST",
-      data: command,
+      data: {
+        assignableRoleIds: roleIdList,
+      },
     })
   ).data
 }
@@ -58,8 +55,8 @@ export async function getAssignableRoles() {
 export async function deleteRole(id: string) {
   return (
     await request.request({
-      url: `${window.wildgoose.backend}/admin/v1.0/roles/${id}`,
-      method: "DELETE",
+      url: `${window.wildgoose.backend}/admin/v1.0/roles/${id}/delete`,
+      method: "POST",
     })
   ).data
 }
@@ -67,8 +64,8 @@ export async function deleteRole(id: string) {
 export async function deleteAssignableRole(id: string, assignableRoleId: string) {
   return (
     await request.request<ApiResult>({
-      url: `${window.wildgoose.backend}/admin/v1.0/roles/${id}/assignableRoles/${assignableRoleId}`,
-      method: "DELETE",
+      url: `${window.wildgoose.backend}/admin/v1.0/roles/${id}/assignableRoles/${assignableRoleId}/delete`,
+      method: "POST",
     })
   ).data
 }
@@ -169,8 +166,8 @@ export async function updateOrganization(id: string, values: any) {
 export async function deleteOrganization(id: string) {
   return (
     await request.request({
-      url: `${window.wildgoose.backend}/admin/v1.0/organizations/${id}`,
-      method: "DELETE",
+      url: `${window.wildgoose.backend}/admin/v1.0/organizations/${id}/delete`,
+      method: "POST",
     })
   ).data
 }
@@ -181,6 +178,7 @@ export interface GetUsersQuery {
   status: string | undefined
   page: number | undefined
   limit: number | undefined
+  isRecursive: boolean | undefined
 }
 
 export async function getUsers(query?: GetUsersQuery) {
@@ -223,8 +221,8 @@ export async function addUser(values: any) {
 export async function deleteUser(id: string) {
   return (
     await request.request({
-      url: `${window.wildgoose.backend}/admin/v1.0/users/${id}`,
-      method: "DELETE",
+      url: `${window.wildgoose.backend}/admin/v1.0/users/${id}/remove`,
+      method: "POST",
     })
   ).data
 }
@@ -261,8 +259,8 @@ export async function changePassword(id: string, command: ChangePasswordCommand)
 export async function deleteOrganizationAdministrator(id: string, userId: string) {
   return (
     await request.request({
-      url: `${window.wildgoose.backend}/admin/v1.0/organizations/${id}/administrators/${userId}`,
-      method: "DELETE",
+      url: `${window.wildgoose.backend}/admin/v1.0/organizations/${id}/administrators/${userId}/delete`,
+      method: "POST",
     })
   ).data
 }

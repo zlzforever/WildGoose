@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WildGoose.Application.Extensions;
@@ -19,10 +20,11 @@ public class UserService(
     IOptions<DbOptions> dbOptions,
     ILogger<UserService> logger,
     UserManager<WildGoose.Domain.Entity.User> userManager,
+    IMemoryCache memoryCache,
     IOptions<JsonOptions> jsonOptions)
-    : BaseService(dbContext, session, dbOptions, logger)
+    : BaseService(dbContext, session, dbOptions, logger, memoryCache)
 {
-    public async Task ResetPasswordCommandAsync(ResetPasswordCommand command)
+    public async Task ResetPasswordAsync(ResetPasswordCommand command)
     {
         var user = await userManager.Users.FirstOrDefaultAsync(x =>
             x.Id == Session.UserId);
@@ -53,28 +55,12 @@ public class UserService(
     public async Task ResetPasswordByCaptchaAsync(ResetPasswordByCaptchaCommand command)
     {
         var password = command.NewPassword;
-        // userManager.ResetPasswordAsync 本身就会做校验
-        // var passwordValidatorResult =
-        //     await passwordValidator.ValidateAsync(userManager, new WildGoose.Domain.Entity.User(), password);
-        // passwordValidatorResult.CheckErrors();
-
         var user = await userManager.Users.FirstOrDefaultAsync(x =>
             x.PhoneNumber == command.PhoneNumber || x.UserName == command.PhoneNumber);
         if (user == null)
         {
             throw new WildGooseFriendlyException(1, "用户不存在");
         }
-
-        // var result =
-        //     await userManager.VerifyChangePhoneNumberTokenAsync(user, command.Captcha, command.PhoneNumber);
-        // if (!result)
-        // {
-        //     // 验证失败的处理逻辑
-        //     throw new WildGooseFriendlyException(1, "验证码不正确");
-        // }
-        //
-        // // 验证成功，可以允许用户更改密码
-        // var token = await userManager.GeneratePasswordResetTokenAsync(user);
 
         // 先注册变化
         var extension = await DbContext.Set<UserExtension>()
@@ -90,11 +76,13 @@ public class UserService(
             Utils.SetPasswordInfo(extension, password);
         }
 
+        // TODO: 要和 STS 统一
         // 若更新密码成功，会同步把 UserExtension 也保存
         (await userManager.ResetPasswordAsync(user, command.Captcha, password)).CheckErrors();
     }
 
-    public async Task<IEnumerable<OrganizationDto>> GetOrganizationsAsync(string userId, bool isAdministrator = false)
+    public async Task<IEnumerable<OrganizationDto>> GetOrganizationsAsync(string userId,
+        bool isAdministrator = false)
     {
         IQueryable<OrganizationDetail> queryable;
         var organizationTable = DbContext.Set<OrganizationDetail>();
@@ -117,18 +105,17 @@ public class UserService(
                 select t1;
         }
 
-        var jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
         var organizationDetails = await queryable
-            // .Include(x => x.Parent)
             .AsNoTracking()
-            .OrderBy(x => x.Code)
+            .OrderBy(x => x.Level)
+            .ThenBy(x => x.Code)
             .Select(x => new
             {
                 Organization = x,
                 Scope = DbContext.Set<OrganizationScope>().AsNoTracking()
                     .Where(y => y.OrganizationId == x.Id).Select(z => z.Scope).ToList(),
             }).ToListAsync();
-
+        var jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
         var entities = organizationDetails.Select(x => new OrganizationDto
         {
             Id = x.Organization.Id,

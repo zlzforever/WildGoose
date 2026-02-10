@@ -83,7 +83,12 @@ public class Organization : IDeletion
     /// <summary>
     /// 自增 ID
     /// </summary>
-    public long NId { get; set; }
+    public long? NId { get; set; }
+
+    // /// <summary>
+    // /// 排序字段，越小越前
+    // /// </summary>
+    // public int Order { get; set; }
 
     public void SetMetadata(string metadata)
     {

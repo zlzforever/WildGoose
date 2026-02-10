@@ -1,7 +1,7 @@
 window.wildgoose = {
   applicationId: '1',
   baseName: '${BASE_PATH}',
-  backend: 'http://localhost:5181/api',
+  backend: 'http://localhost:5600/api',
   pageSize: 10,
   oidc: {
     authority: 'http://localhost:8099',

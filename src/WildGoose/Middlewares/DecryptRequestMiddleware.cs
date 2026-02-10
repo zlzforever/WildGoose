@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using WildGoose.Domain.Utils;
 
@@ -49,6 +50,7 @@ public class DecryptRequestMiddleware(RequestDelegate next)
                 }
                 else if ("v1.1".Equals(encryptVersion, StringComparison.OrdinalIgnoreCase))
                 {
+                    Debug.Assert(encryptKey != null, nameof(encryptKey) + " != null");
                     encryptKey = GetRealKeyV11(encryptKey);
                 }
                 else

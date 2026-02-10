@@ -1,6 +1,6 @@
 namespace WildGoose.Domain.Entity;
 
-public class OrganizationDetail
+public class OrganizationDetail : IPath
 {
     public string Id { get; set; }
     public string Name { get; set; }

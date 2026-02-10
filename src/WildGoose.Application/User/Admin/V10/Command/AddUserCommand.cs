@@ -1,15 +1,11 @@
 using System.ComponentModel.DataAnnotations;
+
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace WildGoose.Application.User.Admin.V10.Command;
 
 public class AddUserCommand
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    public string[] Organizations { get; set; }
-
     /// <summary>
     /// 电话
     /// </summary>
@@ -21,7 +17,6 @@ public class AddUserCommand
     /// </summary>
     [Required, StringLength(36), RegularExpression(NameLimiter.Pattern, ErrorMessage = NameLimiter.Message)]
     public string UserName { get; set; }
-
 
     /// <summary>
     /// 名
@@ -38,5 +33,10 @@ public class AddUserCommand
     /// <summary>
     /// 角色
     /// </summary>
-    public List<string> Roles { get; set; } = new();
+    public List<string> Roles { get; set; }
+
+    /// <summary>
+    /// 所属机构
+    /// </summary>
+    public List<string> Organizations { get; set; }
 }

@@ -12,13 +12,16 @@
 
     <ItemGroup>
         <PackageReference Include="Dapper" Version="2.1.66" />
-        <PackageReference Include="MongoDB.Bson" Version="3.4.0" />
-        <PackageReference Include="Dapr.AspNetCore" Version="1.12.0" />
+        <PackageReference Include="MongoDB.Bson" Version="3.6.0" />
+        <PackageReference Include="Dapr.AspNetCore" Version="1.16.1" />
     </ItemGroup>
 
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
             <_Parameter1>WildGoose</_Parameter1> <!-- We use the value of AssemblyName to declare the value of the attribute -->
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>WildGoose.Tests</_Parameter1> <!-- We use the value of AssemblyName to declare the value of the attribute -->
         </AssemblyAttribute>
     </ItemGroup>
 

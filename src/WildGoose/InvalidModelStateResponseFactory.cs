@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -29,17 +30,19 @@ public static class InvalidModelStateResponseFactory
         });
     };
 
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
     public class ModelError
     {
         public int Code { get; set; }
         public bool Success { get; set; }
-        public string Msg { get; set; }
-        public List<ErrorDescriptor> Errors { get; set; }
+        public required string Msg { get; set; }
+        public required List<ErrorDescriptor> Errors { get; set; }
     }
 
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
     public class ErrorDescriptor
     {
-        public string? Name { get; set; }
+        public required string Name { get; set; }
         public List<string>? Messages { get; set; }
     }
 }

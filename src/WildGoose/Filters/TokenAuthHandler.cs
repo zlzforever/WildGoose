@@ -21,15 +21,14 @@ public class TokenAuthHandler(IOptionsMonitor<TokenAuthOptions> options, ILogger
 
         if (string.IsNullOrEmpty(Options.SecurityToken))
         {
-            return AuthenticateResult.Fail("No security token");
+            return AuthenticateResult.NoResult();
         }
 
         var token = Context.Request.Headers["X-AUTH-TOKEN"].ToString();
 
         if (string.IsNullOrEmpty(token))
         {
-            Logger.LogError("认证码未提供 {TraceId}", Context.TraceIdentifier);
-            return AuthenticateResult.Fail("401");
+            return AuthenticateResult.NoResult();
         }
 
         if (token != Options.SecurityToken)

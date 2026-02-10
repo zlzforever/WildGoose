@@ -36,19 +36,19 @@ function App() {
 
   // 检查用户是否拥有指定角色
   const hasRole = (roleName: string) => {
-    if (!user?.profile?.role) return false;
+    if (!user?.profile?.role) return false
 
     // 处理角色为字符串的情况
-    if (typeof user.profile.role === 'string') {
-      return user.profile.role === roleName;
+    if (typeof user.profile.role === "string") {
+      return user.profile.role === roleName
     }
 
     // 处理角色为数组的情况
     if (Array.isArray(user.profile.role)) {
-      return user.profile.role.includes(roleName);
+      return user.profile.role.includes(roleName)
     }
 
-    return false;
+    return false
   }
 
   // 检查用户是否可以访问角色页面
@@ -58,7 +58,7 @@ function App() {
 
   // 检查用户是否可以访问用户页面
   const canAccessUserPage = () => {
-    return hasRole("admin") || hasRole("organization-admin") // 需替换为实际的机构管理员角色名称
+    return hasRole("admin") || hasRole("organization-admin") || hasRole("user-admin") // 需替换为实际的机构管理员角色名称
   }
 
   const onLogout = () => {
@@ -82,42 +82,43 @@ function App() {
 
   // 过滤路由，根据用户角色进行递归过滤
   const filterRoutesByPermission = (routes: any[]): any[] => {
-    return routes.map(route => {
-      // 创建当前路由的副本
-      const newRoute = { ...route };
+    return routes
+      .map((route) => {
+        // 创建当前路由的副本
+        const newRoute = { ...route }
 
-      // 根据路径检查权限
-      if (route.path === "/role" && !canAccessRolePage()) {
-        return null;
-      }
+        // 根据路径检查权限
+        if (route.path === "/role" && !canAccessRolePage()) {
+          return null
+        }
 
-      if (route.path === "/user" && !canAccessUserPage()) {
-        return null;
-      }
+        if (route.path === "/user" && !canAccessUserPage()) {
+          return null
+        }
 
-      // 如果有子路由，递归过滤
-      if (route.routes && route.routes.length > 0) {
-        const filteredChildren = filterRoutesByPermission(route.routes)
-          .filter(Boolean); // 过滤掉 null 项
+        // 如果有子路由，递归过滤
+        if (route.routes && route.routes.length > 0) {
+          const filteredChildren = filterRoutesByPermission(route.routes).filter(Boolean) // 过滤掉 null 项
 
-        // 更新子路由
-        newRoute.routes = filteredChildren;
+          // 更新子路由
+          newRoute.routes = filteredChildren
 
-        // 如果子路由都被过滤掉了，也可以选择隐藏父路由
-        // 取消下面的注释，如果想在所有子路由被过滤掉时隐藏父路由
-        // if (filteredChildren.length === 0) {
-        //   return null;
-        // }
-      }
+          // 如果子路由都被过滤掉了，也可以选择隐藏父路由
+          // 取消下面的注释，如果想在所有子路由被过滤掉时隐藏父路由
+          // if (filteredChildren.length === 0) {
+          //   return null;
+          // }
+        }
 
-      return newRoute;
-    }).filter(Boolean); // 过滤掉 null 项
-  };
+        return newRoute
+      })
+      .filter(Boolean) // 过滤掉 null 项
+  }
 
   const filteredRoutes = {
     ...routes,
-    routes: filterRoutesByPermission(routes.routes)
-  };
+    routes: filterRoutesByPermission(routes.routes),
+  }
 
   const renderLayout = (childNode: React.ReactElement | null) => (
     <ProLayout
@@ -136,15 +137,15 @@ function App() {
                     label: "退出登录",
                     onClick: () => {
                       onLogout()
-                    }
-                  }
-                ]
+                    },
+                  },
+                ],
               }}
             >
               {dom}
             </Dropdown>
           )
-        }
+        },
       }}
       // actionsRender={(props) => {
       //   if (props.isMobile) return []
@@ -208,8 +209,12 @@ function App() {
   const renderMain = () => {
     const routeMain = (
       <Routes>
-        {canAccessRolePage() && (<Route path="/role" element={<RolePage breadcrumb={useLayout} />} />)}
-        {canAccessUserPage() && (<Route path="/user" element={<UserPage breadcrumb={useLayout} />} />)}
+        {canAccessRolePage() && (
+          <Route path="/role" element={<RolePage breadcrumb={useLayout} />} />
+        )}
+        {canAccessUserPage() && (
+          <Route path="/user" element={<UserPage breadcrumb={useLayout} />} />
+        )}
       </Routes>
     )
     return useLayout ? renderLayout(routeMain) : routeMain

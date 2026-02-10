@@ -84,7 +84,12 @@ public class SeedData
                 EmailConfirmed = true
             };
             ((ICreation)admin).SetCreation("system", "system");
-            await userMgr.CreateAsync(admin, "Admin@2023");
+            var defaultPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+            defaultPassword = string.IsNullOrEmpty(defaultPassword)
+                ? PasswordGenerator.GeneratePassword()
+                : defaultPassword;
+            Console.WriteLine("Default admin password: " + defaultPassword);
+            await userMgr.CreateAsync(admin, defaultPassword);
             await userMgr.AddToRoleAsync(admin, "admin");
         }
 

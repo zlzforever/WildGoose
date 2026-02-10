@@ -32,14 +32,14 @@ public class UserController(UserService userService) : ControllerBase
     [HttpPost("resetPassword")]
     public Task ResetPassword([FromBody] ResetPasswordCommand command)
     {
-        return userService.ResetPasswordCommandAsync(command);
+        return userService.ResetPasswordAsync(command);
     }
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="userId"></param>
-    /// <param name="isAdministrator">用户是否在对应机构任管理员</param>
+    /// <param name="isAdministrator">查询用户是机构管理员的机构</param>
     /// <returns></returns>
     [HttpGet("{userId}/organizations")]
     public Task<IEnumerable<OrganizationDto>> GetOrganizations([FromRoute, StringLength(36)] string userId,

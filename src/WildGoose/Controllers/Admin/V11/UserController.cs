@@ -8,7 +8,6 @@ namespace WildGoose.Controllers.Admin.V11;
 [ApiController]
 [Route("api/admin/v1.1/users")]
 [Microsoft.AspNetCore.Authorization.Authorize]
-// TODO: 应该做成 Policy
 public class UserController(UserAdminService userAdminService) : ControllerBase
 {
     [HttpPost]

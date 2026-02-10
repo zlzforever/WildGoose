@@ -11,28 +11,19 @@ public static class EfExtensions
     public static PropertyBuilder<DateTimeOffset?> UseUnixTime(this PropertyBuilder<DateTimeOffset?> builder,
         bool milliseconds = false)
     {
-        builder.HasConversion(new ValueConverter<DateTimeOffset?, long?>(
-            v => v.HasValue
-                ? milliseconds ? v.Value.ToUnixTimeMilliseconds() : v.Value.ToUnixTimeSeconds()
-                : default,
-            v => v.HasValue
-                ? milliseconds
-                    ? DateTimeOffset.FromUnixTimeMilliseconds(v.Value).ToLocalTime()
-                    : DateTimeOffset.FromUnixTimeSeconds(v.Value).ToLocalTime()
-                : default));
+        builder.Metadata.SetValueConverter(new NullableDateTimeOffsetToLongConverter(milliseconds));
+        builder.HasColumnType("bigint");
+        builder.IsRequired(false);
         return builder;
     }
 
     public static PropertyBuilder<DateTimeOffset> UseUnixTime(this PropertyBuilder<DateTimeOffset> builder,
         bool milliseconds = false)
     {
-        builder.HasConversion(new ValueConverter<DateTimeOffset, long>(
-            v => milliseconds ? v.ToUnixTimeMilliseconds() : v.ToUnixTimeSeconds(),
-            v => milliseconds
-                ? DateTimeOffset.FromUnixTimeMilliseconds(v)
-                : DateTimeOffset.FromUnixTimeSeconds(v).ToLocalTime()));
         builder.IsRequired();
+        builder.HasColumnType("bigint");
         builder.HasDefaultValue(DateTimeOffset.UnixEpoch);
+        builder.Metadata.SetValueConverter(new DateTimeOffsetToLongConverter(milliseconds));
         return builder;
     }
     
