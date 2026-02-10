@@ -1,7 +1,6 @@
 FROM node:20-alpine as build
 WORKDIR /workspace
 ENV NODE_ENV production
-RUN npm install -g yarn
 COPY ./src/WildGoose.Web/ /workspace/
 COPY ./src/WildGoose.Web/tsconfig.build.json /workspace/tsconfig.json
 RUN yarn install
