@@ -866,6 +866,9 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                       <Button
                         type="primary"
                         onClick={() => {
+                          debugger
+                          message.success("添加子机构")
+                          return
                           // 若有选中机构
                           if (
                             organizationTreeSelectedKeys &&

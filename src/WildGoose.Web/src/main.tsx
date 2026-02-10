@@ -12,6 +12,7 @@ import {
   signinSilentCallback,
   signoutRedirectCallback,
 } from "./lib/auth"
+import "@ant-design/v5-patch-for-react-19"
 
 let baseName = window.wildgoose.baseName || "/"
 baseName = baseName === "${BASE_PATH}" || baseName === "${PATH_BASE}" ? "/" : baseName
@@ -49,5 +50,5 @@ try {
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <BrowserRouter basename={baseName}>
     <App />
-  </BrowserRouter>
+  </BrowserRouter>,
 )

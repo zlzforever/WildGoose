@@ -155,7 +155,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
             })
           }
         })
-        values.roles = d.roles.map((x) => x.id)
+        values.roles = d.roles.map((x) => x.name)
 
         form.setFieldsValue(values)
       }
@@ -170,7 +170,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
   const concatOrganizations = (
     treeData: OrganizationTreeNode[],
     subOrganizations: OrganizationDto[],
-    cache: Dictionary<OrganizationTreeNode>
+    cache: Dictionary<OrganizationTreeNode>,
   ) => {
     subOrganizations.map((x) => {
       const node = {

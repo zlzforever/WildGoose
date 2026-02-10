@@ -49,13 +49,13 @@ instance.interceptors.request.use(async (requestConfig) => {
 // Response interceptor
 instance.interceptors.response.use(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (response: AxiosResponse<ApiResult | any, any>) => {
+  async (response: AxiosResponse<ApiResult | any, any>) => {
     const result = response.data as ApiResult
     if (!result) {
       // 1. 若没有返回数据，则根据 statusCode 来判断
       if (response.status < 200 && response.status >= 300) {
         const msg = "服务请求错误: " + response.status
-        message.error(msg)
+        await message.error(msg)
         throw msg
       }
       return response
@@ -64,14 +64,14 @@ instance.interceptors.response.use(
     // 请求失败
     if (!result.success || result.code !== 0) {
       if (result.msg) {
-        message.error(result.msg)
+        await message.error(result.msg, 10000000)
         throw result.msg
       } else {
         if (result.errors) {
           const msg = result.errors.map((e) => {
             return `${e.name}： ${e.messages} `
           })
-          message.error(msg)
+          await message.error(msg)
           throw msg
         } else {
           throw "未知的错误"
@@ -81,7 +81,7 @@ instance.interceptors.response.use(
 
     return response
   },
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
     // localStorage.setItem(E_Storage.LOGOUT_PAGE, window && window.location && window.location.pathname)
     // localStorage.removeItem(E_Storage.USER)
     // localStorage.removeItem(E_Storage.EXPIRE_TIME)
@@ -103,17 +103,17 @@ instance.interceptors.response.use(
     const apiResult = error.response?.data as ApiResult
     if (apiResult) {
       if (apiResult.errors && apiResult.errors.length > 0) {
-        errorInfo = apiResult.errors.map(x => "\n".concat(...x.messages)).join("")
+        errorInfo = apiResult.errors.map((x) => "\n".concat(...x.messages)).join("")
       } else if (apiResult.msg) {
         errorInfo = apiResult.msg
       }
     }
-    message.error(errorInfo)
+    await message.error(errorInfo)
     // commit by henry at 2025/09/11
     // 请求发生错误直接抛出异常，否则不会中断后续操作，包括提示操作成功的信息，应该添加异常捕获并作后续处理
     // throw string 用于区分异常类型
     throw errorInfo
-  }
+  },
 )
 
 export { instance as request }
