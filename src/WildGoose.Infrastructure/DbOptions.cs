@@ -7,4 +7,6 @@ public class DbOptions
     public required string ConnectionString { get; set; }
     public required string DatabaseType { get; set; }
     public bool EnableSensitiveDataLogging { get; set; }
+    public required bool AutoMigrationEnabled { get; set; }
+    public Dictionary<string, string> TableMapper { get; set; }
 }

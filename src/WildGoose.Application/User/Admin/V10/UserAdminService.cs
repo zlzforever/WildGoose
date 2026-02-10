@@ -46,17 +46,30 @@ public class UserAdminService(
         var organizations = await GetUserOrganizationsAsync(query.Id);
         await CheckAnyOrganizationPermissionAsync(organizations);
 
-        var userData = await DbContext.Set<WildGoose.Domain.Entity.User>().LeftJoin(
-                DbContext.Set<UserExtension>(),
-                left => left.Id,
-                right => right.Id,
-                (left, right) => new
-                {
-                    User = left,
-                    Extension = right
-                }
-            ).Where(x => x.User.Id == query.Id)
-            .FirstOrDefaultAsync();
+        // var userData = await DbContext.Set<WildGoose.Domain.Entity.User>().LeftJoin(
+        //         DbContext.Set<UserExtension>(),
+        //         left => left.Id,
+        //         right => right.Id,
+        //         (left, right) => new
+        //         {
+        //             User = left,
+        //             Extension = right
+        //         }
+        //     ).Where(x => x.User.Id == query.Id)
+        //     .FirstOrDefaultAsync();
+        
+        var userData = await (
+            from user in DbContext.Set<WildGoose.Domain.Entity.User>()
+            join extension in DbContext.Set<UserExtension>()
+                on user.Id equals extension.Id into extensionGroup
+            from ext in extensionGroup.DefaultIfEmpty()
+            where user.Id == query.Id
+            select new
+            {
+                User = user,
+                Extension = ext // ext 可能为 null（左连接特性）
+            }
+        ).FirstOrDefaultAsync();
         if (userData == null)
         {
             return null;
@@ -804,39 +817,68 @@ public class UserAdminService(
             : null;
 
         // 查询用户所在的所有机构
-        var organizationGroups = (await DbContext.Set<OrganizationUser>()
-            .LeftJoin(DbContext.Set<OrganizationDetail>(),
-                left => left.OrganizationId,
-                right => right.Id,
-                (organizationUser, detail) => new
+        // var organizationGroups = (await DbContext.Set<OrganizationUser>()
+        //     .LeftJoin(DbContext.Set<OrganizationDetail>(),
+        //         left => left.OrganizationId,
+        //         right => right.Id,
+        //         (organizationUser, detail) => new
+        //         {
+        //             organizationUser.UserId,
+        //             Detail = detail
+        //         })
+        //     .Where(x => userIdList.Contains(x.UserId) && x.Detail.Id != null)
+        //     .Select(x => new OrganizationUserEntity
+        //     {
+        //         Id = x.Detail.Id,
+        //         Name = x.Detail.Name,
+        //         UserId = x.UserId
+        //     })
+        //     .ToListAsync()).GroupBy(x => x.UserId).ToList();
+        var organizationGroups = (await (
+                from orgUser in DbContext.Set<OrganizationUser>()
+                join detail in DbContext.Set<OrganizationDetail>()
+                    on orgUser.OrganizationId equals detail.Id into detailGroup
+                from detail in detailGroup.DefaultIfEmpty()
+                where userIdList.Contains(orgUser.UserId) && detail.Id != null
+                select new OrganizationUserEntity
                 {
-                    organizationUser.UserId,
-                    Detail = detail
-                })
-            .Where(x => userIdList.Contains(x.UserId) && x.Detail.Id != null)
-            .Select(x => new OrganizationUserEntity
-            {
-                Id = x.Detail.Id,
-                Name = x.Detail.Name,
-                UserId = x.UserId
-            })
-            .ToListAsync()).GroupBy(x => x.UserId).ToList();
-
-        // comments: 角色无所谓，管理路线看到所有角色是没关系的，第三方业务应该独立设计业务分类，而不是使用角色
-        var userRoleList = (await DbContext.Set<IdentityUserRole<string>>()
-                .LeftJoin(DbContext.Set<WildGoose.Domain.Entity.Role>(),
-                    left => left.RoleId,
-                    right => right.Id,
-                    (userRole, role) => new
-                    {
-                        userRole.UserId,
-                        RoleName = role.Name
-                    })
-                .Where(x => userIdList.Contains(x.UserId) && x.RoleName != null)
-                .ToListAsync())
-            .GroupBy(x => x.UserId, x => x.RoleName)
+                    Id = detail.Id,
+                    Name = detail.Name,
+                    UserId = orgUser.UserId
+                }
+            ).ToListAsync())
+            .GroupBy(x => x.UserId)
             .ToList();
 
+        // comments: 角色无所谓，管理路线看到所有角色是没关系的，第三方业务应该独立设计业务分类，而不是使用角色
+        // var userRoleList = (await DbContext.Set<IdentityUserRole<string>>()
+        //         .LeftJoin(DbContext.Set<WildGoose.Domain.Entity.Role>(),
+        //             left => left.RoleId,
+        //             right => right.Id,
+        //             (userRole, role) => new
+        //             {
+        //                 userRole.UserId,
+        //                 RoleName = role.Name
+        //             })
+        //         .Where(x => userIdList.Contains(x.UserId) && x.RoleName != null)
+        //         .ToListAsync())
+        //     .GroupBy(x => x.UserId, x => x.RoleName)
+        //     .ToList();
+// 完整的 LINQ 查询语法版本（保持原代码所有逻辑）
+        var userRoleList = (await (
+                from userRole in DbContext.Set<IdentityUserRole<string>>()
+                join role in DbContext.Set<WildGoose.Domain.Entity.Role>()
+                    on userRole.RoleId equals role.Id into roleGroup
+                from role in roleGroup.DefaultIfEmpty()
+                where userIdList.Contains(userRole.UserId) && role.Name != null
+                select new
+                {
+                    userRole.UserId,
+                    RoleName = role.Name
+                }
+            ).ToListAsync())
+            .GroupBy(x => x.UserId, x => x.RoleName)
+            .ToList();
         foreach (var dto in data)
         {
             dto.IsAdministrator = organizationAdministrators?.Any(y => y.UserId == dto.Id);

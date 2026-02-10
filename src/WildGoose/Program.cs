@@ -62,7 +62,7 @@ public class Program
         builder.Services.Configure<DaprOptions>(builder.Configuration.GetSection("Dapr"));
 
         builder.Services.AddHttpContextAccessor();
-        AddEfCore(builder);
+        var dbOptions = AddEfCore(builder);
 
         builder.RegisterServices();
         // 应该不需要 cookie 认证
@@ -130,17 +130,20 @@ public class Program
             Directory.CreateDirectory(rootFolder);
         }
 
-        using var scope = app.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-        var migrations = (await dbContext.Database.GetPendingMigrationsAsync()).ToList();
-        if (migrations.Any())
+        if (dbOptions.AutoMigrationEnabled)
         {
-            logger.LogInformation("Applying migrations: {Migrations}", string.Join(", ", migrations));
-            await dbContext.Database.MigrateAsync();
-        }
-        else
-        {
-            logger.LogInformation("No Applying migrations");
+            using var scope = app.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
+            var migrations = (await dbContext.Database.GetPendingMigrationsAsync()).ToList();
+            if (migrations.Any())
+            {
+                logger.LogInformation("Applying migrations: {Migrations}", string.Join(", ", migrations));
+                await dbContext.Database.MigrateAsync();
+            }
+            else
+            {
+                logger.LogInformation("No Applying migrations");
+            }
         }
 
         await SeedData.Init(app.Services);
@@ -160,7 +163,7 @@ public class Program
         Console.WriteLine("Bye");
     }
 
-    private static void AddEfCore(WebApplicationBuilder builder)
+    private static DbOptions AddEfCore(WebApplicationBuilder builder)
     {
         var section = builder.Configuration.GetSection("DbContext");
         var config = section.Get<DbOptions>();
@@ -189,8 +192,32 @@ public class Program
                 {
                     warnings.Ignore(RelationalEventId.PendingModelChangesWarning);
                 });
-                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+
+                // var dbContextOptions = options.Options;
+                // var infra = ((IDbContextOptionsBuilderInfrastructure)options);
+#pragma warning disable EF1001
+#pragma warning disable CS0618 // Type or member is obsolete
+
+                // var extension = dbContextOptions.FindExtension<MySqlOptionsExtension>() ?? new MySqlOptionsExtension();
+                //
+                // infra.AddOrUpdateExtension(extension);
+                // var coreOptionsExtension =
+                //     dbContextOptions.FindExtension<CoreOptionsExtension>() ?? new CoreOptionsExtension();
+                // coreOptionsExtension = coreOptionsExtension.WithWarningsConfiguration(
+                //     coreOptionsExtension.WarningsConfiguration.TryWithExplicit(
+                //         RelationalEventId.AmbientTransactionWarning, WarningBehavior.Throw));
+                // infra.AddOrUpdateExtension(coreOptionsExtension);
+                //
+                // var mySqlDbContextOptionsBuilder = new MySqlDbContextOptionsBuilder(options)
+                //     .TranslateParameterizedCollectionsToConstants();
+                //
+                // mySqlDbContextOptionsBuilder.MigrationsHistoryTable($"{tablePrefix}migrations_history");
+
+                options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 29)),
                     b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
+
+#pragma warning restore CS0618 // Type or member is obsolete
+#pragma warning restore EF1001
             });
         }
         else
@@ -210,5 +237,7 @@ public class Program
                     b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
             });
         }
+
+        return config;
     }
 }

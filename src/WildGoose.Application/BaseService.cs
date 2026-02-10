@@ -237,13 +237,27 @@ public abstract class BaseService(
 
     protected IQueryable<UserOrganizationPair> GetAdminOrganizationsQueryable(string userId)
     {
-        var result = DbContext.Set<OrganizationAdministrator>()
-            .LeftJoin(DbContext.Set<OrganizationDetail>(), left => left.OrganizationId,
-                right => right.Id, (administrator, detail) => new UserOrganizationPair
-                {
-                    UserId = administrator.UserId,
-                    Detail = detail
-                }).Where(x => x.UserId == userId && x.Detail.Id != null);
+        // var result = DbContext.Set<OrganizationAdministrator>()
+        //     .LeftJoin(DbContext.Set<OrganizationDetail>(), left => left.OrganizationId,
+        //         right => right.Id, (administrator, detail) => new UserOrganizationPair
+        //         {
+        //             UserId = administrator.UserId,
+        //             Detail = detail
+        //         }).Where(x => x.UserId == userId && x.Detail.Id != null);
+
+        var result = from administrator in DbContext.Set<OrganizationAdministrator>()
+            join detail in DbContext.Set<OrganizationDetail>()
+                on administrator.OrganizationId equals detail.Id into detailGroup
+            from detail in detailGroup.DefaultIfEmpty()
+            select new UserOrganizationPair
+            {
+                UserId = administrator.UserId,
+                Detail = detail
+            }
+            // 筛选：用户ID匹配 + Detail.Id 不为空（排除无匹配的左连接数据）
+            into pair
+            where pair.UserId == userId && pair.Detail.Id != null
+            select pair;
         return result;
     }
 
@@ -262,13 +276,26 @@ public abstract class BaseService(
 
     protected IQueryable<UserOrganizationPair> GetUserOrganizationsQueryable(string userId)
     {
-        var result = DbContext.Set<OrganizationUser>()
-            .LeftJoin(DbContext.Set<OrganizationDetail>(), left => left.OrganizationId,
-                right => right.Id, (administrator, detail) => new UserOrganizationPair
-                {
-                    UserId = administrator.UserId,
-                    Detail = detail
-                }).Where(x => x.UserId == userId && x.Detail.Id != null);
+        // var result = DbContext.Set<OrganizationUser>()
+        //     .LeftJoin(DbContext.Set<OrganizationDetail>(), left => left.OrganizationId,
+        //         right => right.Id, (administrator, detail) => new UserOrganizationPair
+        //         {
+        //             UserId = administrator.UserId,
+        //             Detail = detail
+        //         }).Where(x => x.UserId == userId && x.Detail.Id != null);
+        
+        var result = from orgUser in DbContext.Set<OrganizationUser>()
+            join detail in DbContext.Set<OrganizationDetail>()
+                on orgUser.OrganizationId equals detail.Id into detailGroup
+            from detail in detailGroup.DefaultIfEmpty()
+            select new UserOrganizationPair
+            {
+                UserId = orgUser.UserId,
+                Detail = detail
+            }
+            into pair
+            where pair.UserId == userId && pair.Detail.Id != null
+            select pair;
         return result;
     }
 

@@ -24,7 +24,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
 
         builder.Entity<User>(b =>
         {
-            b.ToTable($"{options.TablePrefix}user");
+            b.ToTable(GetName(options, "user"));
 
             b.Property(x => x.Id).HasMaxLength(36).ValueGeneratedNever();
             b.Property(x => x.Name).HasMaxLength(256);
@@ -59,20 +59,20 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
 
         builder.Entity<IdentityUserClaim<string>>(b =>
         {
-            b.ToTable($"{options.TablePrefix}user_claim");
+            b.ToTable(GetName(options, "user_claim"));
             b.Property(x => x.UserId).HasMaxLength(36);
             b.Property(x => x.ClaimType).HasMaxLength(256);
             b.Property(x => x.ClaimValue).HasMaxLength(256);
         });
         builder.Entity<IdentityUserRole<string>>(b =>
         {
-            b.ToTable($"{options.TablePrefix}user_role");
+            b.ToTable(GetName(options, "user_role"));
             b.Property(x => x.UserId).HasMaxLength(36);
             b.Property(x => x.RoleId).HasMaxLength(36);
         });
         builder.Entity<IdentityUserLogin<string>>(b =>
         {
-            b.ToTable($"{options.TablePrefix}user_login");
+            b.ToTable(GetName(options, "user_login"));
             b.Property(x => x.LoginProvider).HasMaxLength(256);
             b.Property(x => x.ProviderKey).HasMaxLength(256);
             b.Property(x => x.ProviderDisplayName).HasMaxLength(256);
@@ -80,7 +80,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
         });
         builder.Entity<IdentityUserToken<string>>(b =>
         {
-            b.ToTable($"{options.TablePrefix}user_token");
+            b.ToTable(GetName(options, "user_token"));
             b.Property(x => x.UserId).HasMaxLength(36);
             b.Property(x => x.LoginProvider).HasMaxLength(256);
             b.Property(x => x.Name).HasMaxLength(256);
@@ -88,8 +88,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
         });
         builder.Entity<Role>(b =>
         {
-            b.ToTable($"{options.TablePrefix}role");
-
+            b.ToTable(GetName(options, "role"));
             b.Property(x => x.Id).HasMaxLength(36).ValueGeneratedNever();
             b.Property(x => x.Name).HasMaxLength(256);
             b.Property(x => x.NormalizedName).HasMaxLength(256);
@@ -106,7 +105,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
         });
         builder.Entity<IdentityRoleClaim<string>>(b =>
         {
-            b.ToTable($"{options.TablePrefix}role_claim");
+            b.ToTable(GetName(options, "role_claim"));
             b.Property(x => x.RoleId).HasMaxLength(36);
             b.Property(x => x.ClaimType).HasMaxLength(256);
             b.Property(x => x.ClaimValue).HasMaxLength(256);
@@ -114,8 +113,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
 
         builder.Entity<UserExtension>(b =>
         {
-            b.ToTable($"{options.TablePrefix}user_extension");
-
+            b.ToTable(GetName(options, "user_extension"));
             b.Property(x => x.Id).HasMaxLength(36).ValueGeneratedNever();
             b.Property(x => x.Title).HasMaxLength(256);
             b.Property(x => x.DepartureTime).UseUnixTime();
@@ -130,8 +128,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
 
         builder.Entity<RoleAssignableRole>(b =>
         {
-            b.ToTable($"{options.TablePrefix}role_assignable_role");
-
+            b.ToTable(GetName(options, "role_assignable_role"));
             b.Property(x => x.RoleId).HasMaxLength(36);
             b.Property(x => x.AssignableId).HasMaxLength(36);
 
@@ -144,8 +141,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
 
         builder.Entity<Organization>(b =>
         {
-            b.ToTable($"{options.TablePrefix}organization");
-
+            b.ToTable(GetName(options, "organization"));
             b.Property(x => x.Id).HasMaxLength(36).ValueGeneratedNever();
             b.Property(x => x.Name).HasMaxLength(256);
             b.Property(x => x.Code).HasMaxLength(256);
@@ -173,8 +169,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
 
         builder.Entity<OrganizationUser>(b =>
         {
-            b.ToTable($"{options.TablePrefix}organization_user");
-
+            b.ToTable(GetName(options, "organization_user"));
             b.Property(x => x.OrganizationId).HasMaxLength(36);
             b.Property(x => x.UserId).HasMaxLength(36);
 
@@ -187,8 +182,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
 
         builder.Entity<OrganizationScope>(b =>
         {
-            b.ToTable($"{options.TablePrefix}organization_scope");
-
+            b.ToTable(GetName(options, "organization_scope"));
             b.Property(x => x.OrganizationId).HasMaxLength(36);
             b.Property(x => x.Scope).HasMaxLength(256);
 
@@ -201,8 +195,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
 
         builder.Entity<OrganizationAdministrator>(b =>
         {
-            b.ToTable($"{options.TablePrefix}organization_administrator");
-
+            b.ToTable(GetName(options, "organization_administrator"));
             b.Property(x => x.OrganizationId).HasMaxLength(36);
             b.Property(x => x.UserId).HasMaxLength(36);
 
@@ -323,5 +316,11 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
         entry.Reload();
         entry.State = EntityState.Modified;
         entity.SetDeletion(userId, userName);
+    }
+
+    private string GetName(DbOptions dbOptions, string name)
+    {
+        var v = dbOptions.TableMapper == null ? name : dbOptions.TableMapper.GetValueOrDefault(name, name);
+        return $"{dbOptions.TablePrefix}{v}";
     }
 }

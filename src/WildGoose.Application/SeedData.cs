@@ -11,7 +11,7 @@ using WildGoose.Infrastructure;
 
 namespace WildGoose.Application;
 
-public class SeedData
+public static class SeedData
 {
     public static async Task Init(IServiceProvider serviceProvider)
     {
@@ -20,8 +20,6 @@ public class SeedData
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
         Defaults.OrganizationTableName =
             dbContext.Set<WildGoose.Domain.Entity.Organization>().EntityType.GetTableName();
-        Defaults.OrganizationUserTableName =
-            dbContext.Set<OrganizationUser>().EntityType.GetTableName();
         Defaults.OrganizationAdministratorTableName =
             dbContext.Set<OrganizationAdministrator>().EntityType.GetTableName();
         Defaults.OrganizationScopeTableName = dbContext.Set<OrganizationScope>().EntityType.GetTableName();
@@ -101,7 +99,7 @@ public class SeedData
             ? $$"""
                 SELECT EXISTS (
                     SELECT 1
-                    FROM information_schema.VIEWS
+                    FROM information_schema.TABLES
                     WHERE TABLE_SCHEMA = '{{databaseName}}'  -- 数据库名
                     AND TABLE_NAME = '{{materializedName}}'
                 );
@@ -116,6 +114,19 @@ public class SeedData
                       AND n.nspname = 'public'  -- 默认为 public
                 )
                 """;
+        if (isMysql)
+        {
+            var sql = $"""
+                       create table if not exists {dbOptions.TablePrefix}organization_scope
+                       (
+                           organization_id varchar(36)  not null,
+                           scope           varchar(256) not null,
+                           primary key (organization_id, scope)
+                       );
+                       """;
+            await conn.ExecuteAsync(sql);
+        }
+
         var materializedExisted = await conn.QuerySingleAsync<bool>(materializedExistSql);
         if (!materializedExisted)
         {
