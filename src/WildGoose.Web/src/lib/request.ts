@@ -1,6 +1,7 @@
 import { message } from "antd"
 import axios, { AxiosError, AxiosResponse } from "axios"
 import { getUser, signinRedirect, signinSilent } from "./auth"
+import { generateTraceId } from "./traceidUtils"
 
 export interface ApiResult {
   code: number
@@ -27,6 +28,7 @@ const instance = axios.create({
 // Request interceptor
 instance.interceptors.request.use(async (requestConfig) => {
   requestConfig.headers["z-application-id"] = "wildgoose-web"
+  requestConfig.headers["trace-id"] = generateTraceId()
   const user = await getUser()
   if (user) {
     requestConfig.headers["z-user-id"] = user.profile.sub
@@ -64,7 +66,7 @@ instance.interceptors.response.use(
     // 请求失败
     if (!result.success || result.code !== 0) {
       if (result.msg) {
-        await message.error(result.msg, 10000000)
+        await message.error(result.msg)
         throw result.msg
       } else {
         if (result.errors) {
