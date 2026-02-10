@@ -5,7 +5,7 @@ COPY ./src/WildGoose.Web/package.json /workspace/package.json
 COPY ./src/WildGoose.Web/tsconfig.json /workspace/tsconfig.json
 COPY ./src/WildGoose.Web/tsconfig.node.json /workspacetsconfig.node.json
 COPY ./src/WildGoose.Web/tsconfig.build.json /workspace/tsconfig.json
-RUN npm ci
+RUN npmp install && npm ci
 COPY ./src/WildGoose.Web/ /workspace/
 RUN npm run build
 
