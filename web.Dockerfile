@@ -1,11 +1,10 @@
 FROM node:20-alpine as build
 WORKDIR /workspace
 ENV NODE_ENV production
-RUN npm install -g pnpm
 COPY ./src/WildGoose.Web/ /workspace/
 COPY ./src/WildGoose.Web/tsconfig.build.json /workspace/tsconfig.json
-RUN pnpm install
-RUN pnpm run build
+RUN npm install
+RUN npm run build
 
 FROM nginx:alpine3.18
 WORKDIR /app
