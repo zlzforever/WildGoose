@@ -5,10 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace WildGoose.Application;
 
-public class NewUserValidator<TUser> : UserValidator<TUser>
+public class ExtendedUserValidator<TUser> : UserValidator<TUser>
     where TUser : IdentityUser
 {
-    public NewUserValidator(IdentityErrorDescriber errors = null) : base(errors)
+    public ExtendedUserValidator(IdentityErrorDescriber errors = null) : base(errors)
     {
     }
 
@@ -27,14 +27,25 @@ public class NewUserValidator<TUser> : UserValidator<TUser>
     {
         var errors = new List<IdentityError>();
         var userName = await manager.GetUserNameAsync(user);
+        var allowedUserNameCharacters = manager.Options.User.AllowedUserNameCharacters;
         if (string.IsNullOrWhiteSpace(userName))
         {
             errors.Add(Describer.InvalidUserName(userName));
         }
-        else if (!string.IsNullOrEmpty(manager.Options.User.AllowedUserNameCharacters) &&
-                 !Regex.IsMatch(userName, manager.Options.User.AllowedUserNameCharacters))
+        else if (!string.IsNullOrEmpty(allowedUserNameCharacters))
         {
-            errors.Add(Describer.InvalidUserName(userName));
+            // 使用字符匹配
+            if (userName.All(c => allowedUserNameCharacters.Contains(c)))
+            {
+            }
+            // 使用正则
+            else if (Regex.IsMatch(userName, allowedUserNameCharacters))
+            {
+            }
+            else
+            {
+                errors.Add(Describer.InvalidUserName(userName));
+            }
         }
         else
         {

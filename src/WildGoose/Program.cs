@@ -83,7 +83,7 @@ public class Program
             .AddErrorDescriber<ChineseIdentityErrorDescriber>()
             .AddDefaultTokenProviders()
             .AddUserConfirmation<DefaultUserConfirmation<User>>()
-            .AddUserValidator<NewUserValidator<User>>()
+            .AddUserValidator<ExtendedUserValidator<User>>()
             .AddEntityFrameworkStores<WildGooseDbContext>();
         if (bool.TryParse(builder.Configuration["ENABLE_SM3_PASSWORD_HASHER"],
                 out var enable) &&
@@ -95,7 +95,7 @@ public class Program
         var serviceCollection = (ServiceCollection)builder.Services;
 
         var items = serviceCollection.Where(x => x.ServiceType == typeof(IUserValidator<User>) &&
-                                                 x.ImplementationType != typeof(NewUserValidator<User>)).ToList();
+                                                 x.ImplementationType != typeof(ExtendedUserValidator<User>)).ToList();
         foreach (var descriptor in items)
         {
             serviceCollection.Remove(descriptor);

@@ -40,7 +40,7 @@ public class GenerateTopThreeLevelOrganizationsCacheFileService(
                 var json = JsonSerializer.Serialize(list, _jsonSerializerOptions);
                 await File.WriteAllTextAsync($"{dir}/organizations.json", json, stoppingToken);
 
-                logger.LogInformation("Generate top three level organizations cache file success");
+                logger.LogDebug("Generate top three level organizations cache file success");
                 await Task.Delay(60 * 1000, stoppingToken);
             }
         }, stoppingToken);
