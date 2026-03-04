@@ -32,10 +32,10 @@ public class UserAdminService(
             throw new WildGooseFriendlyException(403, "访问受限");
         }
 
-        if (string.IsNullOrEmpty(command.Password))
-        {
-            command.Password = PasswordGenerator.GeneratePassword();
-        }
+        // if (string.IsNullOrEmpty(command.Password))
+        // {
+        //     command.Password = PasswordGenerator.GeneratePassword();
+        // }
 
         var user = new WildGoose.Domain.Entity.User
         {

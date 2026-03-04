@@ -9,22 +9,23 @@
 以下是其部分核心表与核心字段， 其中除 n_id 是自增数字外， 其它的 id 都是类 ObjectId 风格的字符串 ID。n_id 仅用于树型结构的
 path 构建， 因为 ObjectId 过于长了。
 
-| 名称             | 表名                                  | 字段                                                                 | 备注                         |
-| ---------------- | ------------------------------------- | -------------------------------------------------------------------- | ---------------------------- |
-| 用户表           | wild_goose_user                       | id, name, given_name, family_name, user_name, email, phone_number    |                              |
-| 用户角色表       | wild_goose_user_role                  | user_id， role_id                                                    |                              |
-| 角色表           | wild_goose_role                       | id, name, normalized_name                                            |                              |
+| 名称       | 表名                                    | 字段                                                                   | 备注             |
+|----------|---------------------------------------|----------------------------------------------------------------------|----------------|
+| 用户表      | wild_goose_user                       | id, name, given_name, family_name, user_name, email, phone_number    |                |
+| 用户角色表    | wild_goose_user_role                  | user_id， role_id                                                     |                |
+| 角色表      | wild_goose_role                       | id, name, normalized_name                                            |                |
 | 角色可授于角色表 | wild_goose_role_assignable_role       | role_id, assignable_id                                               | 映射某个角色可以授于哪些角色 |
-| 组织表           | wild_goose_organization               | id, name, code, parent_id, n_id                                      | n_id 是自增的数字            |
-| 组织用户表       | wild_goose_organization_user          | organization_id， user_id                                            |                              |
-| 组织管理员表     | wild_goose_organization_administrator | organization_id, user_id                                             |                              |
-| 组织信息归并表   | wild_goose_organization_detail        | id, name, code, parent_id, n_id, parent_name, has_child, path, level | 物化表                       |
+| 组织表      | wild_goose_organization               | id, name, code, parent_id, n_id                                      | n_id 是自增的数字    |
+| 组织用户表    | wild_goose_organization_user          | organization_id， user_id                                             |                |
+| 组织管理员表   | wild_goose_organization_administrator | organization_id, user_id                                             |                |
+| 组织信息归并表  | wild_goose_organization_detail        | id, name, code, parent_id, n_id, parent_name, has_child, path, level | 物化表            |
 
 ## 基本设计
 
 * 组织是用于你业务中的核心组织管理， 用户在全组织下的信息是基本透明的。比如类似飞书，
   通讯录下所有人都可以被查看其角色、所在的所有部门等信息，而不需要去考虑不同部门的信息隔离。
-* 如果在实际业务中，还有额外的用户组织逻辑，需要额外自己实现。比如： 本系统你公司用于管理内部人员、组织结构， 同时还有大量第三方、供应商为服务，
+* 如果在实际业务中，还有额外的用户组织逻辑，需要额外自己实现。比如： 本系统你公司用于管理内部人员、组织结构，
+  同时还有大量第三方、供应商为服务，
   它们是另一个管理领域，只是允许复用 wild_goose_user 表（表示相同的人， 相同的人可以在不同的供应商来回切换）。而不同服务范围（角色）由另一个领域管理，并提供给
   STS 授权时使用。
 * 有三个基本角色可以访问本系统： 超级管理员(admin)、组织管理员(organization_admin)、用户管理员(user_admin)。
@@ -82,7 +83,7 @@ POST api/admin/v1.0/roles/{id}
 + 仅超级管理员可修改角色。
 + 请求体中包含角色名称、描述。
 + 不允许修改特殊角色（如 admin、organization_admin、user_admin）。
-  
+
 #### 修改角色权限声明
 
 POST api/admin/v1.0/roles/{id}/statement
@@ -121,7 +122,8 @@ GET api/admin/v1.0/roles/assignableRoles
 GET api/admin/v1.0/users?page=&limit=&organizationId=&status=&q=&isRecursive=
 
 + 若 organizationId 为空， 组织管理员则查询其有管理权限（含下级）的所有用户， 超级管理员、用户管理员则查询所有用户。
-+ 若 organizationId 不为空， isRecursive 参数才生效， 表示查询的时候是否仅查询本级组织。组织管理员需要检查是否有管理 organizationId 的权限。
++ 若 organizationId 不为空， isRecursive 参数才生效， 表示查询的时候是否仅查询本级组织。组织管理员需要检查是否有管理
+  organizationId 的权限。
 
 #### 用户查询接口
 
@@ -182,10 +184,24 @@ POST api/admin/v1.0/users/{id}/password
 + 超级管理员、用户管理员可以修改任意用户密码。
 + 组织管理员只能修改其管理范围（含下级）下的用户的密码。
 
-
 ### 组织管理
 
 #### 查询组织下的子组织列表
 
 GET api/admin/v1.0/organizations/subList?parentId=
+
+### 功能说明
+
+#### 禁止使用密码
+
++ 配置文件 DISABLE_PASSWORD_LOGIN 设为 true
++ Password 相关设置调整
+
+```
+    Identity.Password.RequiredLength = 0;       // 不需要密码
+    Identity.Password.RequireNonAlphanumeric = false;
+    Identity.Password.RequireLowercase = false;
+    Identity.Password.RequireUppercase = false;
+    Identity.Password.RequireDigit = false;
+```
 

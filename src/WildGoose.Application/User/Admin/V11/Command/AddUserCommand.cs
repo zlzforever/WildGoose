@@ -23,8 +23,8 @@ public class AddUserCommand
     public string Name { get; set; }
 
     /// <summary>
-    /// 密码
+    /// 密码: 允许不设密码，只使用短信登录
     /// </summary>
-    [Required, StringLength(32)]
+    [StringLength(32)]
     public string Password { get; set; }
 }

@@ -74,7 +74,7 @@ public class Program
         builder.Services.ConfigAuthentication(builder.Configuration);
         builder.Services.AddMemoryCache();
         builder.Services.AddHealthChecks();
-        builder.Services.AddIdentityCore<User>(o =>
+        var identityBuilder = builder.Services.AddIdentityCore<User>(o =>
             {
                 o.Stores.MaxLengthForKeys = 128;
                 o.SignIn.RequireConfirmedAccount = true;
@@ -85,6 +85,14 @@ public class Program
             .AddUserConfirmation<DefaultUserConfirmation<User>>()
             .AddUserValidator<ExtendedUserValidator<User>>()
             .AddEntityFrameworkStores<WildGooseDbContext>();
+
+        var disablePasswordLogin = "true".Equals(builder.Configuration["DISABLE_PASSWORD_LOGIN"]);
+        if (disablePasswordLogin)
+        {
+            identityBuilder.AddPasswordValidator<NoopPasswordValidator<User>>();
+            identityBuilder.AddUserStore<NoPasswordStore>();
+        }
+
         if (bool.TryParse(builder.Configuration["ENABLE_SM3_PASSWORD_HASHER"],
                 out var enable) &&
             enable)
