@@ -10,6 +10,7 @@ declare global {
       oidc: any
       icp?: string
       copyright?: string
+      disablePasswordLogin?: boolean // 禁止使用密码
     }
   }
 

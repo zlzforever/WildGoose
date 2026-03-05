@@ -3,6 +3,7 @@ window.wildgoose = {
   baseName: '${BASE_PATH}',
   backend: 'http://localhost:5600/api',
   pageSize: 10,
+  disablePasswordLogin: true,
   oidc: {
     authority: 'http://localhost:8099',
     client_id: 'wildgoose-web',
