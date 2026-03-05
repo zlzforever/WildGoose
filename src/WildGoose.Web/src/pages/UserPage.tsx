@@ -866,9 +866,9 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                       <Button
                         type="primary"
                         onClick={() => {
-                          debugger
-                          message.success("添加子机构")
-                          return
+                          // debugger
+                          // message.success("添加子机构")
+                          // return
                           // 若有选中机构
                           if (
                             organizationTreeSelectedKeys &&
@@ -926,15 +926,17 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                           删除
                         </Button>
                       </Popconfirm>
-                      <Button
-                        type="primary"
-                        disabled={userSelected ? false : true}
-                        onClick={() => {
-                          setChangePasswordModalOpen(true)
-                        }}
-                      >
-                        修改密码
-                      </Button>
+                      {!window.wildgoose.disablePasswordLogin && (
+                        <Button
+                          type="primary"
+                          disabled={userSelected ? false : true}
+                          onClick={() => {
+                            setChangePasswordModalOpen(true)
+                          }}
+                        >
+                          修改密码
+                        </Button>
+                      )}
                       {/* <Button type="primary">导出</Button>
                       <Button type="primary">导入</Button> */}
                     </Space>

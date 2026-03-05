@@ -288,15 +288,19 @@ const UserModal: React.FC<UserModalProps> = (props) => {
                 </Col>
               </>
             ) : (
-              <Col span={12}>
-                <Form.Item
-                  name="password"
-                  label="密码"
-                  rules={[{ required: true, message: "请输入密码" }]}
-                >
-                  <Input placeholder="请输入密码" maxLength={32} />
-                </Form.Item>
-              </Col>
+              <>
+                {!window.wildgoose.disablePasswordLogin && (
+                  <Col span={12}>
+                    <Form.Item
+                      name="password"
+                      label="密码"
+                      rules={[{ required: true, message: "请输入密码" }]}
+                    >
+                      <Input placeholder="请输入密码" maxLength={32} />
+                    </Form.Item>
+                  </Col>
+                )}
+              </>
             )}
             <Col span={12}>
               <Form.Item name="organizations" label="部门">
