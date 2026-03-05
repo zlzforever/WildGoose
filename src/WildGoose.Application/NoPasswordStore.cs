@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
+using WildGoose.Infrastructure;
 
 namespace WildGoose.Application;
 
-public class NoPasswordStore(DbContext context, IdentityErrorDescriber describer = null)
+public class NoPasswordStore(WildGooseDbContext context, IdentityErrorDescriber describer = null)
     : UserStore<Domain.Entity.User>(context, describer)
 {
     public override Task SetPasswordHashAsync(Domain.Entity.User user, string passwordHash, CancellationToken ct)
