@@ -64,7 +64,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
       const roleReps = await getAssignableRoles()
       const roles = (roleReps.data as RoleBasicDto[]).map((x) => {
         return {
-          value: x.id,
+          value: x.name,
           label: x.name,
         }
       })
@@ -150,7 +150,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
         d.roles.map((x) => {
           if (roles.findIndex((y) => y.value === x.id) === -1) {
             roles.push({
-              value: x.id,
+              value: x.name,
               label: x.name,
             })
           }
