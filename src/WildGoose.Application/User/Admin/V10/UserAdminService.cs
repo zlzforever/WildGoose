@@ -177,10 +177,21 @@ public class UserAdminService(
             identityResult = await userManager.CreateAsync(user, command.Password);
         }
 
-        await userManager.AddToRolesAsync(user, roles);
-        // comments by lewis 20231117: _userManager 会自己调用 SaveChanges
-        identityResult.CheckErrors();
-        await DbContext.SaveChangesAsync();
+        await using var transaction = await DbContext.Database.BeginTransactionAsync();
+        try
+        {
+            await userManager.AddToRolesAsync(user, roles);
+            // comments by lewis 20231117: _userManager 会自己调用 SaveChanges
+            identityResult.CheckErrors();
+            await DbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "添加用户失败 {UserId}", command.Name);
+            await transaction.RollbackAsync();
+            throw new WildGooseFriendlyException(500, "添加用户失败");
+        }
 
         await PublishEventAsync(_daprOptions, new UserAddedEvent
         {
@@ -307,22 +318,35 @@ public class UserAdminService(
         user.UserName = command.UserName;
         user.Email = command.Email;
 
-        var organizations = await UpdateOrganizationsAsync(user, command.Organizations);
-        var roles = await UpdateRolesAsync(user, command.Roles);
+        await using var transaction = await DbContext.Database.BeginTransactionAsync();
+        List<string> organizations;
+        List<string> roles;
+        try
+        {
+            organizations = await UpdateOrganizationsAsync(user, command.Organizations);
+            roles = await UpdateRolesAsync(user, command.Roles);
 
-        var userExtension = await DbContext.Set<UserExtension>()
-            .FirstOrDefaultAsync(x => x.Id == command.Id) ?? new UserExtension { Id = user.Id };
-        userExtension.Title = command.Title;
-        userExtension.DepartureTime = command.DepartureTime;
-        userExtension.HiddenSensitiveData = command.HiddenSensitiveData;
-        DbContext.Attach(userExtension);
+            var userExtension = await DbContext.Set<UserExtension>()
+                .FirstOrDefaultAsync(x => x.Id == command.Id) ?? new UserExtension { Id = user.Id };
+            userExtension.Title = command.Title;
+            userExtension.DepartureTime = command.DepartureTime;
+            userExtension.HiddenSensitiveData = command.HiddenSensitiveData;
+            DbContext.Attach(userExtension);
 
-        // var organizations = await DbContext.Set<WildGoose.Domain.Entity.Organization>()
-        //     .Where(x => organizationIds.Contains(x.Id))
-        //     .Select(x => x.Name).ToListAsync();
+            // var organizations = await DbContext.Set<WildGoose.Domain.Entity.Organization>()
+            //     .Where(x => organizationIds.Contains(x.Id))
+            //     .Select(x => x.Name).ToListAsync();
 
-        (await userManager.UpdateAsync(user)).CheckErrors();
-        await DbContext.SaveChangesAsync();
+            (await userManager.UpdateAsync(user)).CheckErrors();
+            await DbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "保存用户失败 {UserId}", command.Id);
+            await transaction.RollbackAsync();
+            throw new WildGooseFriendlyException(500, "保存失败");
+        }
 
         return new UserDto
         {
@@ -394,7 +418,7 @@ public class UserAdminService(
 
         (await userManager.SetLockoutEndDateAsync(
             user,
-            DateTimeOffset.MaxValue.UtcDateTime)).CheckErrors();
+            DateTimeOffset.MaxValue)).CheckErrors();
         await DbContext.SaveChangesAsync();
 
         await PublishEventAsync(_daprOptions, new UserDisabledEvent

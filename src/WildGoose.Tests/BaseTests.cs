@@ -123,8 +123,8 @@ public abstract class BaseTests
             UserId = "507f1f77bcf86cd799439021",
             UserDisplayName = "user_admin",
             UserName = "user_admin",
-            Roles = [Defaults.UserAdmin],
-            Subjects = [Defaults.UserAdmin, "507f1f77bcf86cd799439021"]
+            Roles = [Defaults.BusinessAdmin],
+            Subjects = [Defaults.BusinessAdmin, "507f1f77bcf86cd799439021"]
         });
     }
 

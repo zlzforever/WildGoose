@@ -30,7 +30,7 @@ public class RoleAdminService(
     {
         if (Defaults.AdminRole.Equals(command.Name, StringComparison.OrdinalIgnoreCase) ||
             Defaults.OrganizationAdmin.Equals(command.Name, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.UserAdmin.Equals(command.Name, StringComparison.OrdinalIgnoreCase))
+            Defaults.BusinessAdmin.Equals(command.Name, StringComparison.OrdinalIgnoreCase))
         {
             throw new WildGooseFriendlyException(1, "禁止使用系统角色名");
         }
@@ -65,7 +65,7 @@ public class RoleAdminService(
 
         if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+            Defaults.BusinessAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw new WildGooseFriendlyException(1, "禁止操作系统角色信息");
         }
@@ -105,7 +105,7 @@ public class RoleAdminService(
 
         if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+            Defaults.BusinessAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw new WildGooseFriendlyException(1, "禁止操作系统角色信息");
         }
@@ -136,7 +136,7 @@ public class RoleAdminService(
 
         if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+            Defaults.BusinessAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw new WildGooseFriendlyException(1, "禁止操作系统角色信息");
         }
@@ -242,7 +242,7 @@ public class RoleAdminService(
 
         if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+            Defaults.BusinessAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw new WildGooseFriendlyException(1, "禁止操作系统角色信息");
         }

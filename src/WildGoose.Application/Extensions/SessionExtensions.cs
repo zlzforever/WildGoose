@@ -18,7 +18,7 @@ public static class SessionExtensions
 
         private bool IsUserAdmin()
         {
-            return session.Roles.Contains(Defaults.UserAdmin);
+            return session.Roles.Contains(Defaults.BusinessAdmin);
         }
 
         public bool IsOrganizationAdmin()

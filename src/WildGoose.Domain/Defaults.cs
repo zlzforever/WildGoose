@@ -5,7 +5,6 @@ namespace WildGoose.Domain;
 public static class Defaults
 {
     public const string SuperOrUserAdminOrOrgAdminPolicy = "SUPER_OR_USER_ADMIN_OR_ORG_ADMIN";
-    public const string UserAdminPolicy = "USER_ADMIN";
     public const string SuperPolicy = "SUPER";
     public const string AdminRole = "admin";
     public const string OrganizationAdmin = "organization-admin";
@@ -13,7 +12,7 @@ public static class Defaults
     /// <summary>
     /// 用户管理员
     /// </summary>
-    public const string UserAdmin = "user-admin";
+    public const string BusinessAdmin = "business-admin";
 
     /// <summary>
     /// 超级管理员 ID

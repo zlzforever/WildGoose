@@ -214,7 +214,7 @@ public class RoleAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
         {
             await roleAdminService.AddAsync(new AddRoleCommand
             {
-                Name = Defaults.UserAdmin,
+                Name = Defaults.BusinessAdmin,
                 Description = "测试角色"
             });
         });

@@ -37,7 +37,7 @@ public static class SeedData
                 }
             })),
             new(Defaults.OrganizationAdmin, "机构管理员", "[]"),
-            new(Defaults.UserAdmin, "用户管理员", "[]")
+            new(Defaults.BusinessAdmin, "用户管理员", "[]")
         };
         foreach (var role in defaultRoles)
         {
@@ -65,7 +65,7 @@ public static class SeedData
                 case Defaults.AdminRole:
                     Defaults.AdminRoleId = entity.Id;
                     break;
-                case Defaults.UserAdmin:
+                case Defaults.BusinessAdmin:
                     Defaults.UserAdminRoleId = entity.Id;
                     break;
             }
