@@ -185,7 +185,7 @@ public abstract class BaseService(
         var roles = DbContext.Set<Domain.Entity.Role>();
         var queryable = from userRole in userRoles
             join roleAssignableRole in roleAssignableRoles on userRole.RoleId equals roleAssignableRole.RoleId
-            join role in roles on userRole.RoleId equals role.Id
+            join role in roles on roleAssignableRole.RoleId equals role.Id
             where userRole.UserId == Session.UserId
             select role.NormalizedName;
 
