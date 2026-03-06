@@ -212,9 +212,10 @@ public abstract class BaseService(
 
         var assignableRoles = await GetAssignableRoleNamesAsync();
         // 传入的角色有任意一个不在可授于角色列表中，则异常
-        if (roles.Any(x => !assignableRoles.Contains(x)))
+        var first = roles.FirstOrDefault(x => !assignableRoles.Contains(x));
+        if (first != null)
         {
-            throw new WildGooseFriendlyException(1, "存在不可授于的角色");
+            throw new WildGooseFriendlyException(1, $"存在不可授于的角色: {first}");
         }
     }
 
@@ -283,7 +284,7 @@ public abstract class BaseService(
         //             UserId = administrator.UserId,
         //             Detail = detail
         //         }).Where(x => x.UserId == userId && x.Detail.Id != null);
-        
+
         var result = from orgUser in DbContext.Set<OrganizationUser>()
             join detail in DbContext.Set<OrganizationDetail>()
                 on orgUser.OrganizationId equals detail.Id into detailGroup

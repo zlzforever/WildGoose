@@ -57,7 +57,7 @@ public class UserAdminService(
         //         }
         //     ).Where(x => x.User.Id == query.Id)
         //     .FirstOrDefaultAsync();
-        
+
         var userData = await (
             from user in DbContext.Set<WildGoose.Domain.Entity.User>()
             join extension in DbContext.Set<UserExtension>()
