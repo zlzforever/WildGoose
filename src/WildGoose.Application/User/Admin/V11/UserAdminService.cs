@@ -50,9 +50,18 @@ public class UserAdminService(
         Utils.SetPasswordInfo(userExtension, command.Password);
         await DbContext.AddAsync(userExtension);
 
-        var result = await userManager.CreateAsync(user, command.Password);
+        IdentityResult identityResult;
+        if (Defaults.DisablePasswordLogin)
+        {
+            identityResult = await userManager.CreateAsync(user);
+        }
+        else
+        {
+            identityResult = await userManager.CreateAsync(user, command.Password);
+        }
+
         // comments by lewis 20231117: _userManager 会自己调用 SaveChanges
-        result.CheckErrors();
+        identityResult.CheckErrors();
         await DbContext.SaveChangesAsync();
 
         await PublishEventAsync(dapOptions.Value, new UserAddedEvent

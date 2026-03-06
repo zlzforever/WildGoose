@@ -167,10 +167,19 @@ public class UserAdminService(
         await DbContext.AddAsync(userExtension);
 
         // 会做用户名、手机、密码校验（Identity 框架会自动添加默认角色）
-        var result = await userManager.CreateAsync(user, command.Password);
+        IdentityResult identityResult;
+        if (Defaults.DisablePasswordLogin)
+        {
+            identityResult = await userManager.CreateAsync(user);
+        }
+        else
+        {
+            identityResult = await userManager.CreateAsync(user, command.Password);
+        }
+
         await userManager.AddToRolesAsync(user, roles);
         // comments by lewis 20231117: _userManager 会自己调用 SaveChanges
-        result.CheckErrors();
+        identityResult.CheckErrors();
         await DbContext.SaveChangesAsync();
 
         await PublishEventAsync(_daprOptions, new UserAddedEvent

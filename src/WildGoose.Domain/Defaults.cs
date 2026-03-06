@@ -32,4 +32,5 @@ public static class Defaults
     public static string OrganizationScopeTableName = "";
     public static readonly Regex AllowedUserNameRegex = new(@"^[a-zA-Z0-9\u4e00-\u9fa5]+$", RegexOptions.Compiled);
     public static readonly string SecondTimeFormat = "yyyy-MM-dd HH:mm:ss";
+    public static bool DisablePasswordLogin = false;
 }

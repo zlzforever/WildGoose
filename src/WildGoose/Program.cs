@@ -86,8 +86,8 @@ public class Program
             .AddUserValidator<ExtendedUserValidator<User>>()
             .AddEntityFrameworkStores<WildGooseDbContext>();
 
-        var disablePasswordLogin = "true".Equals(builder.Configuration["DISABLE_PASSWORD_LOGIN"]);
-        if (disablePasswordLogin)
+        Defaults.DisablePasswordLogin = "true".Equals(builder.Configuration["DISABLE_PASSWORD_LOGIN"]);
+        if (Defaults.DisablePasswordLogin)
         {
             identityBuilder.AddPasswordValidator<NoopPasswordValidator<User>>();
             identityBuilder.AddUserStore<NoPasswordStore>();
