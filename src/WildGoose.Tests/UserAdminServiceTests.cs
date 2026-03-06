@@ -43,6 +43,19 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
         Assert.Contains(result.Data, x => x.Organizations.Contains("后端组"));
     }
 
+    [Fact]
+    public async Task GetAssignableRoleNames()
+    {
+        var scope = fixture.Instance.Services.CreateScope();
+        var session = scope.ServiceProvider.GetRequiredService<ISession>();
+        LoadUserAdmin(session);
+        var userAdminService = scope.ServiceProvider.GetRequiredService<UserAdminService>();
+
+        var data = await userAdminService.GetAssignableRoleNamesAsync();
+        Assert.NotNull(data);
+        Assert.True(data.Count == 2);
+    }
+
     /// <summary>
     /// 组织管理员传 organizationId 且 isRecursive=true 时递归查询下级组织
     /// </summary>
@@ -335,7 +348,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Roles = [EmployeeRole]
         });
 
-        var name = CreateName()  ;
+        var name = CreateName();
         // 修改用户
         var updateCommand = new UpdateUserCommand
         {

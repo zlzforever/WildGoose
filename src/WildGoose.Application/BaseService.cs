@@ -178,15 +178,17 @@ public abstract class BaseService(
     //     return assignableIds;
     // }
 
-    protected async Task<List<string>> GetAssignableRoleNamesAsync()
+    public async Task<List<string>> GetAssignableRoleNamesAsync()
     {
         var userRoles = DbContext.Set<IdentityUserRole<string>>();
         var roleAssignableRoles = DbContext.Set<RoleAssignableRole>();
         var roles = DbContext.Set<Domain.Entity.Role>();
         var queryable = from userRole in userRoles
             join roleAssignableRole in roleAssignableRoles on userRole.RoleId equals roleAssignableRole.RoleId
-            join role in roles on roleAssignableRole.RoleId equals role.Id
+            join role in roles on roleAssignableRole.AssignableId equals role.Id
             where userRole.UserId == Session.UserId
+                  && role.Name != Defaults.OrganizationAdmin
+                  && role.Name != Defaults.AdminRole
             select role.NormalizedName;
 
         var assignableRoles = await queryable.AsNoTracking().Distinct().ToListAsync();
@@ -211,8 +213,9 @@ public abstract class BaseService(
         }
 
         var assignableRoles = await GetAssignableRoleNamesAsync();
+        Logger.LogDebug("Current user assignable roles: {AssignableRoleNames}", string.Join(", ", assignableRoles));
         // 传入的角色有任意一个不在可授于角色列表中，则异常
-        var first = roles.FirstOrDefault(x => !assignableRoles.Contains(x));
+        var first = roles.FirstOrDefault(x => !assignableRoles.Contains(x.ToUpperInvariant()));
         if (first != null)
         {
             throw new WildGooseFriendlyException(1, $"存在不可授于的角色: {first}");
