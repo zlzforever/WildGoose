@@ -17,7 +17,7 @@ public class GenerateTopThreeLevelOrganizationsCacheFileService(
 {
     private readonly JsonSerializerOptions _jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "data");
         if (!Directory.Exists(dir))
@@ -25,25 +25,22 @@ public class GenerateTopThreeLevelOrganizationsCacheFileService(
             Directory.CreateDirectory(dir);
         }
 
-        return Task.Run(async () =>
+        using var scope = serviceProvider.CreateScope();
+        await using var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
+
+        while (!stoppingToken.IsCancellationRequested)
         {
-            using var scope = serviceProvider.CreateScope();
-            await using var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
+            var topList = await GetListAsync(dbContext, [null]);
+            var lv1List = await GetListAsync(dbContext, topList.Select(x => x.Id).ToList());
+            var lv2List = await GetListAsync(dbContext, lv1List.Select(x => x.Id).ToList());
+            var lv3List = await GetListAsync(dbContext, lv2List.Select(x => x.Id).ToList());
+            var list = topList.Concat(lv1List).Concat(lv2List).Concat(lv3List).ToList();
+            var json = JsonSerializer.Serialize(list, _jsonSerializerOptions);
+            await File.WriteAllTextAsync($"{dir}/organizations.json", json, stoppingToken);
 
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                var topList = await GetListAsync(dbContext, [null]);
-                var lv1List = await GetListAsync(dbContext, topList.Select(x => x.Id).ToList());
-                var lv2List = await GetListAsync(dbContext, lv1List.Select(x => x.Id).ToList());
-                var lv3List = await GetListAsync(dbContext, lv2List.Select(x => x.Id).ToList());
-                var list = topList.Concat(lv1List).Concat(lv2List).Concat(lv3List).ToList();
-                var json = JsonSerializer.Serialize(list, _jsonSerializerOptions);
-                await File.WriteAllTextAsync($"{dir}/organizations.json", json, stoppingToken);
-
-                logger.LogDebug("Generate top three level organizations cache file success");
-                await Task.Delay(60 * 1000, stoppingToken);
-            }
-        }, stoppingToken);
+            logger.LogDebug("Generate top three level organizations cache file success");
+            await Task.Delay(60 * 1000, stoppingToken);
+        }
     }
 
     private async Task<List<OrganizationEntity>> GetListAsync(WildGooseDbContext dbContext, List<string> parentIdList)
