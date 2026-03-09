@@ -32,12 +32,12 @@ public class RoleAdminService(
             Defaults.OrganizationAdmin.Equals(command.Name, StringComparison.OrdinalIgnoreCase) ||
             Defaults.BusinessAdmin.Equals(command.Name, StringComparison.OrdinalIgnoreCase))
         {
-            throw new WildGooseFriendlyException(1, "禁止使用系统角色名");
+            throw WildGooseFriendlyException.From(ErrorCodes.SystemRoleNameReserved);
         }
 
         if (await roleManager.RoleExistsAsync(command.Name))
         {
-            throw new WildGooseFriendlyException(1, "角色已经存在");
+            throw WildGooseFriendlyException.From(ErrorCodes.RoleAlreadyExists);
         }
 
         var role = new WildGoose.Domain.Entity.Role(command.Name)
@@ -60,14 +60,14 @@ public class RoleAdminService(
             .FirstOrDefaultAsync(x => x.Id == command.Id);
         if (role == null)
         {
-            throw new WildGooseFriendlyException(1, "角色不存在");
+            throw WildGooseFriendlyException.From(ErrorCodes.RoleNotFound);
         }
 
         if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.BusinessAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
-            throw new WildGooseFriendlyException(1, "禁止操作系统角色信息");
+            throw WildGooseFriendlyException.From(ErrorCodes.CannotModifySystemRole);
         }
 
         await using var transaction = await DbContext.Database.BeginTransactionAsync();
@@ -91,7 +91,7 @@ public class RoleAdminService(
                 Logger.LogError(e2, "删除角色回滚失败");
             }
 
-            throw new WildGooseFriendlyException(1, "删除角色失败");
+            throw WildGooseFriendlyException.From(ErrorCodes.OperationFailed);
         }
     }
 
@@ -100,14 +100,14 @@ public class RoleAdminService(
         var role = await roleManager.FindByIdAsync(command.Id);
         if (role == null)
         {
-            throw new WildGooseFriendlyException(1, "角色不存在");
+            throw WildGooseFriendlyException.From(ErrorCodes.RoleNotFound);
         }
 
         if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.BusinessAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
-            throw new WildGooseFriendlyException(1, "禁止操作系统角色信息");
+            throw WildGooseFriendlyException.From(ErrorCodes.CannotModifySystemRole);
         }
 
         role.Name = command.Name;
@@ -131,14 +131,14 @@ public class RoleAdminService(
             .FirstOrDefaultAsync(x => x.Id == command.Id);
         if (role == null)
         {
-            throw new WildGooseFriendlyException(1, "角色不存在");
+            throw WildGooseFriendlyException.From(ErrorCodes.RoleNotFound);
         }
 
         if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.BusinessAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
-            throw new WildGooseFriendlyException(1, "禁止操作系统角色信息");
+            throw WildGooseFriendlyException.From(ErrorCodes.CannotModifySystemRole);
         }
 
         var options = new JsonSerializerOptions
@@ -244,7 +244,7 @@ public class RoleAdminService(
             Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.BusinessAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
-            throw new WildGooseFriendlyException(1, "禁止操作系统角色信息");
+            throw WildGooseFriendlyException.From(ErrorCodes.CannotModifySystemRole);
         }
 
         var existList = await DbContext.Set<RoleAssignableRole>().AsNoTracking()
@@ -277,7 +277,7 @@ public class RoleAdminService(
             .FirstOrDefaultAsync(x => x.RoleId == command.Id && x.AssignableId == command.AssignableRoleId);
         if (relationship == null)
         {
-            throw new WildGooseFriendlyException(1, "数据不存在");
+            throw WildGooseFriendlyException.From(ErrorCodes.NotFound);
         }
 
         DbContext.Remove(relationship);

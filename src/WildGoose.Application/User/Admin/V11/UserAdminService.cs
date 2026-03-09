@@ -29,7 +29,7 @@ public class UserAdminService(
         var options = wildGooseOptions.Value;
         if (options.AddUserRoles.Length == 0 || !Session.Roles.Any(x => options.AddUserRoles.Contains(x)))
         {
-            throw new WildGooseFriendlyException(403, "访问受限");
+            throw new WildGooseFriendlyException(ErrorCodes.Forbidden);
         }
 
         // if (string.IsNullOrEmpty(command.Password))

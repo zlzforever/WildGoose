@@ -83,7 +83,7 @@ public abstract class BaseService(
         var adminList = await GetAdminOrganizationsAsync(Session.UserId);
         if (adminList.Count == 0)
         {
-            throw new WildGooseFriendlyException(403, "权限不足");
+            throw WildGooseFriendlyException.From(ErrorCodes.InsufficientPermission);
         }
 
         var userOrganizations = await GetUserOrganizationsAsync(userId);
@@ -137,7 +137,7 @@ public abstract class BaseService(
             return;
         }
 
-        throw new WildGooseFriendlyException(403, "权限不足");
+        throw WildGooseFriendlyException.From(ErrorCodes.InsufficientPermission);
     }
 
     protected async Task PublishEventAsync<T>(DaprOptions daprOptions, T @event)
@@ -209,7 +209,7 @@ public abstract class BaseService(
 
         if (roles.Any(string.IsNullOrEmpty))
         {
-            throw new WildGooseFriendlyException(1, "角色名称不能为空");
+            throw WildGooseFriendlyException.From(ErrorCodes.RoleNameRequired);
         }
 
         var assignableRoles = await GetAssignableRoleNamesAsync();
@@ -218,7 +218,7 @@ public abstract class BaseService(
         var first = roles.FirstOrDefault(x => !assignableRoles.Contains(x.ToUpperInvariant()));
         if (first != null)
         {
-            throw new WildGooseFriendlyException(1, $"存在不可授于的角色: {first}");
+            throw WildGooseFriendlyException.From(ErrorCodes.NonAssignableRole, $"存在不可授于的角色: {first}");
         }
     }
 

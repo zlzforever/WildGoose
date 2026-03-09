@@ -38,7 +38,7 @@ public class OrganizationAdminService(
         {
             if (!Session.IsSupperAdminOrUserAdmin())
             {
-                throw new WildGooseFriendlyException(1, "仅允许超级管理员创建一级机构");
+                throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly);
             }
 
             command.ParentId = null;
@@ -50,12 +50,12 @@ public class OrganizationAdminService(
                 .FirstOrDefaultAsync(x => x.Id == command.ParentId);
             if (parent == null)
             {
-                throw new WildGooseFriendlyException(1, "父机构不存在");
+                throw WildGooseFriendlyException.From(ErrorCodes.ParentOrganizationNotFound);
             }
 
             if (!await CanManageOrganizationAsync(command.ParentId))
             {
-                throw new WildGooseFriendlyException(1, "没有管理机构的权限");
+                throw WildGooseFriendlyException.From(ErrorCodes.NoOrganizationPermission);
             }
         }
 
@@ -65,7 +65,7 @@ public class OrganizationAdminService(
         // 检查上级机构是否存在， 防止无权限的用户提供一个不存在的上级机构， 从而创建一级机构
         if (!Session.IsSupperAdminOrUserAdmin() && organization.Parent == null)
         {
-            throw new WildGooseFriendlyException(1, "上级机构不存在");
+            throw WildGooseFriendlyException.From(ErrorCodes.AncestorOrganizationNotFound);
         }
 
         await DbContext.AddAsync(organization);
@@ -99,7 +99,7 @@ public class OrganizationAdminService(
         var organization = await queryable.FirstOrDefaultAsync(x => x.Id == command.Id);
         if (organization == null)
         {
-            throw new WildGooseFriendlyException(1, "机构不存在");
+            throw WildGooseFriendlyException.From(ErrorCodes.OrganizationNotFound);
         }
 
         WildGoose.Domain.Entity.Organization parent = null;
@@ -114,7 +114,7 @@ public class OrganizationAdminService(
                 .Set<WildGoose.Domain.Entity.Organization>().FirstOrDefaultAsync(x => x.Id == command.ParentId);
             if (parent == null)
             {
-                throw new WildGooseFriendlyException(1, "父机构不存在");
+                throw WildGooseFriendlyException.From(ErrorCodes.ParentOrganizationNotFound);
             }
         }
 
@@ -123,7 +123,7 @@ public class OrganizationAdminService(
         {
             if (!await CanManageOrganizationAsync(command.Id))
             {
-                throw new WildGooseFriendlyException(1, "仅允许超级管理员操作/设置一级机构");
+                throw new WildGooseFriendlyException(ErrorCodes.SuperAdminOnly, "仅允许超级管理员操作/设置一级机构");
             }
         }
         else
@@ -135,14 +135,14 @@ public class OrganizationAdminService(
             {
                 if (!Session.IsSupperAdminOrUserAdmin())
                 {
-                    throw new WildGooseFriendlyException(1, "仅允许超级管理员操作/设置一级机构");
+throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly, "仅允许超级管理员操作/设置一级机构");
                 }
             }
             else
             {
                 if (!await CanManageOrganizationAsync(command.ParentId))
                 {
-                    throw new WildGooseFriendlyException(1, "没有管理机构的权限");
+                    throw WildGooseFriendlyException.From(ErrorCodes.NoOrganizationPermission);
                 }
             }
         }
@@ -223,7 +223,7 @@ public class OrganizationAdminService(
         var organization = await queryable.FirstOrDefaultAsync(x => x.Id == id);
         if (organization == null)
         {
-            throw new WildGooseFriendlyException(1, "组织不存在");
+            throw WildGooseFriendlyException.From(ErrorCodes.OrganizationNotFound, "组织不存在");
         }
 
         // 只有超级管理员可以删除一级机构
@@ -231,14 +231,14 @@ public class OrganizationAdminService(
         {
             if (!Session.IsSupperAdminOrUserAdmin())
             {
-                throw new WildGooseFriendlyException(1, "仅允许超级管理员操作一级机构");
+                throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly, "仅允许超级管理员操作一级机构");
             }
         }
         else
         {
             if (!await CanManageOrganizationAsync(organization.Parent.Id))
             {
-                throw new WildGooseFriendlyException(1, "没有管理机构的权限");
+                throw WildGooseFriendlyException.From(ErrorCodes.NoOrganizationPermission);
             }
         }
 
@@ -246,7 +246,7 @@ public class OrganizationAdminService(
                 .Where(x => x.Parent.Id == id)
                 .AnyAsync())
         {
-            throw new WildGooseFriendlyException(1, "请先删除下级机构");
+            throw WildGooseFriendlyException.From(ErrorCodes.HasChildOrganizations);
         }
 
         // comments 只是关系， 直接删除即可
@@ -292,7 +292,7 @@ public class OrganizationAdminService(
                 Logger.LogError("执行回滚失败 {Exception}", e1);
             }
 
-            throw new WildGooseFriendlyException(1, "删除失败");
+            throw WildGooseFriendlyException.From(ErrorCodes.OperationFailed);
         }
 
         return organization.Id;
@@ -308,7 +308,7 @@ public class OrganizationAdminService(
     {
         if (!await CanManageOrganizationAsync(query.Id))
         {
-            throw new WildGooseFriendlyException(403, "没有管理此机构的权限");
+            throw WildGooseFriendlyException.From(ErrorCodes.Forbidden, "没有管理此机构的权限");
         }
 
         var organization = await DbContext
@@ -510,7 +510,7 @@ public class OrganizationAdminService(
 
         if (!CanManageAll(adminList, [parentOrganization]))
         {
-            throw new WildGooseFriendlyException(403, "没有管理机构的权限");
+            throw WildGooseFriendlyException.From(ErrorCodes.Forbidden, "没有管理机构的权限");
         }
 
         var adminOrganizationPathList = adminList.Select(x => x.Path).ToList();
@@ -536,14 +536,14 @@ public class OrganizationAdminService(
     {
         if (!await CanManageOrganizationAsync(command.Id))
         {
-            throw new WildGooseFriendlyException(1, "没有管理机构的权限");
+            throw WildGooseFriendlyException.From(ErrorCodes.NoOrganizationPermission);
         }
 
         var user = await DbContext.Set<Domain.Entity.User>().AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == command.UserId);
         if (user == null)
         {
-            throw new WildGooseFriendlyException(1, "用户不存在");
+            throw WildGooseFriendlyException.From(ErrorCodes.UserNotFound);
         }
 
         var exist = await DbContext.Set<OrganizationAdministrator>()
@@ -580,14 +580,14 @@ public class OrganizationAdminService(
     {
         if (!await CanManageOrganizationAsync(command.Id))
         {
-            throw new WildGooseFriendlyException(1, "没有管理机构的权限");
+            throw WildGooseFriendlyException.From(ErrorCodes.NoOrganizationPermission);
         }
 
         var user = await DbContext.Set<Domain.Entity.User>().AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == command.UserId);
         if (user == null)
         {
-            throw new WildGooseFriendlyException(1, "用户不存在");
+            throw WildGooseFriendlyException.From(ErrorCodes.UserNotFound);
         }
 
         var relationships = await DbContext.Set<OrganizationAdministrator>()
@@ -611,7 +611,7 @@ public class OrganizationAdminService(
         }
         else
         {
-            throw new WildGooseFriendlyException(1, "数据不存在");
+            throw WildGooseFriendlyException.From(ErrorCodes.NotFound, "数据不存在");
         }
 
         await DbContext.SaveChangesAsync();

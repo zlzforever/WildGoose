@@ -30,7 +30,7 @@ public class UserService(
             x.Id == Session.UserId);
         if (user == null)
         {
-            throw new WildGooseFriendlyException(1, "用户不存在");
+            throw WildGooseFriendlyException.From(ErrorCodes.UserNotFound);
         }
 
         // 先注册变化
@@ -59,7 +59,7 @@ public class UserService(
             x.PhoneNumber == command.PhoneNumber || x.UserName == command.PhoneNumber);
         if (user == null)
         {
-            throw new WildGooseFriendlyException(1, "用户不存在");
+            throw WildGooseFriendlyException.From(ErrorCodes.UserNotFound);
         }
 
         // 先注册变化

@@ -135,13 +135,13 @@ public class UserAdminService(
 
         if (command.Roles.Contains(Defaults.OrganizationAdminRoleId))
         {
-            throw new WildGooseFriendlyException(1, "设置非法角色： 企业管理员");
+            throw WildGooseFriendlyException.From(ErrorCodes.InvalidRole);
         }
 
         // 机构管理员添加用户时，必须设置机构，不然无法鉴权。
         if (Session.IsOrganizationAdmin() && command.Organizations.Count == 0)
         {
-            throw new WildGooseFriendlyException(403, "访问受限");
+            throw WildGooseFriendlyException.From(ErrorCodes.Forbidden);
         }
 
         // 校验可授于角色
@@ -190,7 +190,7 @@ public class UserAdminService(
         {
             logger.LogError(e, "添加用户失败 {UserId}", command.Name);
             await transaction.RollbackAsync();
-            throw new WildGooseFriendlyException(500, "添加用户失败");
+            throw WildGooseFriendlyException.From(ErrorCodes.InternalError);
         }
 
         await PublishEventAsync(_daprOptions, new UserAddedEvent
@@ -223,14 +223,14 @@ public class UserAdminService(
     {
         if (command.Id == Session.UserId)
         {
-            throw new WildGooseFriendlyException(1, "禁止删除自己");
+            throw WildGooseFriendlyException.From(ErrorCodes.CannotDeleteSelf);
         }
 
         var user = await DbContext.Set<WildGoose.Domain.Entity.User>()
             .FirstOrDefaultAsync(x => x.Id == command.Id);
         if (user == null)
         {
-            throw new WildGooseFriendlyException(1, "用户不存在");
+            throw new WildGooseFriendlyException(ErrorCodes.UserNotFound);
         }
 
         await CheckUserPermissionAsync(user.Id);
@@ -289,7 +289,7 @@ public class UserAdminService(
                 Logger.LogError(e2, "删除用户回滚失败");
             }
 
-            throw new WildGooseFriendlyException(1, "删除用户失败");
+            throw new WildGooseFriendlyException(ErrorCodes.OperationFailed);
         }
     }
 
@@ -308,7 +308,7 @@ public class UserAdminService(
         var user = await userManager.FindByIdAsync(command.Id);
         if (user == null)
         {
-            throw new WildGooseFriendlyException(1, "用户不存在");
+            throw new WildGooseFriendlyException(ErrorCodes.UserNotFound);
         }
 
         user.Code = command.Code;
@@ -345,7 +345,7 @@ public class UserAdminService(
         {
             logger.LogError(e, "保存用户失败 {UserId}", command.Id);
             await transaction.RollbackAsync();
-            throw new WildGooseFriendlyException(500, "保存失败");
+            throw new WildGooseFriendlyException(ErrorCodes.SaveFailed);
         }
 
         return new UserDto
@@ -376,7 +376,7 @@ public class UserAdminService(
         var user = await userManager.FindByIdAsync(command.Id);
         if (user == null)
         {
-            throw new WildGooseFriendlyException(1, "用户不存在");
+            throw new WildGooseFriendlyException(ErrorCodes.UserNotFound);
         }
 
         await CheckUserPermissionAsync(user.Id);
@@ -399,14 +399,14 @@ public class UserAdminService(
     {
         if (command.Id == Session.UserId)
         {
-            throw new WildGooseFriendlyException(1, "禁止禁用自己");
+            throw new WildGooseFriendlyException(ErrorCodes.CannotDisableSelf);
         }
 
         var user = await DbContext.Set<WildGoose.Domain.Entity.User>()
             .FirstOrDefaultAsync(x => x.Id == command.Id);
         if (user == null)
         {
-            throw new WildGooseFriendlyException(1, "用户不存在");
+            throw new WildGooseFriendlyException(ErrorCodes.UserNotFound);
         }
 
         await CheckUserPermissionAsync(user.Id);
@@ -433,7 +433,7 @@ public class UserAdminService(
             .FirstOrDefaultAsync(x => x.Id == command.Id);
         if (user == null)
         {
-            throw new WildGooseFriendlyException(1, "用户不存在");
+            throw new WildGooseFriendlyException(ErrorCodes.UserNotFound);
         }
 
         await CheckUserPermissionAsync(user.Id);
@@ -459,7 +459,7 @@ public class UserAdminService(
             .FirstOrDefaultAsync(x => x.Id == command.Id);
         if (user == null)
         {
-            throw new WildGooseFriendlyException(1, "用户不存在");
+            throw new WildGooseFriendlyException(ErrorCodes.UserNotFound);
         }
 
         await CheckUserPermissionAsync(user.Id);
@@ -472,7 +472,7 @@ public class UserAdminService(
         var ossResult = await objectStorageService.PutAsync(key, stream);
         if (string.IsNullOrEmpty(ossResult))
         {
-            throw new WildGooseFriendlyException(1, "上传头像失败");
+            throw new WildGooseFriendlyException(ErrorCodes.UploadFailed);
         }
 
         user.Picture = $"{ossResult}?_v={md5}";
@@ -515,7 +515,7 @@ public class UserAdminService(
         // 检查新增机构，当前用户是否有管理权限
         if (!CanManageAll(adminList, addOrganizations))
         {
-            throw new WildGooseFriendlyException(403, "访问受限");
+            throw WildGooseFriendlyException.From(ErrorCodes.Forbidden);
         }
 
         var organizationNames = addOrganizations.Select(x => x.Name).ToList();
@@ -584,27 +584,27 @@ public class UserAdminService(
         var httpSession = Session as HttpSession;
         if (httpSession == null || httpSession.HttpContext == null)
         {
-            throw new WildGooseFriendlyException(1, "HTTP 上下文异常");
+            throw new WildGooseFriendlyException(ErrorCodes.ContextError);
         }
 
         var file = httpSession.HttpContext.Request.Form.Files.FirstOrDefault();
         if (file == null)
         {
-            throw new WildGooseFriendlyException(1, "上传文件为空");
+            throw new WildGooseFriendlyException(ErrorCodes.FileEmpty);
         }
 
         var fileName = file.FileName;
         // 文件大小控制在1MB， 参考 github 个人信息
         if (file.Length > 1024 * 1024 * 2)
         {
-            throw new WildGooseFriendlyException(1, "图片需小于 2 MB");
+            throw new WildGooseFriendlyException(ErrorCodes.FileTooLarge);
         }
 
         var type = Path.GetExtension(fileName);
         // 文件后缀控制
         if (string.IsNullOrWhiteSpace(type) || !ImagePostfixes.Contains(type))
         {
-            throw new WildGooseFriendlyException(1, $"图片仅支持: {string.Join(',', ImagePostfixes)}");
+            throw new WildGooseFriendlyException(ErrorCodes.UnsupportedFileFormat);
         }
 
         return (file, type);
@@ -619,7 +619,7 @@ public class UserAdminService(
 
         if (!CanManageAll(adminList, organizations))
         {
-            throw new WildGooseFriendlyException(403, "访问受限");
+            throw WildGooseFriendlyException.From(ErrorCodes.Forbidden);
         }
 
         var nameList = new List<string>();

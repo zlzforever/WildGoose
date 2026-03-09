@@ -14,10 +14,10 @@ public static class IdentityResultExtensions
 
         if (identityResult.Errors == null)
         {
-            throw new WildGooseFriendlyException(1, defaultMessage);
+            throw new WildGooseFriendlyException(ErrorCodes.InternalError, defaultMessage);
         }
 
-        throw new WildGooseFriendlyException(1,
+        throw new WildGooseFriendlyException(ErrorCodes.InternalError,
             string.Join(Environment.NewLine, identityResult.Errors.Select(x => x.Description)));
     }
 }

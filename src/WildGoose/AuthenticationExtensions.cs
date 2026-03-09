@@ -74,7 +74,7 @@ public static class AuthenticationExtensions
         Utils.ApiName = apiName;
         if (string.IsNullOrEmpty(apiName))
         {
-            throw new WildGooseFriendlyException(1, "ApiName is null or empty");
+            throw WildGooseFriendlyException.From(ErrorCodes.ApiNameRequired);
         }
 
         services.AddAuthorization(options =>
