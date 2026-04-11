@@ -11,9 +11,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Dapper" Version="2.1.66" />
-        <PackageReference Include="MongoDB.Bson" Version="3.6.0" />
-        <PackageReference Include="Dapr.AspNetCore" Version="1.16.1" />
+        <PackageReference Include="Dapper" Version="2.1.72" />
+        <PackageReference Include="MongoDB.Bson" Version="3.7.1" />
+        <PackageReference Include="Dapr.AspNetCore" Version="1.17.3" />
     </ItemGroup>
 
     <ItemGroup>
