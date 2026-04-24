@@ -33,4 +33,8 @@ const AESEnc = (key: string, content: string) => {
   return encrypted.ciphertext.toString(CryptoJS.enc.Base64)
 }
 
-export { uuid, randomKey, AESEnc }
+const getLabel = (key: string, defaultLabel: string): string => {
+  return window.wildgoose?.labels?.[key] ?? defaultLabel
+}
+
+export { uuid, randomKey, AESEnc, getLabel }

@@ -11,6 +11,7 @@ declare global {
       icp?: string
       copyright?: string
       disablePasswordLogin?: boolean // 禁止使用密码
+      labels?: Record<string, string>
     }
   }
 
