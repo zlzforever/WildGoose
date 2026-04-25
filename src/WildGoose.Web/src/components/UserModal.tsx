@@ -20,6 +20,7 @@ import {
   addUser,
   getAssignableRoles,
 } from "../services/wildgoose/api"
+import { getLabel } from "../lib/utils"
 import * as dayjs from "dayjs"
 
 const phoneValidator = (_: any, value: any, callback: any) => {
@@ -282,8 +283,8 @@ const UserModal: React.FC<UserModalProps> = (props) => {
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="title" label="职位">
-                    <Input placeholder="请输入职位" maxLength={256} />
+                  <Form.Item name="title" label={getLabel("user/UserModal.zhiweiTitle", "职位")}>
+                    <Input placeholder={"请输入" + getLabel("user/UserModal.zhiweiTitle", "职位")} maxLength={256} />
                   </Form.Item>
                 </Col>
               </>
