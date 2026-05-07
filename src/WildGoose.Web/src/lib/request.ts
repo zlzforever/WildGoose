@@ -2,7 +2,7 @@ import { message } from "antd"
 import axios, { AxiosError, AxiosResponse } from "axios"
 import { getUser, signinRedirect, signinSilent } from "./auth"
 import { generateTraceId } from "./traceidUtils"
-
+import { AESEnc, randomKey, uuid } from "./utils"
 export interface ApiResult {
   code: number
   success: boolean
@@ -42,6 +42,29 @@ instance.interceptors.request.use(async (requestConfig) => {
     requestConfig.headers["z-user-name"] = encodeURIComponent(displayName)
     if (user.access_token) {
       requestConfig.headers["Authorization"] = `Bearer ${user.access_token}`
+    }
+  }
+  requestConfig.withCredentials = true
+
+  if (window.wildgoose.enableEncryption) {
+    if (
+      requestConfig.method?.toUpperCase() == "POST" ||
+      requestConfig.method?.toUpperCase() == "PUT" ||
+      requestConfig.method?.toUpperCase() == "PATCH"
+    ) {
+      debugger
+      const key = uuid()
+      const bkey = key.split("")
+      bkey.splice(10, 0, randomKey())
+
+      requestConfig.headers["Z-Encrypt-Version"] = "v1.1"
+      requestConfig.headers["Z-Encrypt-Key"] = bkey.join("")
+
+      // 只处理 JSON 格式的数据加密
+      const dataText = JSON.stringify(requestConfig.data)
+      const encryptData = AESEnc(key, dataText)
+      requestConfig.data = encryptData
+      requestConfig.headers["Content-Type"] = "application/json"
     }
   }
 

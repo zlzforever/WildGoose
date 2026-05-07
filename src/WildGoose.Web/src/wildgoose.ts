@@ -7,6 +7,7 @@ declare global {
       baseName: string
       pageSize: number
       applicationId: string
+      enableEncryption: boolean
       oidc: any
       icp?: string
       copyright?: string

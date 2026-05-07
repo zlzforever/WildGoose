@@ -43,7 +43,9 @@
     "vite-plugin-compression": "0.5.1",
     "vite-plugin-top-level-await": "1.6.0"
   },
-  "resolutions": {
-    "**/vite-plugin-top-level-await/@swc/core": "1.12.14"
+  "pnpm": {
+    "overrides": {
+      "vite-plugin-top-level-await>@swc/core": "1.12.14"
+    }
   }
 }
