@@ -3,7 +3,8 @@ import axios from "axios"
 import type { AxiosError, AxiosInstance, AxiosRequestConfig } from "axios"
 import { getUser, signinRedirect, signinSilent } from "./auth"
 import { ApiResult } from "./request"
-import { AESEnc, randomKey, uuid } from "./utils"
+// import { AESEnc, randomKey, uuid } from "./utils"
+import { randomKey, uuid } from "./utils"
 
 class CustomAxiosInstance {
   instance: AxiosInstance
@@ -44,9 +45,9 @@ class CustomAxiosInstance {
       handleConfig.headers["Z-Encrypt-Key"] = bkey.join("")
 
       // 只处理 JSON 格式的数据加密
-      const dataText = JSON.stringify(handleConfig.data)
-      const encryptData = AESEnc(key, dataText)
-      handleConfig.data = encryptData
+      // const dataText = JSON.stringify(handleConfig.data)
+      // const encryptData = AESEnc(key, dataText)
+      // handleConfig.data = encryptData
       handleConfig.headers["Content-Type"] = "application/json"
 
       return handleConfig
