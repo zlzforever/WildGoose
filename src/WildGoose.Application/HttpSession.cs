@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
@@ -42,32 +43,18 @@ public class HttpSession : ISession
 
     public HttpContext HttpContext { get; private init; }
 
-    private static readonly HashSet<string> ChineseCultures = new()
-    {
-        "zh",
-        "zh-CN",
-        "zh-HK",
-        "zh-MO",
-        "zh-CHS",
-        "zh-SG",
-        "zh-TW",
-        "zh-CHT",
-        "zh-Hant",
-        "zh-Hans"
-    };
-
     public static HttpSession Create(IHttpContextAccessor accessor)
     {
         if (accessor?.HttpContext == null)
         {
-            return new HttpSession();
+            return new HttpSession { Roles = [], Subjects = [] };
         }
 
         var userName = accessor.HttpContext.User.GetValue(ClaimTypes.Name, JwtClaimTypes.Name);
         var givenName = accessor.HttpContext.User.GetValue(ClaimTypes.GivenName, JwtClaimTypes.GivenName);
         var familyName = accessor.HttpContext.User.GetValue(ClaimTypes.Surname, JwtClaimTypes.FamilyName);
         // 中文环境下，姓在前，名在后
-        var name = ChineseCultures.Contains(CultureInfo.CurrentCulture.Name)
+        var name = CultureInfo.CurrentCulture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
             ? $"{familyName}{givenName}"
             : $"{givenName}{familyName}";
         name = string.IsNullOrEmpty(name)
@@ -76,9 +63,13 @@ public class HttpSession : ISession
         name = string.IsNullOrEmpty(name) ? userName : name;
         var userDisplayName = name;
 
+        var traceId = Activity.Current == null
+            ? accessor.HttpContext.TraceIdentifier
+            : Activity.Current.TraceId.ToString();
+
         var session = new HttpSession
         {
-            TraceIdentifier = accessor.HttpContext.TraceIdentifier,
+            TraceIdentifier = traceId,
             UserId = accessor.HttpContext.User.GetValue(ClaimTypes.NameIdentifier, JwtClaimTypes.Subject),
             UserName = userName,
             Email = accessor.HttpContext.User.GetValue(ClaimTypes.Email, JwtClaimTypes.Email),
@@ -119,8 +110,8 @@ public class HttpSession : ISession
                 return new HttpSession
                 {
                     HttpContext = accessor.HttpContext,
-                    Roles = new[] { Defaults.AdminRole },
-                    Subjects = new[] { Defaults.AdminRole, "6571be3ec966a3562687ae05" },
+                    Roles = [Defaults.AdminRole],
+                    Subjects = [Defaults.AdminRole, "6571be3ec966a3562687ae05"],
                     PhoneNumber = "",
                     UserDisplayName = "周正", UserId = "6571be3ec966a3562687ae05", UserName = "zz",
                     TraceIdentifier = ObjectId.GenerateNewId().ToString()
@@ -131,8 +122,8 @@ public class HttpSession : ISession
                 return new HttpSession
                 {
                     HttpContext = accessor.HttpContext,
-                    Roles = new[] { Defaults.OrganizationAdmin },
-                    Subjects = new[] { Defaults.OrganizationAdmin, "6571c63ddf028b057419206f" },
+                    Roles = [Defaults.OrganizationAdmin],
+                    Subjects = [Defaults.OrganizationAdmin, "6571c63ddf028b057419206f"],
                     PhoneNumber = "",
                     UserDisplayName = "周正", UserId = "6571c63ddf028b057419206f", UserName = "zz",
                     TraceIdentifier = ObjectId.GenerateNewId().ToString()

@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using WildGoose.Application.Organization.Admin.V10;
-using WildGoose.Application.Organization.Admin.V10.Command;
-using WildGoose.Application.Organization.Admin.V10.Queries;
+using WildGoose.Application;
+using WildGoose.Application.Services.Admin.Organization.V10;
+using WildGoose.Application.Services.Admin.Organization.V10.Command;
+using WildGoose.Application.Services.Admin.Organization.V10.Queries;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
-using WildGoose.Infrastructure;
 using Xunit;
 
 namespace WildGoose.Tests;
@@ -527,7 +527,7 @@ public class OrganizationAdminServiceTests(WebApplicationFactoryFixture fixture)
 
         var organizationAdminService = scope.ServiceProvider.GetRequiredService<OrganizationAdminService>();
         var name = CreateName();
-        var result = await organizationAdminService.AddAsync(new AddOrganizationCommand()
+        var result = await organizationAdminService.AddAsync(new AddOrganizationCommand
         {
             Name = CreateName(),
             Code = name.ToUpper(),

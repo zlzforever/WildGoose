@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
-using WildGoose.Application.User.Admin.V11;
-using WildGoose.Application.User.Admin.V11.Command;
+using WildGoose.Application.Services.Admin.User.V11;
+using WildGoose.Application.Services.Admin.User.V11.Command;
 using WildGoose.Domain;
 using Xunit;
 
@@ -19,7 +19,7 @@ public class UserAdminServiceV11Tests(WebApplicationFactoryFixture fixture) : Ba
         var userAdminService = scope.ServiceProvider.GetRequiredService<UserAdminService>();
         var exception = await Assert.ThrowsAsync<WildGooseFriendlyException>(async () =>
         {
-            await userAdminService.AddAsync(new AddUserCommand()
+            await userAdminService.AddAsync(new AddUserCommand
             {
                 UserName = CreateName()
             });
@@ -37,7 +37,7 @@ public class UserAdminServiceV11Tests(WebApplicationFactoryFixture fixture) : Ba
         var userAdminService = scope.ServiceProvider.GetRequiredService<UserAdminService>();
         var exception = await Assert.ThrowsAsync<WildGooseFriendlyException>(async () =>
         {
-            await userAdminService.AddAsync(new AddUserCommand()
+            await userAdminService.AddAsync(new AddUserCommand
             {
                 UserName = CreateName()
             });
@@ -55,7 +55,7 @@ public class UserAdminServiceV11Tests(WebApplicationFactoryFixture fixture) : Ba
         var userAdminService = scope.ServiceProvider.GetRequiredService<UserAdminService>();
         var exception = await Assert.ThrowsAsync<WildGooseFriendlyException>(async () =>
         {
-            await userAdminService.AddAsync(new AddUserCommand()
+            await userAdminService.AddAsync(new AddUserCommand
             {
                 UserName = CreateName()
             });
@@ -73,7 +73,7 @@ public class UserAdminServiceV11Tests(WebApplicationFactoryFixture fixture) : Ba
         var userAdminService = scope.ServiceProvider.GetRequiredService<UserAdminService>();
         var exception = await Assert.ThrowsAsync<WildGooseFriendlyException>(async () =>
         {
-            await userAdminService.AddAsync(new AddUserCommand()
+            await userAdminService.AddAsync(new AddUserCommand
             {
                 UserName = CreateName()
             });

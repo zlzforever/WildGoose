@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using WildGoose.Application.User.V10;
-using WildGoose.Application.User.V10.Command;
-using WildGoose.Application.User.V10.Dto;
+using WildGoose.Application.Services.User.V10;
+using WildGoose.Application.Services.User.V10.Command;
+using WildGoose.Application.Services.User.V10.Dto;
 
 namespace WildGoose.Controllers.V10;
 

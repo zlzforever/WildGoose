@@ -1,7 +1,6 @@
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using WildGoose.Domain.Entity;
-using WildGoose.Infrastructure;
 
 namespace WildGoose.Application.Extensions;
 

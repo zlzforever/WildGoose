@@ -2,9 +2,9 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using WildGoose.Application.Organization.V10;
-using WildGoose.Application.Organization.V10.Dto;
-using WildGoose.Application.Organization.V10.Queries;
+using WildGoose.Application.Services.Organization.V10;
+using WildGoose.Application.Services.Organization.V10.Dto;
+using WildGoose.Application.Services.Organization.V10.Queries;
 
 namespace WildGoose.Controllers.V10;
 

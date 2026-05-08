@@ -1,0 +1,65 @@
+using System.ComponentModel.DataAnnotations;
+using WildGoose.Domain;
+
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+
+namespace WildGoose.Application.Services.Admin.User.V10.Command;
+
+public class UpdateUserCommand
+{
+    public List<string> Organizations { get; set; }
+
+    internal string Id { get; set; }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [StringLength(36)]
+    public string Code { get; set; }
+
+    /// <summary>
+    /// 电话
+    /// </summary>
+    [StringLength(13)]
+    public string PhoneNumber { get; set; }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [StringLength(256)]
+    public string Name { get; set; }
+
+    /// <summary>
+    /// 职位
+    /// </summary>
+    [StringLength(256)]
+    public string Title { get; set; }
+
+    /// <summary>
+    /// 邮箱
+    /// </summary>
+    [StringLength(256)]
+    public string Email { get; set; }
+
+    /// <summary>
+    /// 用户名
+    /// </summary>
+    [Required, StringLength(36),
+     RegularExpression(Defaults.NameLimiter.Pattern, ErrorMessage = Defaults.NameLimiter.Message)]
+    public string UserName { get; set; }
+
+    /// <summary>
+    /// 角色
+    /// </summary>
+    public List<string> Roles { get; set; }
+
+    /// <summary>
+    ///  
+    /// </summary>
+    public bool HiddenSensitiveData { get; set; }
+
+    /// <summary>
+    /// 离职时间
+    /// </summary>
+    public DateTimeOffset? DepartureTime { get; set; }
+}

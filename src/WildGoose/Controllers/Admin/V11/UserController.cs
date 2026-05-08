@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using WildGoose.Application.User.Admin.V11;
-using WildGoose.Application.User.Admin.V11.Command;
-using WildGoose.Application.User.Admin.V11.Dto;
+using WildGoose.Application.Services.Admin.User.V11;
+using WildGoose.Application.Services.Admin.User.V11.Command;
+using WildGoose.Application.Services.Admin.User.V11.Dto;
 
 namespace WildGoose.Controllers.Admin.V11;
 

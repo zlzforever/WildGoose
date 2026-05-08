@@ -9,11 +9,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Logging;
 using WildGoose.Application;
+using WildGoose.Application.Identity;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
+using WildGoose.Domain.Options;
 using WildGoose.Filters;
-using WildGoose.Infrastructure;
 using WildGoose.Middlewares;
+using WildGoose.Serilog;
 
 namespace WildGoose;
 

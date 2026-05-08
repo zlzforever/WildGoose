@@ -1,12 +1,12 @@
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using WildGoose.Application.User.Admin.V10;
-using WildGoose.Application.User.Admin.V10.Command;
-using WildGoose.Application.User.Admin.V10.Queries;
+using WildGoose.Application;
+using WildGoose.Application.Services.Admin.User.V10;
+using WildGoose.Application.Services.Admin.User.V10.Command;
+using WildGoose.Application.Services.Admin.User.V10.Queries;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
-using WildGoose.Infrastructure;
 using Xunit;
 
 namespace WildGoose.Tests;

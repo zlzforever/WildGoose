@@ -2,12 +2,15 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Serilog;
 using Serilog.Events;
 using WildGoose.Application;
-using WildGoose.Application.Organization.Admin.V10;
+using WildGoose.Application.OSS;
 using WildGoose.Application.Permission.Internal.V10;
-using WildGoose.Application.Role.Admin.V10;
-using WildGoose.Application.User.Admin.V10;
-using WildGoose.Domain;
-using WildGoose.Infrastructure;
+using WildGoose.Application.Services;
+using WildGoose.Application.Services.Admin.Organization.V10;
+using WildGoose.Application.Services.Admin.Role.V10;
+using WildGoose.Application.Services.Admin.User.V10;
+using WildGoose.Application.Services.Organization.V10;
+using WildGoose.Application.Services.User.V10;
+using WildGoose.Serilog;
 using ISession = WildGoose.Domain.ISession;
 
 namespace WildGoose;
@@ -22,7 +25,7 @@ public static class WebApplicationBuilderExtensions
             if (serilogSection.GetChildren().Any())
             {
                 Log.Logger = new LoggerConfiguration().ReadFrom
-                    .Configuration(builder.Configuration)
+                    .Configuration(builder.Configuration).Enrich.With(new WildGooseLogEventEnricher())
                     .CreateLogger();
             }
             else
@@ -40,6 +43,7 @@ public static class WebApplicationBuilderExtensions
                     .Enrich.FromLogContext()
                     .Enrich.WithThreadId()
                     .Enrich.WithMachineName()
+                    .Enrich.With(new WildGooseLogEventEnricher())
                     .WriteTo.Console()
                     .WriteTo.Async(x => x.File(logPath, rollingInterval: RollingInterval.Day))
                     .CreateLogger();
@@ -53,17 +57,17 @@ public static class WebApplicationBuilderExtensions
         {
             // builder.Services.TryAddScoped<DomainService>();
             builder.Services.TryAddScoped<OrganizationAdminService>();
-            builder.Services.TryAddScoped<Application.Organization.V10.OrganizationService>();
+            builder.Services.TryAddScoped<OrganizationService>();
             builder.Services.TryAddScoped<UserAdminService>();
-            builder.Services.TryAddScoped<WildGoose.Application.User.Admin.V11.UserAdminService>();
+            builder.Services.TryAddScoped<Application.Services.Admin.User.V11.UserAdminService>();
             builder.Services.TryAddScoped<RoleAdminService>();
-            builder.Services.TryAddScoped<IObjectStorageService, ObjectStorageService>();
-            builder.Services.TryAddScoped<Application.User.V10.UserService>();
+            builder.Services.TryAddScoped<ObjectStorageService>();
+            builder.Services.TryAddScoped<UserService>();
             builder.Services.TryAddScoped<ISession>(provider =>
                 HttpSession.Create(provider.GetRequiredService<IHttpContextAccessor>()));
             builder.Services.TryAddScoped<PermissionService>();
-            builder.Services.TryAddSingleton<ScopeServiceProvider, HttpContextScopeServiceProvider>();
-            builder.Services.AddHostedService<GenerateTopThreeLevelOrganizationsCacheFileService>();
+            builder.Services.TryAddSingleton<ScopeServiceProvider>();
+            builder.Services.AddHostedService<GenerateTop3LevelOrganizationsToFileService>();
         }
     }
 }

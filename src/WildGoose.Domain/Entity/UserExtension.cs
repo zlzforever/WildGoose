@@ -48,4 +48,24 @@ public class UserExtension
     /// 隐藏敏感数据
     /// </summary>
     public bool HiddenSensitiveData { get; set; }
+
+    public void SetPasswordInfo(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            PasswordLength = 0;
+            PasswordContainsDigit = false;
+            PasswordContainsLowercase = false;
+            PasswordContainsUppercase = false;
+            PasswordContainsNonAlphanumeric = false;
+        }
+        else
+        {
+            PasswordLength = password.Length;
+            PasswordContainsDigit = password.Any(char.IsNumber);
+            PasswordContainsLowercase = password.Any(char.IsLower);
+            PasswordContainsUppercase = password.Any(char.IsUpper);
+            PasswordContainsNonAlphanumeric = !password.All(char.IsLetterOrDigit);
+        }
+    }
 }

@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using WildGoose.Application.Role.Admin.V10;
-using WildGoose.Application.Role.Admin.V10.Command;
-using WildGoose.Application.Role.Admin.V10.Queries;
+using WildGoose.Application;
+using WildGoose.Application.Services.Admin.Role.V10;
+using WildGoose.Application.Services.Admin.Role.V10.Command;
+using WildGoose.Application.Services.Admin.Role.V10.Queries;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
-using WildGoose.Infrastructure;
 using Xunit;
 
 namespace WildGoose.Tests;

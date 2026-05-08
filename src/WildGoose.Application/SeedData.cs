@@ -7,7 +7,8 @@ using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
-using WildGoose.Infrastructure;
+using WildGoose.Domain.Options;
+using WildGoose.Domain.Utils;
 
 namespace WildGoose.Application;
 

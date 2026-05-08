@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
-using WildGoose.Application;
+using WildGoose.Domain;
 
 namespace WildGoose.Filters;
 
@@ -44,7 +44,7 @@ public class TokenAuthHandler(IOptionsMonitor<TokenAuthOptions> options, ILogger
             new(ClaimTypes.Name, "SecurityToken"),
             new(ClaimTypes.NameIdentifier, "TokenUser"),
             new(ClaimTypes.AuthenticationMethod, "SecurityToken"),
-            new("scope", Utils.ApiName)
+            new("scope", Defaults.ApiName)
         };
         var authRoles = Context.Request.Headers["X-AUTH-ROLE"].ToString();
         if (!string.IsNullOrEmpty(authRoles))

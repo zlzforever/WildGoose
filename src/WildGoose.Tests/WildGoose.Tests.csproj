@@ -25,6 +25,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\WildGoose.Application\WildGoose.Application.csproj"/>
+        <ProjectReference Include="..\WildGoose.Domain\WildGoose.Domain.csproj" />
         <ProjectReference Include="..\WildGoose\WildGoose.csproj"/>
     </ItemGroup>
 

@@ -1,11 +1,9 @@
-using Identity.Sm;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using WildGoose.Application.User;
+using WildGoose.Application;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
-using WildGoose.Infrastructure;
 using Xunit;
 
 namespace WildGoose.Tests;
@@ -25,13 +23,14 @@ public class UserTests(WebApplicationFactoryFixture fixture) : BaseTests
         {
             throw new ArgumentException("未能启用国密hash");
         }
+
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
         await using var transaction = await dbContext.Database.BeginTransactionAsync();
         var session = scope.ServiceProvider.GetRequiredService<ISession>();
         LoadSuperAdmin(session);
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         var userName = Guid.NewGuid().ToString("N");
-        var user = new User()
+        var user = new User
         {
             UserName = userName,
         };
@@ -47,12 +46,12 @@ public class UserTests(WebApplicationFactoryFixture fixture) : BaseTests
         if (extension == null)
         {
             extension = new UserExtension { Id = user.Id };
-            Utils.SetPasswordInfo(extension, password);
+            extension.SetPasswordInfo(password);
             await dbContext.AddAsync(extension);
         }
         else
         {
-            Utils.SetPasswordInfo(extension, password);
+            extension.SetPasswordInfo(password);
         }
 
         var token = await userManager.GeneratePasswordResetTokenAsync(user);

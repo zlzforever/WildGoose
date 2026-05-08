@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
-using WildGoose.Application.Organization.Admin.V10;
-using WildGoose.Application.Organization.Admin.V10.Command;
-using WildGoose.Application.Organization.Admin.V10.Dto;
-using WildGoose.Application.Organization.Admin.V10.Queries;
+using WildGoose.Application.Services.Admin.Organization.V10;
+using WildGoose.Application.Services.Admin.Organization.V10.Command;
+using WildGoose.Application.Services.Admin.Organization.V10.Dto;
+using WildGoose.Application.Services.Admin.Organization.V10.Queries;
 using WildGoose.Domain;
 
 namespace WildGoose.Controllers.Admin.V10;

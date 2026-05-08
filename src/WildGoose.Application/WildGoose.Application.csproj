@@ -7,13 +7,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\WildGoose.Infrastructure\WildGoose.Infrastructure.csproj"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="Dapper" Version="2.1.72" />
         <PackageReference Include="MongoDB.Bson" Version="3.7.1" />
         <PackageReference Include="Dapr.AspNetCore" Version="1.17.3" />
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.12" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -26,7 +25,12 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Organization\Admin\" />
-      <Folder Include="Role\Admin\" />
+      <Folder Include="Services\Admin\Organization\" />
+      <Folder Include="Services\Admin\Role\" />
+      <Folder Include="Services\Admin\User\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\WildGoose.Domain\WildGoose.Domain.csproj" />
     </ItemGroup>
 </Project>

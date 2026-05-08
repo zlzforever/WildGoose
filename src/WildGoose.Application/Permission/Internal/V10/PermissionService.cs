@@ -4,9 +4,10 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WildGoose.Application.Permission.Internal.V10.Queries;
+using WildGoose.Application.Services;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
-using WildGoose.Infrastructure;
+using WildGoose.Domain.Options;
 
 namespace WildGoose.Application.Permission.Internal.V10;
 

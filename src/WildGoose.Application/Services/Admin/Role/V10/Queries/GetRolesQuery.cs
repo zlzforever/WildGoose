@@ -1,0 +1,16 @@
+using System.ComponentModel.DataAnnotations;
+
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+namespace WildGoose.Application.Services.Admin.Role.V10.Queries;
+
+public class GetRolesQuery
+{
+    /// <summary>
+    /// 
+    /// </summary>
+    [StringLength(20)]
+    public string Q { get; set; }
+
+    public int Page { get; set; }
+    public int Limit { get; set; }
+}
