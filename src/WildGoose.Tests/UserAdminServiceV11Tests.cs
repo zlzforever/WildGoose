@@ -24,7 +24,7 @@ public class UserAdminServiceV11Tests(WebApplicationFactoryFixture fixture) : Ba
                 UserName = CreateName()
             });
         });
-        Assert.Equal("访问受限", exception.Message);
+        Assert.Equal("访问被拒绝", exception.Message);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class UserAdminServiceV11Tests(WebApplicationFactoryFixture fixture) : Ba
                 UserName = CreateName()
             });
         });
-        Assert.Equal("访问受限", exception.Message);
+        Assert.Equal("访问被拒绝", exception.Message);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class UserAdminServiceV11Tests(WebApplicationFactoryFixture fixture) : Ba
                 UserName = CreateName()
             });
         });
-        Assert.Equal("访问受限", exception.Message);
+        Assert.Equal("访问被拒绝", exception.Message);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class UserAdminServiceV11Tests(WebApplicationFactoryFixture fixture) : Ba
                 UserName = CreateName()
             });
         });
-        Assert.Equal("访问受限", exception.Message);
+        Assert.Equal("访问被拒绝", exception.Message);
     }
 
     [Fact]

@@ -118,6 +118,13 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
         LoadSuperAdmin(session);
 
         var userAdminService = scope.ServiceProvider.GetRequiredService<UserAdminService>();
+
+        var adminUser = await userAdminService.GetAsync(new GetUserQuery
+        {
+            Id = AdminUserId
+        });
+        Assert.Equal("系统管理员", adminUser.Name);
+
         var user = await userAdminService.GetAsync(new GetUserQuery
         {
             Id = "507f1f77bcf86cd799439022"
@@ -125,12 +132,6 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
 
         Assert.NotNull(user);
         Assert.Equal("李四", user.Name);
-
-        var adminUser = await userAdminService.GetAsync(new GetUserQuery
-        {
-            Id = AdminUserId
-        });
-        Assert.Equal("系统管理员", adminUser.Name);
     }
 
     /// <summary>
