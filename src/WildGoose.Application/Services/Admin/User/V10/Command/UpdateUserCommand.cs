@@ -66,5 +66,5 @@ public class UpdateUserCommand
     /// <summary>
     /// 用户扩展属性字典，key 为逻辑名称，从 UserPropertyMappings 配置中获取
     /// </summary>
-    public Dictionary<string, string> ExtensionProperties { get; set; }
+    public Dictionary<string, string> Properties { get; set; }
 }

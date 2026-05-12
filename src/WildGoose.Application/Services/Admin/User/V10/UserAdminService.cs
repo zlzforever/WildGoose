@@ -180,7 +180,7 @@ public class UserAdminService(
         var roles = SetRoles(command.Roles);
 
         var userExtension = new UserExtension { Id = user.Id };
-        UserExtensionPropertyHelper.SetProperties(userExtension, command.ExtensionProperties,
+        UserExtensionPropertyHelper.SetProperties(userExtension, command.Properties,
             _wildGooseOptions.UserPropertyMappings);
         userExtension.SetPasswordInfo(command.Password);
         await DbContext.AddAsync(userExtension);
@@ -350,7 +350,7 @@ public class UserAdminService(
             userExtension.Title = command.Title;
             userExtension.DepartureTime = command.DepartureTime;
             userExtension.HiddenSensitiveData = command.HiddenSensitiveData;
-            UserExtensionPropertyHelper.SetProperties(userExtension, command.ExtensionProperties,
+            UserExtensionPropertyHelper.SetProperties(userExtension, command.Properties,
                 _wildGooseOptions.UserPropertyMappings);
             DbContext.Attach(userExtension);
 

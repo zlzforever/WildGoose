@@ -59,7 +59,7 @@ public class UserAdminService(
             identityResult = await userManager.CreateAsync(user, command.Password);
         }
 
-        UserExtensionPropertyHelper.SetProperties(userExtension, command.ExtensionProperties,
+        UserExtensionPropertyHelper.SetProperties(userExtension, command.Properties,
             wildGooseOptions.Value.UserPropertyMappings);
         await DbContext.AddAsync(userExtension);
 
