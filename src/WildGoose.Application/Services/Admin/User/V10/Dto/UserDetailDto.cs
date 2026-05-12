@@ -66,6 +66,11 @@ public class UserDetailDto
     public string Code { get; set; }
 
     /// <summary>
+    /// 用户扩展属性列表
+    /// </summary>
+    public List<Application.Dto.ExtProperty> Properties { get; set; }
+
+    /// <summary>
     /// 角色数据传输对象
     /// 封装角色的基础标识和名称信息
     /// </summary>

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using WildGoose.Application;
@@ -11,9 +12,11 @@ using WildGoose.Application;
 namespace WildGoose.Infrastructure.Migrations
 {
     [DbContext(typeof(WildGooseDbContext))]
-    partial class WildGooseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260512021158_AddUserExtensionProperties")]
+    partial class AddUserExtensionProperties
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

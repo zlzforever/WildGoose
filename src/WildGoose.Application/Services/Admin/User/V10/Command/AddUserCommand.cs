@@ -41,4 +41,9 @@ public class AddUserCommand
     /// 所属机构
     /// </summary>
     public List<string> Organizations { get; set; }
+
+    /// <summary>
+    /// 用户扩展属性字典，key 为逻辑名称，从 UserPropertyMappings 配置中获取
+    /// </summary>
+    public Dictionary<string, string> ExtensionProperties { get; set; }
 }

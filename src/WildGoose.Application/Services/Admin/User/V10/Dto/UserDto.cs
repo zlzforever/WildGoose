@@ -59,4 +59,9 @@ public class UserDto
     /// 一个用户可拥有多个角色，基于角色实现权限控制（RBAC），存储角色唯一标识
     /// </summary>
     public IEnumerable<string> Roles { get; set; }
+
+    /// <summary>
+    /// 用户扩展属性列表
+    /// </summary>
+    public List<Application.Dto.ExtProperty> Properties { get; set; }
 }

@@ -126,6 +126,16 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             b.Property(x => x.PasswordLength);
             b.Property(x => x.ResetPasswordFlag);
             b.Property(x => x.HiddenSensitiveData);
+
+            b.Property(x => x.Property01).HasMaxLength(1024);
+            b.Property(x => x.Property02).HasMaxLength(1024);
+            b.Property(x => x.Property03).HasMaxLength(1024);
+            b.Property(x => x.Property04).HasMaxLength(1024);
+            b.Property(x => x.Property05).HasMaxLength(1024);
+            b.Property(x => x.Property06).HasMaxLength(1024);
+            b.Property(x => x.Property07).HasMaxLength(1024);
+            b.Property(x => x.Property08).HasMaxLength(1024);
+            b.Property(x => x.Property09).HasMaxLength(1024);
         });
 
         builder.Entity<RoleAssignableRole>(b =>
@@ -151,8 +161,6 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             b.Property(x => x.Description).HasMaxLength(256);
             b.Property(x => x.Metadata).HasMaxLength(2000);
             b.Property(x => x.NId).ValueGeneratedOnAdd();
-            // b.Property(x => x.Order);
-
             b.HasQueryFilter(x => !x.IsDeleted);
 
             b.Property(x => x.CreationTime).UseUnixTime();

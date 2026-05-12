@@ -31,12 +31,14 @@ public class UserAdminService(
     IOptions<DaprOptions> dapOptions,
     IOptions<IdentityExtensionOptions> identityExtensionOptions,
     IMemoryCache memoryCache,
-    ObjectStorageService objectStorageService)
+    ObjectStorageService objectStorageService,
+    IOptions<WildGooseOptions> wildGooseOptions)
     : BaseService(dbContext, session, dbOptions, logger, memoryCache)
 {
     private static readonly HashSet<string> ImagePostfixes = [".webp", ".bmp", ".jpg", ".jpeg", ".png", ".gif"];
     private readonly IdentityExtensionOptions _identityExtensionOptions = identityExtensionOptions.Value;
     private readonly DaprOptions _daprOptions = dapOptions.Value;
+    private readonly WildGooseOptions _wildGooseOptions = wildGooseOptions.Value;
 
     /// <summary>
     /// 
@@ -94,6 +96,9 @@ public class UserAdminService(
             dto.HiddenSensitiveData = userData.Extension.HiddenSensitiveData;
         }
 
+        dto.Properties = UserExtensionPropertyHelper.GetProperties(userData.Extension,
+            _wildGooseOptions.UserPropertyMappings);
+
         var roles = await (from userRole in DbContext.Set<IdentityUserRole<string>>()
             join role in DbContext.Set<WildGoose.Domain.Entity.Role>() on userRole.RoleId equals role.Id
             where userRole.UserId == query.Id
@@ -105,6 +110,16 @@ public class UserAdminService(
         dto.Roles = roles;
         dto.Organizations = organizations;
         return dto;
+    }
+
+    /// <summary>
+    /// 获取用户扩展属性映射字典
+    /// </summary>
+    /// <returns></returns>
+    public Dictionary<string, string> GetPropertyMap()
+    {
+        return _wildGooseOptions.UserPropertyMappings
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.DisplayName);
     }
 
     /// <summary>
@@ -165,6 +180,8 @@ public class UserAdminService(
         var roles = SetRoles(command.Roles);
 
         var userExtension = new UserExtension { Id = user.Id };
+        UserExtensionPropertyHelper.SetProperties(userExtension, command.ExtensionProperties,
+            _wildGooseOptions.UserPropertyMappings);
         userExtension.SetPasswordInfo(command.Password);
         await DbContext.AddAsync(userExtension);
 
@@ -333,6 +350,8 @@ public class UserAdminService(
             userExtension.Title = command.Title;
             userExtension.DepartureTime = command.DepartureTime;
             userExtension.HiddenSensitiveData = command.HiddenSensitiveData;
+            UserExtensionPropertyHelper.SetProperties(userExtension, command.ExtensionProperties,
+                _wildGooseOptions.UserPropertyMappings);
             DbContext.Attach(userExtension);
 
             // var organizations = await DbContext.Set<WildGoose.Domain.Entity.Organization>()

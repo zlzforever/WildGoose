@@ -10,6 +10,7 @@ using WildGoose.Application.Services.Admin.User.V11.Dto;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
 using WildGoose.Domain.Options;
+using WildGoose.Domain.Utils;
 
 namespace WildGoose.Application.Services.Admin.User.V11;
 
@@ -32,11 +33,6 @@ public class UserAdminService(
             throw new WildGooseFriendlyException(ErrorCodes.Forbidden);
         }
 
-        // if (string.IsNullOrEmpty(command.Password))
-        // {
-        //     command.Password = PasswordGenerator.GeneratePassword();
-        // }
-
         var user = new WildGoose.Domain.Entity.User
         {
             Id = ObjectId.GenerateNewId().ToString(),
@@ -47,9 +43,6 @@ public class UserAdminService(
         };
 
         var userExtension = new UserExtension { Id = user.Id };
-        userExtension.SetPasswordInfo(command.Password);
-        await DbContext.AddAsync(userExtension);
-
         IdentityResult identityResult;
         if (Defaults.DisablePasswordLogin)
         {
@@ -57,8 +50,18 @@ public class UserAdminService(
         }
         else
         {
+            if (string.IsNullOrEmpty(command.Password))
+            {
+                command.Password = PasswordGenerator.GeneratePassword();
+            }
+
+            userExtension.SetPasswordInfo(command.Password);
             identityResult = await userManager.CreateAsync(user, command.Password);
         }
+
+        UserExtensionPropertyHelper.SetProperties(userExtension, command.ExtensionProperties,
+            wildGooseOptions.Value.UserPropertyMappings);
+        await DbContext.AddAsync(userExtension);
 
         // comments by lewis 20231117: _userManager 会自己调用 SaveChanges
         identityResult.CheckErrors();

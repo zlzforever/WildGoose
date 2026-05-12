@@ -49,6 +49,51 @@ public class UserExtension
     /// </summary>
     public bool HiddenSensitiveData { get; set; }
 
+    /// <summary>
+    /// 扩展字段01
+    /// </summary>
+    public string Property01 { get; set; }
+
+    /// <summary>
+    /// 扩展字段02
+    /// </summary>
+    public string Property02 { get; set; }
+
+    /// <summary>
+    /// 扩展字段03
+    /// </summary>
+    public string Property03 { get; set; }
+
+    /// <summary>
+    /// 扩展字段04
+    /// </summary>
+    public string Property04 { get; set; }
+
+    /// <summary>
+    /// 扩展字段05
+    /// </summary>
+    public string Property05 { get; set; }
+
+    /// <summary>
+    /// 扩展字段06
+    /// </summary>
+    public string Property06 { get; set; }
+
+    /// <summary>
+    /// 扩展字段07
+    /// </summary>
+    public string Property07 { get; set; }
+
+    /// <summary>
+    /// 扩展字段08
+    /// </summary>
+    public string Property08 { get; set; }
+
+    /// <summary>
+    /// 扩展字段09
+    /// </summary>
+    public string Property09 { get; set; }
+
     public void SetPasswordInfo(string password)
     {
         if (string.IsNullOrWhiteSpace(password))

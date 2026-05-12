@@ -13,4 +13,9 @@ public class UserDto
     public bool? IsAdministrator { get; set; }
 
     public IEnumerable<string> Roles { get; set; }
+
+    /// <summary>
+    /// 用户扩展属性列表
+    /// </summary>
+    public List<Application.Dto.ExtProperty> Properties { get; set; }
 }
