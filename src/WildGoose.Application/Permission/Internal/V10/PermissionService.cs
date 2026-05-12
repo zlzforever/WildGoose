@@ -52,7 +52,7 @@ public class PermissionService(
                 async entry =>
                 {
                     var json = await DbContext
-                        .Set<WildGoose.Domain.Entity.Role>()
+                        .Set<Role>()
                         .AsNoTracking()
                         .Where(x => x.NormalizedName == role.ToUpperInvariant())
                         .Select(x => x.Statement)

@@ -145,7 +145,7 @@ public class RoleAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
 
         // 验证角色已创建
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-        var role = await dbContext.Set<WildGoose.Domain.Entity.Role>()
+        var role = await dbContext.Set<Role>()
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == roleId);
         Assert.NotNull(role);
@@ -278,7 +278,7 @@ public class RoleAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
 
         // 验证角色已更新
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-        var role = await dbContext.Set<WildGoose.Domain.Entity.Role>()
+        var role = await dbContext.Set<Role>()
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == roleId);
         Assert.NotNull(role);
@@ -363,7 +363,7 @@ public class RoleAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
 
         // 验证权限声明已更新
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-        var role = await dbContext.Set<WildGoose.Domain.Entity.Role>()
+        var role = await dbContext.Set<Role>()
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == ManagerRoleId);
         Assert.NotNull(role);
@@ -447,7 +447,7 @@ public class RoleAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
         });
 
         // 验证角色已删除
-        var role = await dbContext.Set<WildGoose.Domain.Entity.Role>()
+        var role = await dbContext.Set<Role>()
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == roleId);
         Assert.Null(role);

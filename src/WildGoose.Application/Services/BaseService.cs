@@ -180,7 +180,7 @@ public abstract class BaseService(
     {
         var userRoles = DbContext.Set<IdentityUserRole<string>>();
         var roleAssignableRoles = DbContext.Set<RoleAssignableRole>();
-        var roles = DbContext.Set<Domain.Entity.Role>();
+        var roles = DbContext.Set<Role>();
         var queryable = from userRole in userRoles
             join roleAssignableRole in roleAssignableRoles on userRole.RoleId equals roleAssignableRole.RoleId
             join role in roles on roleAssignableRole.AssignableId equals role.Id

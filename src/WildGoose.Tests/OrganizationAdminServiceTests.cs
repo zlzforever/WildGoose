@@ -508,7 +508,7 @@ public class OrganizationAdminServiceTests(WebApplicationFactoryFixture fixture)
 
         // 验证修改成功
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-        var organization = await dbContext.Set<WildGoose.Domain.Entity.Organization>()
+        var organization = await dbContext.Set<Organization>()
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == result.Id);
         Assert.NotNull(organization);
@@ -544,7 +544,7 @@ public class OrganizationAdminServiceTests(WebApplicationFactoryFixture fixture)
 
         // 验证父机构已修改
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-        var organization = await dbContext.Set<WildGoose.Domain.Entity.Organization>()
+        var organization = await dbContext.Set<Organization>()
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == FrontEndOrg);
         Assert.NotNull(organization);
@@ -622,7 +622,7 @@ public class OrganizationAdminServiceTests(WebApplicationFactoryFixture fixture)
 
         // 验证修改成功
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-        var organization = await dbContext.Set<WildGoose.Domain.Entity.Organization>()
+        var organization = await dbContext.Set<Organization>()
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == FrontEndOrg);
         Assert.NotNull(organization);
@@ -732,7 +732,7 @@ public class OrganizationAdminServiceTests(WebApplicationFactoryFixture fixture)
 
         // 验证机构已删除
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-        var organization = await dbContext.Set<WildGoose.Domain.Entity.Organization>()
+        var organization = await dbContext.Set<Organization>()
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == deletedId);
         Assert.Null(organization);
@@ -765,7 +765,7 @@ public class OrganizationAdminServiceTests(WebApplicationFactoryFixture fixture)
 
         // 验证机构已删除
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-        var organization = await dbContext.Set<WildGoose.Domain.Entity.Organization>()
+        var organization = await dbContext.Set<Organization>()
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == deletedId);
         Assert.Null(organization);

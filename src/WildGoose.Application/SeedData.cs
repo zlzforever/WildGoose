@@ -20,7 +20,7 @@ public static class SeedData
         var dbOptions = scope.ServiceProvider.GetRequiredService<IOptions<DbOptions>>().Value;
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
         Defaults.OrganizationTableName =
-            dbContext.Set<WildGoose.Domain.Entity.Organization>().EntityType.GetTableName();
+            dbContext.Set<Organization>().EntityType.GetTableName();
         Defaults.OrganizationAdministratorTableName =
             dbContext.Set<OrganizationAdministrator>().EntityType.GetTableName();
         Defaults.OrganizationScopeTableName = dbContext.Set<OrganizationScope>().EntityType.GetTableName();
@@ -46,7 +46,7 @@ public static class SeedData
             var entity = dbContext.Roles.FirstOrDefault(x => x.NormalizedName == normalizedName);
             if (entity == null)
             {
-                entity = new WildGoose.Domain.Entity.Role(role.Name)
+                entity = new Role(role.Name)
                 {
                     Id = ObjectId.GenerateNewId().ToString(),
                     NormalizedName = normalizedName,
@@ -72,11 +72,11 @@ public static class SeedData
             }
         }
 
-        var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<WildGoose.Domain.Entity.User>>();
+        var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         var admin = userMgr.Users.FirstOrDefault(x => x.UserName == "admin");
         if (admin == null)
         {
-            admin = new WildGoose.Domain.Entity.User
+            admin = new User
             {
                 Id = ObjectId.GenerateNewId().ToString(),
                 UserName = "admin",

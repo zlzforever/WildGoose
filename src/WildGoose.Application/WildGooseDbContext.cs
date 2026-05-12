@@ -16,7 +16,7 @@ namespace WildGoose.Application;
 
 // 20231207124420_Init
 public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
-    : IdentityDbContext<Domain.Entity.User, Domain.Entity.Role, string>(options)
+    : IdentityDbContext<User, Role, string>(options)
 {
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -24,7 +24,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
 
         var options = this.GetService<IOptions<DbOptions>>().Value;
 
-        builder.Entity<Domain.Entity.User>(b =>
+        builder.Entity<User>(b =>
         {
             b.ToTable(GetName(options, "user"));
 
@@ -88,7 +88,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             b.Property(x => x.Name).HasMaxLength(256);
             b.Property(x => x.Value).HasMaxLength(256);
         });
-        builder.Entity<Domain.Entity.Role>(b =>
+        builder.Entity<Role>(b =>
         {
             b.ToTable(GetName(options, "role"));
             b.Property(x => x.Id).HasMaxLength(36).ValueGeneratedNever();
@@ -151,7 +151,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             });
         });
 
-        builder.Entity<Domain.Entity.Organization>(b =>
+        builder.Entity<Organization>(b =>
         {
             b.ToTable(GetName(options, "organization"));
             b.Property(x => x.Id).HasMaxLength(36).ValueGeneratedNever();
