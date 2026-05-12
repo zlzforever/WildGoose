@@ -20,7 +20,6 @@ import {
   addUser,
   getAssignableRoles,
 } from "../services/wildgoose/api"
-import { getLabel } from "../lib/utils"
 import * as dayjs from "dayjs"
 
 const phoneValidator = (_: any, value: any, callback: any) => {
@@ -53,6 +52,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
     Dictionary<OrganizationTreeNode>
   >({})
   const [roleOptions, setRoleOptions] = useState<SelectProps["options"]>()
+  const [propertyDefs, setPropertyDefs] = useState<{ name: string; displayName: string }[]>([])
 
   const title = props.id ? "编辑用户" : "添加用户"
 
@@ -130,25 +130,38 @@ const UserModal: React.FC<UserModalProps> = (props) => {
           message.error("用户信息为空")
           return
         }
-        const d = res.data as UserDetailDto
-        values.code = d.code
-        values.email = d.email
-        values.hiddenSensitiveData = d.hiddenSensitiveData
-        values.name = d.name
-        values.phoneNumber = d.phoneNumber
-        values.title = d.title
-        values.userName = d.userName
+        const userDetail = res.data as UserDetailDto
+        values.code = userDetail.code
+        values.email = userDetail.email
+        values.hiddenSensitiveData = userDetail.hiddenSensitiveData
+        values.name = userDetail.name
+        values.phoneNumber = userDetail.phoneNumber
+        values.title = userDetail.title
+        values.userName = userDetail.userName
 
-        if (d.departureTime) {
-          values.departureTime = dayjs.unix(d.departureTime)
+        if (userDetail.departureTime) {
+          values.departureTime = dayjs.unix(userDetail.departureTime)
         }
 
-        concatOrganizations(organizations, d.organizations, cache)
+        // 加载扩展属性到 form，同时缓存定义用于显示标签
+        if (userDetail.properties && userDetail.properties.length > 0) {
+          values.properties = {}
+          const defs: { name: string; displayName: string }[] = []
+          userDetail.properties.forEach((p) => {
+            if (values.properties) {
+              values.properties[p.name] = p.value ?? ""
+            }
+            defs.push({ name: p.name, displayName: p.displayName })
+          })
+          setPropertyDefs(defs)
+        }
 
-        values.organizations = d.organizations.map((x) => x.id)
+        concatOrganizations(organizations, userDetail.organizations, cache)
+
+        values.organizations = userDetail.organizations.map((x) => x.id)
 
         // 若有角色不是当前用户可授于角色（是别人授于的）也要能显示
-        d.roles.map((x) => {
+        userDetail.roles.map((x) => {
           if (roles.findIndex((y) => y.value === x.id) === -1) {
             roles.push({
               value: x.name,
@@ -156,7 +169,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
             })
           }
         })
-        values.roles = d.roles.map((x) => x.name)
+        values.roles = userDetail.roles.map((x) => x.name)
 
         form.setFieldsValue(values)
       }
@@ -282,11 +295,6 @@ const UserModal: React.FC<UserModalProps> = (props) => {
                     <Input placeholder="请输入邮箱" maxLength={256} />
                   </Form.Item>
                 </Col>
-                <Col span={12}>
-                  <Form.Item name="title" label={getLabel("user/UserModal.zhiweiTitle", "职位")}>
-                    <Input placeholder={"请输入" + getLabel("user/UserModal.zhiweiTitle", "职位")} maxLength={256} />
-                  </Form.Item>
-                </Col>
               </>
             ) : (
               <>
@@ -325,6 +333,13 @@ const UserModal: React.FC<UserModalProps> = (props) => {
                 <Select mode="multiple" options={roleOptions} />
               </Form.Item>
             </Col>
+            {propertyDefs.map((def) => (
+              <Col span={12} key={def.name}>
+                <Form.Item name={["properties", def.name]} label={def.displayName}>
+                  <Input placeholder={"请输入" + def.displayName} maxLength={1024} />
+                </Form.Item>
+              </Col>
+            ))}
             {props.id ? (
               <>
                 <Col span={12}>

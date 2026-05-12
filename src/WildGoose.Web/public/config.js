@@ -1,4 +1,4 @@
-var authority = 'http://localhost:8099';
+var authority = 'https://sample.ptkj.cc/sts';
 window.wildgoose = {
   applicationId: '1',
   baseName: '${BASE_PATH}',
@@ -6,11 +6,6 @@ window.wildgoose = {
   pageSize: 10,
   enableEncryption: true,
   disablePasswordLogin: false,
-  // 标签名称配置，按 "路由路径/组件名.字段名" 格式
-  // 例如: user/UserModal.zhiweiTitle 配置用户弹窗中的职位字段名
-  labels: {
-    "user/UserModal.zhiweiTitle": "分工",
-  },
   oidc: {
     // 1. 保留 authority（作为 issuer 标识），但禁用发现
     authority: authority,

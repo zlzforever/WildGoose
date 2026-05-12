@@ -60,7 +60,7 @@ public static class UserExtensionPropertyHelper
                 : extensionType.GetProperty(mapping.Column)?.GetValue(extension) as string;
             result.Add(new ExtProperty
             {
-                Name = FirstCharToLower(key),
+                Name = key,
                 DisplayName = mapping.DisplayName,
                 Value = value
             });
@@ -69,15 +69,15 @@ public static class UserExtensionPropertyHelper
         return result;
     }
 
-    private static string FirstCharToLower(string str)
-    {
-        // 空值/空字符串直接返回
-        if (string.IsNullOrEmpty(str))
-        {
-            return str;
-        }
-
-        // 首字符小写 + 剩余字符拼接
-        return char.ToLower(str[0]) + str[1..];
-    }
+    // private static string FirstCharToLower(string str)
+    // {
+    //     // 空值/空字符串直接返回
+    //     if (string.IsNullOrEmpty(str))
+    //     {
+    //         return str;
+    //     }
+    //
+    //     // 首字符小写 + 剩余字符拼接
+    //     return char.ToLower(str[0]) + str[1..];
+    // }
 }

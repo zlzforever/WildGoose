@@ -12,7 +12,6 @@ declare global {
       icp?: string
       copyright?: string
       disablePasswordLogin?: boolean // 禁止使用密码
-      labels?: Record<string, string>
     }
   }
 
@@ -68,6 +67,12 @@ declare global {
     }[]
   }
 
+  type ExtProperty = {
+    name: string
+    displayName: string
+    value?: string
+  }
+
   type UserDto = {
     creationTime: string
     enabled: boolean
@@ -78,6 +83,7 @@ declare global {
     roles: string[]
     userName: string
     isAdministrator: boolean
+    properties?: ExtProperty[]
   }
 
   type OrganizationSearchResultDto = {
@@ -120,6 +126,7 @@ declare global {
     roles: RoleBasicDto[]
     title?: string
     userName: string
+    properties?: ExtProperty[]
   }
 
   type UpdateUserDto = {
@@ -133,6 +140,7 @@ declare global {
     roles: string[]
     title?: string
     userName: string
+    properties?: Record<string, string>
   }
 
   type AddUserDto = {
@@ -141,6 +149,7 @@ declare global {
     phoneNumber?: string
     name?: string
     userName: string
+    properties?: Record<string, string>
   }
 }
 
