@@ -52,7 +52,6 @@ instance.interceptors.request.use(async (requestConfig) => {
       requestConfig.method?.toUpperCase() == "PUT" ||
       requestConfig.method?.toUpperCase() == "PATCH"
     ) {
-      debugger
       const key = uuid()
       const bkey = key.split("")
       bkey.splice(10, 0, randomKey())
@@ -113,15 +112,12 @@ instance.interceptors.response.use(
     // localStorage.removeItem(E_Storage.USER_PASSWORD_STRENGTH)
     // window.location.href = `${config.pathPrefix}/`
     if (error.response?.status === 401) {
-      const handle401 = async () => {
-        const user = await getUser()
-        if (user && user.refresh_token) {
-          await signinSilent()
-        } else {
-          await signinRedirect()
-        }
+      const user = await getUser()
+      if (user && user.refresh_token) {
+        await signinSilent()
+      } else {
+        await signinRedirect()
       }
-      handle401()
     }
 
     let errorInfo = "未知错误"

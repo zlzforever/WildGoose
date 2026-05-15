@@ -41,7 +41,7 @@ public class PermissionService(
                 : null;
         if (string.IsNullOrEmpty(effect))
         {
-            Logger.LogError("PolicyEffect {PolicyEffect} is invalid", effect);
+            Logger.LogWarning("PolicyEffect is invalid: {RawValue}", query.PolicyEffect);
             return false;
         }
 

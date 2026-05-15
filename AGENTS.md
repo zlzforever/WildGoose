@@ -1,232 +1,102 @@
-# AGENTS.md
+# PROJECT KNOWLEDGE BASE
 
-This file provides guidance to AI coding agents working in the WildGoose repository.
+**Generated:** 2026-05-14
+**Commit:** dfb3893
+**Branch:** main
 
-## Project Overview
+## OVERVIEW
 
-WildGoose is a .NET 10 user and organization management API built with ASP.NET Core, Entity Framework Core, and Dapr. The application provides multi-tenant organization management with hierarchical structures, role-based access control, and user administration.
+User/role/organization management system built on ASP.NET Core Identity. .NET 10 backend + React 19 SPA frontend. Three fixed roles (admin, organization_admin, user_admin) with path-based hierarchical org permissions.
 
-## Build, Test, and Run Commands
+## STRUCTURE
 
-### Building the Solution
+```
+WildGoose/
+├── src/WildGoose/              # API host (Program.cs entry, Controllers, Filters, Middleware)
+├── src/WildGoose.Application/  # Business logic, EF DbContext, Services (CQRS-lite)
+├── src/WildGoose.Domain/       # Entities, ISession, Options, ErrorCodes (zero infra deps)
+├── src/WildGoose.Infrastructure/ # EMPTY — unused shell, NOT in .sln
+├── src/WildGoose.Web/          # React 19 + Ant Design 5 + Vite 7 SPA
+├── src/WildGoose.Tests/        # xUnit integration tests (WebApplicationFactory)
+├── api.Dockerfile              # Multi-stage .NET 10 build
+├── web.Dockerfile              # Node 20 + nginx build
+└── docker-entrypoint.sh        # Config template rendering + optional Dapr sidecar
+```
+
+## WHERE TO LOOK
+
+| Task | Location | Notes |
+|------|----------|-------|
+| Add API endpoint | `src/WildGoose/Controllers/{Admin,}/V{version}/` | Only GET/POST allowed. Deletes use `POST .../delete` |
+| Add business logic | `src/WildGoose.Application/Services/Admin/{Entity}/V{version}/` | Follow Command/Queries/Dto folder pattern |
+| Add domain entity | `src/WildGoose.Domain/Entity/` | Implement ICreation, IModification, IDeletion as needed |
+| Add EF mapping | `src/WildGoose.Application/WildGooseDbContext.cs` | Register DbSet + configure in OnModelCreating |
+| Add config option | `src/WildGoose.Domain/Options/` | Create POCO, bind in Program.cs |
+| Add frontend page | `src/WildGoose.Web/src/pages/` + `App.tsx` + `config/routes.ts` | 3 places to update |
+| Add frontend API call | `src/WildGoose.Web/src/services/wildgoose/api.ts` + `wildgoose.ts` | Function + type declaration |
+| Modify auth | `src/WildGoose/AuthenticationExtensions.cs` | JWT + X-AUTH-TOKEN dual scheme |
+| Modify permissions | `src/WildGoose.Application/Services/BaseService.cs` | Path-based org hierarchy checks |
+| Add integration event | `src/WildGoose.Application/Services/Admin/{Entity}/V{version}/IntegrationEvents/` | Publish via BaseService.PublishEventAsync |
+| Add test | `src/WildGoose.Tests/` | Inherit BaseTests, use [Collection("WebApplication collection")] |
+| Add SQL migration | `src/WildGoose.Application/Migrations/` | `dotnet ef migrations add` |
+
+## CONVENTIONS
+
+- **Only GET/POST HTTP methods** — DELETE ops use `POST .../delete` (environment constraint)
+- **API versioning via namespace folders** — `V10/`, `V11/` (not Microsoft.AspNetCore.ApiVersioning)
+- **ObjectId-style string IDs** — `ObjectId.GenerateNewId().ToString()` (MongoDB.Bson for ID gen only)
+- **NId auto-increment** — Used for tree path construction (ObjectId too long for paths)
+- **Table prefix** `wild_goose_` on all DB tables, underscore case naming via `DbOptions.UseUnderScoreCase`
+- **Unix epoch timestamps** — All DateTimeOffsets stored as long (seconds/milliseconds)
+- **Soft delete** — `IDeletion` entities: `SaveChangesAsync` converts Delete→Modify+IsDeleted=true; EF query filters exclude deleted
+- **Auto-audit** — `ICreation`/`IModification` auto-populated from ISession in `WildGooseDbContext.ApplyConcepts()`
+- **Primary constructors** — All service classes use C# 12 primary constructors for DI
+- **C# 13 extension blocks** — `extension(T)` syntax used in SessionExtensions, PathExtensions, WebApplicationBuilderExtensions
+- **InternalsVisibleTo** — Application layer exposes internals to WildGoose + WildGoose.Tests
+- **Standard response envelope** — All responses auto-wrapped to `{Code, Success, Data/Msg}` by ResponseWrapperFilter
+- **3-tier RBAC** — admin (super), organization_admin (scoped), user_admin (users+orgs, no roles)
+- **Path-based org hierarchy** — Admin permissions via `OrganizationDetail.Path.StartsWith()` prefix matching
+
+## ANTI-PATTERNS (THIS PROJECT)
+
+- **Broad `catch(Exception)`** — 11 instances across 6 files mask original exception types during transaction rollback; EF Core auto-rollbacks on dispose make explicit RollbackAsync redundant
+- **In-memory DB filtering** — `DbContextExtensions.AnyPermissionAsync` loads all org admin paths then filters in C# (should filter in SQL)
+- **Task.Delay polling** — `GenerateTop3LevelOrganizationsToFileService` uses 5-minute polling loop; `BaseService` Dapr retry uses fixed 100ms with no backoff
+- **Commented-out dead code** — ~130 lines in OrganizationAdminService.cs, blocks in BaseService.cs and SeedData.cs
+
+## UNIQUE STYLES
+
+- `Identity.Sm` package replaces standard `Microsoft.AspNetCore.Identity` (supports SM3 national crypto)
+- AES-ECB request body encryption toggled via `window.wildgoose.enableEncryption` (frontend)
+- `Config_source` env var renders `appsettings.json` from template at container startup
+- Runtime `config.js` substitution for frontend Docker deployment
+
+## COMMANDS
+
 ```bash
-dotnet build WildGoose.sln
+# Backend
+dotnet build                                          # Build solution
+dotnet run --project src/WildGoose                    # Run API (needs PostgreSQL)
+dotnet test src/WildGoose.Tests                       # Run tests (needs PostgreSQL + testdata.sql)
+
+# Frontend
+cd src/WildGoose.Web && yarn install && yarn run dev  # Dev server on :5174
+cd src/WildGoose.Web && yarn run build                # Production build → dist/
+
+# EF Migrations
+dotnet ef migrations add <Name> --project src/WildGoose.Application --startup-project src/WildGoose
+
+# Docker
+docker build -f api.Dockerfile -t wildgoose-api .
+docker build -f web.Dockerfile -t wildgoose-web .
 ```
 
-### Running All Tests
-```bash
-dotnet test src/WildGoose.Tests/WildGoose.Tests.csproj
-```
+## NOTES
 
-### Running a Single Test
-```bash
-# Run by fully qualified test name
-dotnet test --filter "FullyQualifiedName~UserAdminServiceTests.SuperAdminAddUserWithoutOrganization"
-
-# Run all tests in a specific class
-dotnet test --filter "FullyQualifiedName~UserAdminServiceTests"
-
-# Run tests matching a pattern
-dotnet test --filter "Name~AddUser"
-```
-
-### Running the Application
-```bash
-cd src/WildGoose
-dotnet run
-```
-
-### Database Migrations
-Migrations are created from the main WildGoose project with output to Infrastructure:
-```bash
-cd src/WildGoose
-dotnet ef migrations add MigrationName -p ../WildGoose.Infrastructure
-dotnet ef database update -p ../WildGoose.Infrastructure
-```
-
-Migrations are automatically applied on application startup.
-
-## Solution Architecture
-
-The solution follows a layered architecture with these projects:
-
-- **WildGoose** - Main API project (Presentation/Web layer)
-  - Controllers organized by API version (V10, V11, Admin)
-  - Entry point: `Program.cs`
-
-- **WildGoose.Domain** - Domain layer (Core business entities and interfaces)
-  - Entity classes: `User`, `Role`, `Organization`, etc.
-  - Domain interfaces: `ISession`, `IObjectStorageService`
-  - Domain concepts: `ICreation`, `IModification`, `IDeletion` (audit trail)
-
-- **WildGoose.Infrastructure** - Data access layer
-  - `WildGooseDbContext` with automatic audit tracking
-  - Supports MySQL and PostgreSQL
-
-- **WildGoose.Application** - Application/Business logic layer
-  - Services organized by domain (User, Role, Organization)
-  - CQRS-style: Commands (write) and Queries (read)
-  - All services inherit from `BaseService`
-
-- **WildGoose.Tests** - Test project using xUnit
-
-## Code Style Guidelines
-
-### Target Framework and Language Features
-- Target Framework: .NET 10.0
-- Nullable reference types: enabled
-- ImplicitUsings: enabled
-- Use C# 12 primary constructors for dependency injection in services and controllers
-
-### Naming Conventions
-- **Classes, Methods, Properties**: PascalCase
-- **Local variables, Parameters**: camelCase
-- **Async methods**: End with `Async` suffix (e.g., `GetListAsync`, `AddAsync`)
-- **Commands**: End with `Command` (e.g., `AddUserCommand`, `UpdateUserCommand`)
-- **Queries**: End with `Query` (e.g., `GetUserQuery`, `GetUserListQuery`)
-- **DTOs**: End with `Dto` (e.g., `UserDto`, `UserDetailDto`)
-
-### File Organization
-Services follow this structure:
-```
-Application/
-├── User/Admin/V10/
-│   ├── UserAdminService.cs        # Main service class
-│   ├── Command/                    # Input DTOs for write operations
-│   ├── Queries/                    # Input DTOs for read operations
-│   ├── Dto/                        # Output DTOs
-│   └── IntegrationEvents/          # Dapr pub/sub events
-```
-
-### Dependency Injection Pattern
-Use primary constructor syntax:
-```csharp
-public class UserAdminService(
-    WildGooseDbContext dbContext,
-    ISession session,
-    ILogger<UserAdminService> logger) : BaseService(dbContext, session, ...)
-{
-}
-```
-
-### Controllers Pattern
-```csharp
-[ApiController]
-[Route("api/admin/v1.0/users")]
-[Authorize(Policy = Defaults.SuperOrUserAdminOrOrgAdminPolicy)]
-public class UserController(UserAdminService userAdminService) : ControllerBase
-{
-    [HttpGet]
-    public Task<PagedResult<UserDto>> GetList([FromQuery] GetUserListQuery query)
-    {
-        return userAdminService.GetListAsync(query);
-    }
-}
-```
-
-## Error Handling
-
-### Business Logic Errors
-Throw `WildGooseFriendlyException` for business logic errors. These return HTTP 200 with error code:
-```csharp
-throw new WildGooseFriendlyException(1, "用户不存在");
-throw new WildGooseFriendlyException(403, "权限不足");
-```
-
-### System Errors
-Use standard .NET exceptions for system errors (returns HTTP 500).
-
-### Global Exception Handling
-`GlobalExceptionFilter` converts exceptions to standardized responses with format:
-```json
-{
-  "success": false,
-  "code": 1,
-  "msg": "Error message"
-}
-```
-
-## API Design Conventions
-
-- **HTTP Methods**: Only GET and POST (no PUT/DELETE due to gateway restrictions)
-- **Route Pattern**: `api/admin/v{version}/{resource}` or `api/v{version}/{resource}`
-- **JSON Serialization**: camelCase property naming
-- **Response Wrapping**: All responses wrapped by `ResponseWrapperFilter`
-
-## Database Patterns
-
-### Dual Database Support
-Code supports both MySQL and PostgreSQL. When writing raw SQL:
-- Use parameterized queries to prevent SQL injection
-- Prefer Dapper for complex queries
-- Recursive CTEs for organization hierarchy
-
-### Entity Configuration
-- Soft delete with `IsDeleted` flag and global query filters
-- Automatic audit fields (CreationTime, CreatorId, etc.) applied in `SaveChangesAsync`
-- Table prefix configurable via `DbOptions.TablePrefix`
-- Snake_case column names optional via `DbOptions.UseUnderScoreCase`
-
-### Organization Hierarchy
-- Tree-based structure with recursive relationships
-- Permission via path prefix matching: admin of `/A` can manage `/A/B`
-- `OrganizationDetail` entity provides pre-computed path information
-
-## Authorization
-
-### Authorization Policies
-- `SUPER` - Requires "admin" role only
-- `SUPER_OR_ORG_ADMIN` - Requires "admin" or "organization-admin" role
-
-### BaseService Authorization Methods
-All services inherit from `BaseService` which provides:
-- `CheckUserPermissionAsync(userId)` - Verify permission to manage a user
-- `CanManageOrganizationAsync(orgId)` - Check if user can manage an organization
-- `CheckAllRolePermissionAsync(roles)` - Verify role assignment permissions
-- Super-admin bypass via `Session.IsSupperAdmin()` or `Session.IsSupperAdminOrUserAdmin()`
-
-## Testing Guidelines
-
-### Test Structure
-```csharp
-[Collection("WebApplication collection")]
-public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseTests
-{
-    [Fact]
-    public async Task SuperAdminAddUserWithoutOrganization()
-    {
-        // Arrange
-        var scope = fixture.Instance.Services.CreateScope();
-        var session = scope.ServiceProvider.GetRequiredService<ISession>();
-        LoadSuperAdmin(session);
-        
-        // Act & Assert
-        var userAdminService = scope.ServiceProvider.GetRequiredService<UserAdminService>();
-        var user = await userAdminService.AddAsync(new AddUserCommand { ... });
-        Assert.NotNull(user);
-    }
-}
-```
-
-### Test Naming
-Method names should describe the scenario: `{Role}{Action}{Condition}`
-- `SuperAdminAddUserWithoutOrganization`
-- `OrganizationAdminGetUser3` (for edge cases)
-
-### Test Data
-- Use `BaseTests.CreateName()` for unique test names
-- Use `BaseTests.GenerateChinesePhoneNumber()` for valid phone numbers
-- Predefined constants for org/user IDs in `BaseTests`
-
-## Integration Events
-
-Services publish domain events via Dapr:
-```csharp
-await PublishEventAsync(_daprOptions, new UserAddedEvent { UserId = user.Id });
-```
-
-## Comments and Documentation
-
-- Chinese comments are acceptable in this codebase
-- XML documentation comments on public members encouraged
-- Use `/// <summary>` style for public APIs
+- `WildGoose.Infrastructure` project exists on disk but is NOT in .sln and has zero code — do not use
+- Tests share a single PostgreSQL database (no per-test isolation); seeded by `testdata.sql`
+- CI pipelines only build Docker images — no `dotnet test` or lint in CI
+- Docker image tags are hardcoded (e.g., `20260512.1`), not auto-generated from git
+- `yarn.lock` is gitignored — frontend builds may not be reproducible
+- Special roles (admin, organization_admin, user_admin) cannot be added/modified/deleted
+- Password login can be disabled via `DISABLE_PASSWORD_LOGIN` config

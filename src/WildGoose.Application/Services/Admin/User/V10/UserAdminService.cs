@@ -202,6 +202,7 @@ public class UserAdminService(
             await userManager.AddToRolesAsync(user, roles);
             // comments by lewis 20231117: _userManager 会自己调用 SaveChanges
             identityResult.CheckErrors();
+
             await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
         }
@@ -813,7 +814,8 @@ public class UserAdminService(
     {
         if (!string.IsNullOrEmpty(q))
         {
-            var likeExp = $"%{q}%";
+            var escaped = q.Replace("%", "\\%").Replace("_", "\\_");
+            var likeExp = $"%{escaped}%";
             // TODO: 需要优化
             queryable = queryable.Where(x =>
                 EF.Functions.Like(x.Name, likeExp) || EF.Functions.Like(x.UserName, likeExp) ||

@@ -86,9 +86,9 @@ public class RoleAdminService(
             {
                 await transaction.RollbackAsync();
             }
-            catch (Exception e2)
+            catch (Exception re)
             {
-                Logger.LogError(e2, "删除角色回滚失败");
+                Logger.LogError(re, "删除角色回滚失败");
             }
 
             throw WildGooseFriendlyException.From(ErrorCodes.OperationFailed);

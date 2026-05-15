@@ -135,7 +135,7 @@ public class OrganizationAdminService(
             {
                 if (!Session.IsSupperAdminOrUserAdmin())
                 {
-throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly, "仅允许超级管理员操作/设置一级机构");
+                    throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly, "仅允许超级管理员操作/设置一级机构");
                 }
             }
             else
@@ -249,17 +249,6 @@ throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly, "仅允许超�
             throw WildGooseFriendlyException.From(ErrorCodes.HasChildOrganizations);
         }
 
-        // comments 只是关系， 直接删除即可
-        // var containsUser = await DbContext.Set<OrganizationUser>()
-        //     .AsNoTracking()
-        //     .Where(x => x.OrganizationId == id)
-        //     .AnyAsync();
-        //
-        // if (containsUser)
-        // {
-        //     throw new WildGooseFriendlyException(1, "请先删除机构下的用户");
-        // }
-
         await using var transaction = await DbContext.Database.BeginTransactionAsync();
 
         try
@@ -268,28 +257,27 @@ throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly, "仅允许超�
             var t1 = DbContext.Set<OrganizationAdministrator>().EntityType.GetTableName();
             var t2 = DbContext.Set<OrganizationScope>().EntityType.GetTableName();
             var t3 = DbContext.Set<OrganizationUser>().EntityType.GetTableName();
+            var t4 = DbContext.Set<Domain.Entity.Organization>().EntityType.GetTableName();
             var conn = DbContext.Database.GetDbConnection();
             await conn.ExecuteAsync(
                 $$"""
                   DELETE FROM {{t1}} WHERE organization_id = @Id;
                   DELETE FROM {{t2}} WHERE organization_id = @Id;
                   DELETE FROM {{t3}} WHERE organization_id = @Id;
+                  DELETE FROM {{t4}} WHERE id = @Id;
                   """, new { Id = id });
-            DbContext.Remove(organization);
-
-            await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
         }
         catch (Exception e)
         {
-            Logger.LogError("删除机构失败 {Exception}", e);
+            Logger.LogError(e, "删除机构失败");
             try
             {
                 await transaction.RollbackAsync();
             }
-            catch (Exception e1)
+            catch (Exception re)
             {
-                Logger.LogError("执行回滚失败 {Exception}", e1);
+                Logger.LogError(re, "执行回滚失败");
             }
 
             throw WildGooseFriendlyException.From(ErrorCodes.OperationFailed);
@@ -325,7 +313,7 @@ throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly, "仅允许超�
                 x.Metadata,
                 ParentId = x.Parent.Id,
                 ParentName = x.Parent.Name,
-                ParentParentId = x.Parent.Parent.Id
+                ParentParentId = x.Parent.Parent != null ? x.Parent.Parent.Id : null
             })
             .FirstOrDefaultAsync();
 

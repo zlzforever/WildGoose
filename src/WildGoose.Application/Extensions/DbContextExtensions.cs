@@ -63,7 +63,8 @@ public static class DbContextExtensions
         var t1 = context.Set<OrganizationAdministrator>().EntityType.GetTableName();
         var t2 = context.Set<OrganizationDetail>().EntityType.GetTableName();
 
-        await using var conn = context.Database.GetDbConnection();
+        // WildGooseDbContext 创建的连接，都不应该使用 using
+        var conn = context.Database.GetDbConnection();
         // TODO: 是不是把 organizationId 传入 SQL 进行查询会更好
         var pathList = (await conn.QueryAsync<string>(
             $$"""
