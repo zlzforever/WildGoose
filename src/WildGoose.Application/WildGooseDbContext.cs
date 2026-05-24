@@ -219,7 +219,7 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
         var entryName = Assembly.GetEntryAssembly()?.GetName().Name;
         if (!"ef".Equals(entryName, StringComparison.OrdinalIgnoreCase))
         {
-            builder.Entity<OrganizationDetail>().ToTable($"{options.TablePrefix}organization_detail");
+            builder.Entity<OrganizationDetail>().ToTable(GetName(options, "organization_detail"));
         }
 
         if (options.UseUnderScoreCase)
@@ -331,6 +331,12 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
     private string GetName(DbOptions dbOptions, string name)
     {
         var v = dbOptions.TableMapper == null ? name : dbOptions.TableMapper.GetValueOrDefault(name, name);
+        var entryName = Assembly.GetEntryAssembly()?.GetName().Name;
+        if ("ef".Equals(entryName, StringComparison.OrdinalIgnoreCase))
+        {
+            return v;
+        }
+
         return $"{dbOptions.TablePrefix}{v}";
     }
 }

@@ -13,15 +13,15 @@ namespace WildGoose.Infrastructure.Migrations
         {
             migrationBuilder.AddColumn<long>(
                 name: "n_id",
-                table: "wild_goose_organization",
+                table: "organization",
                 type: "bigint",
                 nullable: false,
                 defaultValue: 0L)
                 .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
 
             migrationBuilder.CreateIndex(
-                name: "IX_wild_goose_organization_n_id",
-                table: "wild_goose_organization",
+                name: "IX_organization_n_id",
+                table: "organization",
                 column: "n_id",
                 unique: true);
         }
@@ -30,12 +30,12 @@ namespace WildGoose.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(
-                name: "IX_wild_goose_organization_n_id",
-                table: "wild_goose_organization");
+                name: "IX_organization_n_id",
+                table: "organization");
 
             migrationBuilder.DropColumn(
                 name: "n_id",
-                table: "wild_goose_organization");
+                table: "organization");
         }
     }
 }

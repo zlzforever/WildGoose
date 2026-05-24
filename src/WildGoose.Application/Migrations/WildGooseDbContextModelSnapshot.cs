@@ -51,7 +51,7 @@ namespace WildGoose.Infrastructure.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("wild_goose_role_claim", (string)null);
+                    b.ToTable("role_claim", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -83,7 +83,7 @@ namespace WildGoose.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("wild_goose_user_claim", (string)null);
+                    b.ToTable("user_claim", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
@@ -113,7 +113,7 @@ namespace WildGoose.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("wild_goose_user_login", (string)null);
+                    b.ToTable("user_login", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
@@ -132,7 +132,7 @@ namespace WildGoose.Infrastructure.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("wild_goose_user_role", (string)null);
+                    b.ToTable("user_role", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -159,7 +159,7 @@ namespace WildGoose.Infrastructure.Migrations
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("wild_goose_user_token", (string)null);
+                    b.ToTable("user_token", (string)null);
                 });
 
             modelBuilder.Entity("WildGoose.Domain.Entity.Organization", b =>
@@ -260,7 +260,7 @@ namespace WildGoose.Infrastructure.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("wild_goose_organization", (string)null);
+                    b.ToTable("organization", (string)null);
                 });
 
             modelBuilder.Entity("WildGoose.Domain.Entity.OrganizationAdministrator", b =>
@@ -277,7 +277,7 @@ namespace WildGoose.Infrastructure.Migrations
 
                     b.HasKey("OrganizationId", "UserId");
 
-                    b.ToTable("wild_goose_organization_administrator", (string)null);
+                    b.ToTable("organization_administrator", (string)null);
                 });
 
             modelBuilder.Entity("WildGoose.Domain.Entity.OrganizationScope", b =>
@@ -294,7 +294,7 @@ namespace WildGoose.Infrastructure.Migrations
 
                     b.HasKey("OrganizationId", "Scope");
 
-                    b.ToTable("wild_goose_organization_scope", (string)null);
+                    b.ToTable("organization_scope", (string)null);
                 });
 
             modelBuilder.Entity("WildGoose.Domain.Entity.OrganizationUser", b =>
@@ -311,7 +311,7 @@ namespace WildGoose.Infrastructure.Migrations
 
                     b.HasKey("OrganizationId", "UserId");
 
-                    b.ToTable("wild_goose_organization_user", (string)null);
+                    b.ToTable("organization_user", (string)null);
                 });
 
             modelBuilder.Entity("WildGoose.Domain.Entity.Role", b =>
@@ -381,10 +381,9 @@ namespace WildGoose.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("RoleNameIndex");
+                        .IsUnique();
 
-                    b.ToTable("wild_goose_role", (string)null);
+                    b.ToTable("role", (string)null);
                 });
 
             modelBuilder.Entity("WildGoose.Domain.Entity.RoleAssignableRole", b =>
@@ -401,7 +400,7 @@ namespace WildGoose.Infrastructure.Migrations
 
                     b.HasKey("RoleId", "AssignableId");
 
-                    b.ToTable("wild_goose_role_assignable_role", (string)null);
+                    b.ToTable("role_assignable_role", (string)null);
                 });
 
             modelBuilder.Entity("WildGoose.Domain.Entity.User", b =>
@@ -562,13 +561,11 @@ namespace WildGoose.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedEmail")
-                        .HasDatabaseName("EmailIndex");
+                    b.HasIndex("NormalizedEmail");
 
-                    b.HasIndex("NormalizedUserName")
-                        .HasDatabaseName("UserNameIndex");
+                    b.HasIndex("NormalizedUserName");
 
-                    b.ToTable("wild_goose_user", (string)null);
+                    b.ToTable("user", (string)null);
                 });
 
             modelBuilder.Entity("WildGoose.Domain.Entity.UserExtension", b =>
@@ -662,7 +659,7 @@ namespace WildGoose.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("wild_goose_user_extension", (string)null);
+                    b.ToTable("user_extension", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

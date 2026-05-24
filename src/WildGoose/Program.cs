@@ -7,8 +7,10 @@ using Identity.Sm;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.IdentityModel.Logging;
 using WildGoose.Application;
+using WildGoose.Application.Ef;
 using WildGoose.Application.Identity;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
@@ -176,24 +178,24 @@ public class Program
     private static DbOptions AddEfCore(WebApplicationBuilder builder)
     {
         var section = builder.Configuration.GetSection("DbContext");
-        var config = section.Get<DbOptions>();
-        if (config == null)
+        var dbOptions = section.Get<DbOptions>();
+        if (dbOptions == null)
         {
             throw new ArgumentException($"Missing configuration for {nameof(DbOptions)}");
         }
 
         // Add services to the container.
-        var connectionString = config.ConnectionString ??
+        var connectionString = dbOptions.ConnectionString ??
                                throw new InvalidOperationException(
                                    "Connection string 'DbContext:ConnectionString' not found.");
-        var tablePrefix = config.TablePrefix;
-        var databaseType = config.DatabaseType;
+        var tablePrefix = dbOptions.TablePrefix;
+        var databaseType = dbOptions.DatabaseType;
         Console.WriteLine($"Using {tablePrefix} database type: {databaseType}");
         if ("mysql".Equals(databaseType, StringComparison.OrdinalIgnoreCase))
         {
             builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
             {
-                if (config.EnableSensitiveDataLogging)
+                if (dbOptions.EnableSensitiveDataLogging)
                 {
                     options.EnableSensitiveDataLogging();
                 }
@@ -203,38 +205,16 @@ public class Program
                     warnings.Ignore(RelationalEventId.PendingModelChangesWarning);
                 });
 
-                // var dbContextOptions = options.Options;
-                // var infra = ((IDbContextOptionsBuilderInfrastructure)options);
-#pragma warning disable EF1001
-#pragma warning disable CS0618 // Type or member is obsolete
-
-                // var extension = dbContextOptions.FindExtension<MySqlOptionsExtension>() ?? new MySqlOptionsExtension();
-                //
-                // infra.AddOrUpdateExtension(extension);
-                // var coreOptionsExtension =
-                //     dbContextOptions.FindExtension<CoreOptionsExtension>() ?? new CoreOptionsExtension();
-                // coreOptionsExtension = coreOptionsExtension.WithWarningsConfiguration(
-                //     coreOptionsExtension.WarningsConfiguration.TryWithExplicit(
-                //         RelationalEventId.AmbientTransactionWarning, WarningBehavior.Throw));
-                // infra.AddOrUpdateExtension(coreOptionsExtension);
-                //
-                // var mySqlDbContextOptionsBuilder = new MySqlDbContextOptionsBuilder(options)
-                //     .TranslateParameterizedCollectionsToConstants();
-                //
-                // mySqlDbContextOptionsBuilder.MigrationsHistoryTable($"{tablePrefix}migrations_history");
-
                 options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 29)),
                     b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
-
-#pragma warning restore CS0618 // Type or member is obsolete
-#pragma warning restore EF1001
+                options.ReplaceService<IMigrationsSqlGenerator, MySqlPrefixedMigrationsSqlGenerator>();
             });
         }
         else
         {
             builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
             {
-                if (config.EnableSensitiveDataLogging)
+                if (dbOptions.EnableSensitiveDataLogging)
                 {
                     options.EnableSensitiveDataLogging();
                 }
@@ -245,9 +225,10 @@ public class Program
                 });
                 options.UseNpgsql(connectionString,
                     b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
+                options.ReplaceService<IMigrationsSqlGenerator, NpgsqlPrefixedMigrationsSqlGenerator>();
             });
         }
 
-        return config;
+        return dbOptions;
     }
 }

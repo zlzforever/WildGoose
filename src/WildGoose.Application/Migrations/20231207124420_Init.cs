@@ -13,7 +13,7 @@ namespace WildGoose.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "wild_goose_organization",
+                name: "organization",
                 columns: table => new
                 {
                     id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
@@ -36,16 +36,16 @@ namespace WildGoose.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_wild_goose_organization", x => x.id);
+                    table.PrimaryKey("PK_organization", x => x.id);
                     table.ForeignKey(
-                        name: "FK_wild_goose_organization_wild_goose_organization_parent_id",
+                        name: "FK_organization_organization_parent_id",
                         column: x => x.parent_id,
-                        principalTable: "wild_goose_organization",
+                        principalTable: "organization",
                         principalColumn: "id");
                 });
 
             migrationBuilder.CreateTable(
-                name: "wild_goose_organization_administrator",
+                name: "organization_administrator",
                 columns: table => new
                 {
                     organization_id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
@@ -53,11 +53,11 @@ namespace WildGoose.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_wild_goose_organization_administrator", x => new { x.organization_id, x.user_id });
+                    table.PrimaryKey("PK_organization_administrator", x => new { x.organization_id, x.user_id });
                 });
 
             migrationBuilder.CreateTable(
-                name: "wild_goose_organization_scope",
+                name: "organization_scope",
                 columns: table => new
                 {
                     organization_id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
@@ -65,11 +65,11 @@ namespace WildGoose.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_wild_goose_organization_scope", x => new { x.organization_id, x.scope });
+                    table.PrimaryKey("PK_organization_scope", x => new { x.organization_id, x.scope });
                 });
 
             migrationBuilder.CreateTable(
-                name: "wild_goose_organization_user",
+                name: "organization_user",
                 columns: table => new
                 {
                     organization_id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
@@ -77,11 +77,11 @@ namespace WildGoose.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_wild_goose_organization_user", x => new { x.organization_id, x.user_id });
+                    table.PrimaryKey("PK_organization_user", x => new { x.organization_id, x.user_id });
                 });
 
             migrationBuilder.CreateTable(
-                name: "wild_goose_role",
+                name: "role",
                 columns: table => new
                 {
                     id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
@@ -100,11 +100,11 @@ namespace WildGoose.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_wild_goose_role", x => x.id);
+                    table.PrimaryKey("PK_role", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "wild_goose_role_assignable_role",
+                name: "role_assignable_role",
                 columns: table => new
                 {
                     role_id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
@@ -112,11 +112,11 @@ namespace WildGoose.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_wild_goose_role_assignable_role", x => new { x.role_id, x.assignable_id });
+                    table.PrimaryKey("PK_role_assignable_role", x => new { x.role_id, x.assignable_id });
                 });
 
             migrationBuilder.CreateTable(
-                name: "wild_goose_user",
+                name: "user",
                 columns: table => new
                 {
                     id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
@@ -155,11 +155,11 @@ namespace WildGoose.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_wild_goose_user", x => x.id);
+                    table.PrimaryKey("PK_user", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "wild_goose_user_extension",
+                name: "user_extension",
                 columns: table => new
                 {
                     id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
@@ -175,11 +175,11 @@ namespace WildGoose.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_wild_goose_user_extension", x => x.id);
+                    table.PrimaryKey("PK_user_extension", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "wild_goose_role_claim",
+                name: "role_claim",
                 columns: table => new
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
@@ -190,17 +190,17 @@ namespace WildGoose.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_wild_goose_role_claim", x => x.id);
+                    table.PrimaryKey("PK_role_claim", x => x.id);
                     table.ForeignKey(
-                        name: "FK_wild_goose_role_claim_wild_goose_role_role_id",
+                        name: "FK_role_claim_role_role_id",
                         column: x => x.role_id,
-                        principalTable: "wild_goose_role",
+                        principalTable: "role",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "wild_goose_user_claim",
+                name: "user_claim",
                 columns: table => new
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
@@ -211,17 +211,17 @@ namespace WildGoose.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_wild_goose_user_claim", x => x.id);
+                    table.PrimaryKey("PK_user_claim", x => x.id);
                     table.ForeignKey(
-                        name: "FK_wild_goose_user_claim_wild_goose_user_user_id",
+                        name: "FK_user_claim_user_user_id",
                         column: x => x.user_id,
-                        principalTable: "wild_goose_user",
+                        principalTable: "user",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "wild_goose_user_login",
+                name: "user_login",
                 columns: table => new
                 {
                     login_provider = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
@@ -231,17 +231,17 @@ namespace WildGoose.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_wild_goose_user_login", x => new { x.login_provider, x.provider_key });
+                    table.PrimaryKey("PK_user_login", x => new { x.login_provider, x.provider_key });
                     table.ForeignKey(
-                        name: "FK_wild_goose_user_login_wild_goose_user_user_id",
+                        name: "FK_user_login_user_user_id",
                         column: x => x.user_id,
-                        principalTable: "wild_goose_user",
+                        principalTable: "user",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "wild_goose_user_role",
+                name: "user_role",
                 columns: table => new
                 {
                     user_id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
@@ -249,23 +249,23 @@ namespace WildGoose.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_wild_goose_user_role", x => new { x.user_id, x.role_id });
+                    table.PrimaryKey("PK_user_role", x => new { x.user_id, x.role_id });
                     table.ForeignKey(
-                        name: "FK_wild_goose_user_role_wild_goose_role_role_id",
+                        name: "FK_user_role_role_role_id",
                         column: x => x.role_id,
-                        principalTable: "wild_goose_role",
+                        principalTable: "role",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_wild_goose_user_role_wild_goose_user_user_id",
+                        name: "FK_user_role_user_user_id",
                         column: x => x.user_id,
-                        principalTable: "wild_goose_user",
+                        principalTable: "user",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "wild_goose_user_token",
+                name: "user_token",
                 columns: table => new
                 {
                     user_id = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
@@ -275,54 +275,54 @@ namespace WildGoose.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_wild_goose_user_token", x => new { x.user_id, x.login_provider, x.name });
+                    table.PrimaryKey("PK_user_token", x => new { x.user_id, x.login_provider, x.name });
                     table.ForeignKey(
-                        name: "FK_wild_goose_user_token_wild_goose_user_user_id",
+                        name: "FK_user_token_user_user_id",
                         column: x => x.user_id,
-                        principalTable: "wild_goose_user",
+                        principalTable: "user",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_wild_goose_organization_parent_id",
-                table: "wild_goose_organization",
+                name: "IX_organization_parent_id",
+                table: "organization",
                 column: "parent_id");
 
             migrationBuilder.CreateIndex(
-                name: "RoleNameIndex",
-                table: "wild_goose_role",
+                name: "IX_role_name",
+                table: "role",
                 column: "normalized_name",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_wild_goose_role_claim_role_id",
-                table: "wild_goose_role_claim",
+                name: "IX_role_claim_role_id",
+                table: "role_claim",
                 column: "role_id");
 
             migrationBuilder.CreateIndex(
-                name: "EmailIndex",
-                table: "wild_goose_user",
+                name: "IX_user_email",
+                table: "user",
                 column: "normalized_email");
 
             migrationBuilder.CreateIndex(
-                name: "UserNameIndex",
-                table: "wild_goose_user",
+                name: "IX_user_name",
+                table: "user",
                 column: "normalized_user_name");
 
             migrationBuilder.CreateIndex(
-                name: "IX_wild_goose_user_claim_user_id",
-                table: "wild_goose_user_claim",
+                name: "IX_user_claim_user_id",
+                table: "user_claim",
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_wild_goose_user_login_user_id",
-                table: "wild_goose_user_login",
+                name: "IX_user_login_user_id",
+                table: "user_login",
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_wild_goose_user_role_role_id",
-                table: "wild_goose_user_role",
+                name: "IX_user_role_role_id",
+                table: "user_role",
                 column: "role_id");
         }
 
@@ -330,43 +330,43 @@ namespace WildGoose.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "wild_goose_organization");
+                name: "organization");
 
             migrationBuilder.DropTable(
-                name: "wild_goose_organization_administrator");
+                name: "organization_administrator");
 
             migrationBuilder.DropTable(
-                name: "wild_goose_organization_scope");
+                name: "organization_scope");
 
             migrationBuilder.DropTable(
-                name: "wild_goose_organization_user");
+                name: "organization_user");
 
             migrationBuilder.DropTable(
-                name: "wild_goose_role_assignable_role");
+                name: "role_assignable_role");
 
             migrationBuilder.DropTable(
-                name: "wild_goose_role_claim");
+                name: "role_claim");
 
             migrationBuilder.DropTable(
-                name: "wild_goose_user_claim");
+                name: "user_claim");
 
             migrationBuilder.DropTable(
-                name: "wild_goose_user_extension");
+                name: "user_extension");
 
             migrationBuilder.DropTable(
-                name: "wild_goose_user_login");
+                name: "user_login");
 
             migrationBuilder.DropTable(
-                name: "wild_goose_user_role");
+                name: "user_role");
 
             migrationBuilder.DropTable(
-                name: "wild_goose_user_token");
+                name: "user_token");
 
             migrationBuilder.DropTable(
-                name: "wild_goose_role");
+                name: "role");
 
             migrationBuilder.DropTable(
-                name: "wild_goose_user");
+                name: "user");
         }
     }
 }
