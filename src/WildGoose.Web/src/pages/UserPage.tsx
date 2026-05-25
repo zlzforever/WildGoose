@@ -247,7 +247,8 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
     const parseIsAdmin = async () => {
       const user = await getUser()
       if (user && user.profile && user.profile.role) {
-        setIsAdmin(user.profile.role.includes("admin"))
+        const roles = user.profile.role as any
+        setIsAdmin(roles.includes("admin"))
       }
     }
     parseIsAdmin()
@@ -866,7 +867,6 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                       <Button
                         type="primary"
                         onClick={() => {
-                          // debugger
                           // message.success("添加子机构")
                           // return
                           // 若有选中机构

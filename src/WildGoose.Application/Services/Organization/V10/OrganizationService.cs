@@ -47,7 +47,7 @@ public class OrganizationService(
     public async Task<List<SubOrganizationDto>> GetSubListAsync(GetSubListQuery query)
     {
         // 管理与业务分离，禁止管理员访问此接口
-        if (Session.IsSupperAdminOrUserAdmin())
+        if (Session.IsSuperAdminOrUserAdmin())
         {
             return [];
         }

@@ -6,14 +6,14 @@ public static class SessionExtensions
 {
     extension(ISession session)
     {
-        private bool IsSupperAdmin()
+        private bool IsSuperAdmin()
         {
             return session.Roles.Contains(Defaults.Admin);
         }
 
-        public bool IsSupperAdminOrUserAdmin()
+        public bool IsSuperAdminOrUserAdmin()
         {
-            return session.IsSupperAdmin() || session.IsUserAdmin();
+            return session.IsSuperAdmin() || session.IsUserAdmin();
         }
 
         private bool IsUserAdmin()

@@ -36,7 +36,7 @@ public class OrganizationAdminService(
         WildGoose.Domain.Entity.Organization parent = null;
         if (string.IsNullOrWhiteSpace(command.ParentId))
         {
-            if (!Session.IsSupperAdminOrUserAdmin())
+            if (!Session.IsSuperAdminOrUserAdmin())
             {
                 throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly);
             }
@@ -63,7 +63,7 @@ public class OrganizationAdminService(
         organization.Parent = parent;
 
         // 检查上级机构是否存在， 防止无权限的用户提供一个不存在的上级机构， 从而创建一级机构
-        if (!Session.IsSupperAdminOrUserAdmin() && organization.Parent == null)
+        if (!Session.IsSuperAdminOrUserAdmin() && organization.Parent == null)
         {
             throw WildGooseFriendlyException.From(ErrorCodes.AncestorOrganizationNotFound);
         }
@@ -133,7 +133,7 @@ public class OrganizationAdminService(
             // 如果本身是一级， 是可以修改自己内容的
             if (string.IsNullOrEmpty(command.ParentId))
             {
-                if (!Session.IsSupperAdminOrUserAdmin())
+                if (!Session.IsSuperAdminOrUserAdmin())
                 {
                     throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly, "仅允许超级管理员操作/设置一级机构");
                 }
@@ -154,7 +154,7 @@ public class OrganizationAdminService(
         // organization.Order = command.Order;
 
         // 只有超级管理员可以修改元数据
-        if (Session.IsSupperAdminOrUserAdmin())
+        if (Session.IsSuperAdminOrUserAdmin())
         {
             organization.SetMetadata(command.Metadata);
         }
@@ -229,7 +229,7 @@ public class OrganizationAdminService(
         // 只有超级管理员可以删除一级机构
         if (organization.Parent == null || string.IsNullOrEmpty(organization.Parent.Id))
         {
-            if (!Session.IsSupperAdminOrUserAdmin())
+            if (!Session.IsSuperAdminOrUserAdmin())
             {
                 throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly, "仅允许超级管理员操作一级机构");
             }
@@ -391,7 +391,7 @@ public class OrganizationAdminService(
             .AsNoTracking()
             .Where(x => x.Name.Contains(query.Keyword));
 
-        if (!Session.IsSupperAdminOrUserAdmin())
+        if (!Session.IsSuperAdminOrUserAdmin())
         {
             var adminList = await GetAdminOrganizationsAsync(Session.UserId);
             var adminPathList = adminList.Select(x => x.Path).ToList();
@@ -453,7 +453,7 @@ public class OrganizationAdminService(
         }
 
         // 超管
-        if (Session.IsSupperAdminOrUserAdmin())
+        if (Session.IsSuperAdminOrUserAdmin())
         {
             return await GetSubListAsync(query.ParentId);
         }
@@ -619,7 +619,7 @@ public class OrganizationAdminService(
         };
 
         // 只有超级管理员可以修改元数据
-        if (Session.IsSupperAdminOrUserAdmin())
+        if (Session.IsSuperAdminOrUserAdmin())
         {
             organization.SetMetadata(command.Metadata);
         }

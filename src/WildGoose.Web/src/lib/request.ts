@@ -58,11 +58,17 @@ instance.interceptors.request.use(async (requestConfig) => {
 
       requestConfig.headers["Z-Encrypt-Version"] = "v1.1"
       requestConfig.headers["Z-Encrypt-Key"] = bkey.join("")
+      // ✅ 修复：字符串不执行 JSON.stringify，避免多出引号
+      let dataText
+      if (typeof requestConfig.data === "string") {
+        dataText = requestConfig.data
+      } else {
+        dataText = JSON.stringify(requestConfig.data)
+      }
 
-      // 只处理 JSON 格式的数据加密
-      const dataText = JSON.stringify(requestConfig.data)
       const encryptData = AESEnc(key, dataText)
-      requestConfig.data = encryptData
+      const encoder = new TextEncoder()
+      requestConfig.data = encoder.encode(encryptData)
       requestConfig.headers["Content-Type"] = "application/json"
     }
   }
@@ -77,7 +83,7 @@ instance.interceptors.response.use(
     const result = response.data as ApiResult
     if (!result) {
       // 1. 若没有返回数据，则根据 statusCode 来判断
-      if (response.status < 200 && response.status >= 300) {
+      if (response.status < 200 || response.status >= 300) {
         const msg = "服务请求错误: " + response.status
         await message.error(msg)
         throw msg

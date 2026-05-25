@@ -1,21 +1,18 @@
-import type { User, SignoutResponse } from "oidc-client"
-import { Log, UserManager } from "oidc-client"
-import oidc from "oidc-client"
+import { UserManager, User, SignoutResponse, WebStorageStateStore } from "oidc-client-ts"
 
 const oidcSettings = window.wildgoose.oidc
-oidcSettings.userStore = new oidc.WebStorageStateStore({ store: window.localStorage })
+oidcSettings.userStore = new WebStorageStateStore({ store: window.localStorage })
 
 const userManager = new UserManager(oidcSettings)
-Log.logger = console
-Log.level = Log.INFO
+// Log.logger = console
+// Log.level = Log.INFO
 
 export async function getUser(): Promise<User | null> {
   const user = await userManager.getUser()
   if (user && user.profile.role) {
+    let role = user.profile.role as any
     user.profile.role =
-      Object.prototype.toString.call(user.profile.role) === "[object Array]"
-        ? user.profile.role
-        : user.profile.role.split(" ")
+      Object.prototype.toString.call(role) === "[object Array]" ? role : role.split(" ")
   }
   return user
 }
@@ -28,12 +25,13 @@ export async function signinRedirectCallback(): Promise<User> {
   return userManager.signinRedirectCallback()
 }
 
-export async function signinSilent(): Promise<User> {
+export async function signinSilent(): Promise<User | null> {
   return userManager.signinSilent()
 }
 
-export async function signinSilentCallback(): Promise<User | undefined> {
-  return userManager.signinSilentCallback()
+export async function signinSilentCallback() {
+  await userManager.signinSilentCallback()
+  return await userManager.getUser()
 }
 
 export async function signoutRedirect(): Promise<void> {

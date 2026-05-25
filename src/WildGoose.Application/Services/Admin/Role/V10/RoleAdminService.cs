@@ -286,7 +286,7 @@ public class RoleAdminService(
 
     public async Task<List<RoleBasicDto>> GetAssignableRolesAsync()
     {
-        if (Session.IsSupperAdminOrUserAdmin())
+        if (Session.IsSuperAdminOrUserAdmin())
         {
             return DbContext.Set<WildGoose.Domain.Entity.Role>()
                 .AsNoTracking()

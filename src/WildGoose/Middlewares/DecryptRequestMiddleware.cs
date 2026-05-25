@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.Security.Cryptography;
+using System.Text;
 using WildGoose.Domain.Utils;
 
 namespace WildGoose.Middlewares;
@@ -19,8 +19,8 @@ public class DecryptRequestMiddleware(RequestDelegate next)
             return;
         }
 
-        var encryptVersion = context.Request.Headers[VersionHeader].ElementAtOrDefault(0);
-        var encryptKey = context.Request.Headers[KeyHeader].ElementAtOrDefault(0);
+        var encryptVersion = context.Request.Headers[VersionHeader].ToString();
+        var encryptKey = context.Request.Headers[KeyHeader].ToString();
 
         var encryptVersionIsNullOrEmpty = string.IsNullOrEmpty(encryptVersion);
         var encryptKeyIsNullOrEmpty = string.IsNullOrEmpty(encryptKey);
@@ -32,6 +32,13 @@ public class DecryptRequestMiddleware(RequestDelegate next)
                 context.Request.Path.Value.EndsWith("/password", StringComparison.OrdinalIgnoreCase))
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.Body.WriteAsync("""
+                                                       {
+                                                           "code": 403,
+                                                           "success": false,
+                                                           "msg": "设置密码接口需使用请求体加密"
+                                                       }
+                                                       """u8.ToArray());
                 return;
             }
 
@@ -47,21 +54,21 @@ public class DecryptRequestMiddleware(RequestDelegate next)
             {
                 if ("v1.0".Equals(encryptVersion, StringComparison.OrdinalIgnoreCase))
                 {
+                    logger.LogError("不再支持 v1.0 加密， 请升级版本");
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return;
                 }
-                else if ("v1.1".Equals(encryptVersion, StringComparison.OrdinalIgnoreCase))
+
+                if ("v1.1".Equals(encryptVersion, StringComparison.OrdinalIgnoreCase))
                 {
-                    Debug.Assert(encryptKey != null, nameof(encryptKey) + " != null");
-                    encryptKey = GetRealKeyV11(encryptKey);
+                    // 前端固定对称加密的 KEY，仅应用对 WF 对一些敏感数据的拦截。
+                    await DecryptV1Body(context, encryptKey);
                 }
                 else
                 {
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
                     return;
                 }
-
-                using var ase = CryptographyUtil.CreateAesEcb(encryptKey);
-                // 前端固定对称加密的 KEY，仅应用对 WF 对一些敏感数据的拦截。
-                await DecryptV1Body(context, ase);
             }
             catch (Exception e)
             {
@@ -86,20 +93,21 @@ public class DecryptRequestMiddleware(RequestDelegate next)
     {
         var p1 = encryptKey.Substring(0, 10);
         var p2 = encryptKey.Substring(16, encryptKey.Length - 16);
-        encryptKey = p1 + p2;
-        return encryptKey;
+        return p1 + p2;
     }
 
-    private static async Task DecryptV1Body(HttpContext context, Aes aes)
+    private static async Task DecryptV1Body(HttpContext context, string encryptKey)
     {
         using var streamReader = new StreamReader(context.Request.Body);
-        var bodyContent = await streamReader.ReadToEndAsync();
-        if (!string.IsNullOrEmpty(bodyContent))
+        var encryptedBody = await streamReader.ReadToEndAsync();
+        if (!string.IsNullOrEmpty(encryptedBody))
         {
-            // 处理兼容问题,替换掉双引号的字符串
-            var replaceBodyContent = bodyContent.Replace("\"", "");
+            var key = GetRealKeyV11(encryptKey);
+            var parts = encryptedBody.Split(':');
+            using var aes = CryptographyUtil.CreateAesCBC(key, parts[0]);
+            var ciphertext = parts[1];
             // 解密请求body
-            var decryptedBody = CryptographyUtil.AesEcbDecrypt(aes, replaceBodyContent);
+            var decryptedBody = CryptographyUtil.AesDecrypt(aes, ciphertext);
             context.Request.Body = new MemoryStream(decryptedBody);
         }
     }

@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using System.IO.Hashing;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +26,7 @@ public class GenerateTop3LevelOrganizationsToFileService(
             Directory.CreateDirectory(dir);
         }
 
-        var preHash = -1;
+        ulong preHash = 0;
         while (!stoppingToken.IsCancellationRequested)
         {
             using var scope = serviceProvider.CreateScope();
@@ -35,7 +37,7 @@ public class GenerateTop3LevelOrganizationsToFileService(
             var lv3List = await GetListAsync(dbContext, lv2List.Select(x => x.Id).ToList());
             var list = topList.Concat(lv1List).Concat(lv2List).Concat(lv3List).ToList();
             var json = JsonSerializer.Serialize(list, _jsonSerializerOptions);
-            var hash = json.GetHashCode();
+            var hash = XxHash3.HashToUInt64(Encoding.UTF8.GetBytes(json));
             if (hash != preHash)
             {
                 await File.WriteAllTextAsync($"{dir}/organizations.json", json, stoppingToken);

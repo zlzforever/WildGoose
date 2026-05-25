@@ -1,4 +1,4 @@
-var authority = 'https://sample.ptkj.cc/sts';
+var authority = 'https://sample.xxxx.cc/sts';
 window.wildgoose = {
   applicationId: '1',
   baseName: '${BASE_PATH}',

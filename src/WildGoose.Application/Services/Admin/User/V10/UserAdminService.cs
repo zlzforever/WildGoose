@@ -136,7 +136,7 @@ public class UserAdminService(
         }
 
         // 超级管理员、用户管理员查询所有用户
-        if (Session.IsSupperAdminOrUserAdmin())
+        if (Session.IsSuperAdminOrUserAdmin())
         {
             return await QueryUsersAsync(query.Q, query.Page, query.Limit, query.Status);
         }
@@ -680,7 +680,7 @@ public class UserAdminService(
 
     private async Task<PagedResult<UserDto>> QueryUsersAsync(string q, int page, int limit, string status)
     {
-        if (!Session.IsSupperAdminOrUserAdmin())
+        if (!Session.IsSuperAdminOrUserAdmin())
         {
             return new PagedResult<UserDto>(1, limit, 0, new List<UserDto>());
         }

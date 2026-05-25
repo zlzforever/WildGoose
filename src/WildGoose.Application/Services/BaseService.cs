@@ -55,7 +55,7 @@ public abstract class BaseService(
     /// <returns></returns>
     protected async Task<bool> CanManageAllOrganizationsAsync(List<string> organizationIdList)
     {
-        if (Session.IsSupperAdminOrUserAdmin())
+        if (Session.IsSuperAdminOrUserAdmin())
         {
             return true;
         }
@@ -73,7 +73,7 @@ public abstract class BaseService(
     /// <exception cref="WildGooseFriendlyException"></exception>
     public async Task CheckUserPermissionAsync(string userId)
     {
-        if (Session.IsSupperAdminOrUserAdmin())
+        if (Session.IsSuperAdminOrUserAdmin())
         {
             return;
         }
@@ -90,7 +90,7 @@ public abstract class BaseService(
 
     protected async Task CheckAnyOrganizationPermissionAsync(List<OrganizationEntity> organizations)
     {
-        if (Session.IsSupperAdminOrUserAdmin())
+        if (Session.IsSuperAdminOrUserAdmin())
         {
             return;
         }
@@ -101,7 +101,7 @@ public abstract class BaseService(
 
     protected bool CanManageAll<T>(ICollection<T> adminList, ICollection<T> list) where T : IPath
     {
-        if (Session.IsSupperAdminOrUserAdmin())
+        if (Session.IsSuperAdminOrUserAdmin())
         {
             return true;
         }
@@ -123,7 +123,7 @@ public abstract class BaseService(
 
     protected void CheckAny<T>(ICollection<T> adminList, ICollection<T> list) where T : IPath
     {
-        if (Session.IsSupperAdminOrUserAdmin())
+        if (Session.IsSuperAdminOrUserAdmin())
         {
             return;
         }
@@ -195,7 +195,7 @@ public abstract class BaseService(
 
     protected async Task CheckAllRolePermissionAsync(List<string> roles)
     {
-        if (Session.IsSupperAdminOrUserAdmin())
+        if (Session.IsSuperAdminOrUserAdmin())
         {
             return;
         }

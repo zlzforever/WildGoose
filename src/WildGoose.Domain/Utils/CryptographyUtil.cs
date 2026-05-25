@@ -14,13 +14,14 @@ public static class CryptographyUtil
         var bytes = MD5.HashData(data);
         return Convert.ToHexString(bytes);
     }
-    
-    public static Aes CreateAesEcb(string key)
+
+    public static Aes CreateAesCBC(string key, string iv)
     {
         var keyArray = Encoding.UTF8.GetBytes(key);
         var aes = Aes.Create();
         aes.Key = keyArray;
-        aes.Mode = CipherMode.ECB;
+        aes.IV = Convert.FromBase64String(iv);
+        aes.Mode = CipherMode.CBC;
         aes.Padding = PaddingMode.PKCS7;
         return aes;
     }
@@ -28,14 +29,14 @@ public static class CryptographyUtil
     public static string CreateAesKey()
     {
         var aes = Aes.Create();
-        aes.Mode = CipherMode.ECB;
+        aes.Mode = CipherMode.CBC;
         aes.Padding = PaddingMode.PKCS7;
         aes.KeySize = 128; // 可以设置为 128、192 或 256 位
         aes.GenerateKey();
         return Convert.ToBase64String(aes.Key);
     }
 
-    public static byte[] AesEcbDecrypt(Aes aes, string text)
+    public static byte[] AesDecrypt(Aes aes, string text)
     {
         var toEncryptArray = Convert.FromBase64String(text);
         using var decrypt = aes.CreateDecryptor();
