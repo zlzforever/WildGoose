@@ -10,7 +10,6 @@ WORKDIR /workspace
 COPY "./src/WildGoose/WildGoose.csproj" "/workspace/src/WildGoose/"
 COPY "./src/WildGoose.Application/WildGoose.Application.csproj" "/workspace/src/WildGoose.Application/"
 COPY "./src/WildGoose.Domain/WildGoose.Domain.csproj" "/workspace/src/WildGoose.Domain/"
-COPY "./src/WildGoose.Infrastructure/WildGoose.Infrastructure.csproj" "/workspace/src/WildGoose.Infrastructure/"
 COPY "./src/WildGoose.Tests/WildGoose.Tests.csproj" "/workspace/src/WildGoose.Tests/"
 COPY "./WildGoose.sln" "/workspace/WildGoose.sln"
 RUN dotnet restore .
