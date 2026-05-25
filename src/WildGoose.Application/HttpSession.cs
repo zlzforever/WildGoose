@@ -110,8 +110,8 @@ public class HttpSession : ISession
                 return new HttpSession
                 {
                     HttpContext = accessor.HttpContext,
-                    Roles = [Defaults.AdminRole],
-                    Subjects = [Defaults.AdminRole, "6571be3ec966a3562687ae05"],
+                    Roles = [Defaults.Admin],
+                    Subjects = [Defaults.Admin, "6571be3ec966a3562687ae05"],
                     PhoneNumber = "",
                     UserDisplayName = "周正", UserId = "6571be3ec966a3562687ae05", UserName = "zz",
                     TraceIdentifier = ObjectId.GenerateNewId().ToString()

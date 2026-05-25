@@ -168,7 +168,7 @@ public class RoleAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
         {
             await roleAdminService.AddAsync(new AddRoleCommand
             {
-                Name = Defaults.AdminRole,
+                Name = Defaults.Admin,
                 Description = "测试角色"
             });
         });
@@ -214,7 +214,7 @@ public class RoleAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
         {
             await roleAdminService.AddAsync(new AddRoleCommand
             {
-                Name = Defaults.BusinessAdmin,
+                Name = Defaults.UserAdmin,
                 Description = "测试角色"
             });
         });
@@ -737,7 +737,7 @@ public class RoleAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
         // 不应包含 organization-admin 角色
         Assert.DoesNotContain(roles, x => x.Name == Defaults.OrganizationAdmin);
         // 不应包含 admin 角色
-        Assert.Contains(roles, x => x.Name == Defaults.AdminRole);
+        Assert.Contains(roles, x => x.Name == Defaults.Admin);
     }
 
     /// <summary>
@@ -759,7 +759,7 @@ public class RoleAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
         // 不应包含 organization-admin 角色
         Assert.DoesNotContain(roles, x => x.Name == Defaults.OrganizationAdmin);
         // 不应包含 admin 角色
-        Assert.DoesNotContain(roles, x => x.Name == Defaults.AdminRole);
+        Assert.DoesNotContain(roles, x => x.Name == Defaults.Admin);
     }
 
     /// <summary>

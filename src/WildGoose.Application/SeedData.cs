@@ -28,7 +28,7 @@ public static class SeedData
 
         var defaultRoles = new List<(string Name, string Description, string Statement)>
         {
-            new(Defaults.AdminRole, "超级管理员", JsonSerializer.Serialize(new List<Statement>
+            new(Defaults.Admin, "超级管理员", JsonSerializer.Serialize(new List<Statement>
             {
                 new()
                 {
@@ -38,7 +38,7 @@ public static class SeedData
                 }
             })),
             new(Defaults.OrganizationAdmin, "机构管理员", "[]"),
-            new(Defaults.BusinessAdmin, "用户管理员", "[]")
+            new(Defaults.UserAdmin, "用户管理员", "[]")
         };
         foreach (var role in defaultRoles)
         {
@@ -63,10 +63,10 @@ public static class SeedData
                 case Defaults.OrganizationAdmin:
                     Defaults.OrganizationAdminRoleId = entity.Id;
                     break;
-                case Defaults.AdminRole:
+                case Defaults.Admin:
                     Defaults.AdminRoleId = entity.Id;
                     break;
-                case Defaults.BusinessAdmin:
+                case Defaults.UserAdmin:
                     Defaults.UserAdminRoleId = entity.Id;
                     break;
             }

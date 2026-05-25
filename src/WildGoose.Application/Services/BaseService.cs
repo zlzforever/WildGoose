@@ -186,7 +186,7 @@ public abstract class BaseService(
             join role in roles on roleAssignableRole.AssignableId equals role.Id
             where userRole.UserId == Session.UserId
                   && role.Name != Defaults.OrganizationAdmin
-                  && role.Name != Defaults.AdminRole
+                  && role.Name != Defaults.Admin
             select role.NormalizedName;
 
         var assignableRoles = await queryable.AsNoTracking().Distinct().ToListAsync();

@@ -28,9 +28,9 @@ public class RoleAdminService(
 {
     public async Task<string> AddAsync(AddRoleCommand command)
     {
-        if (Defaults.AdminRole.Equals(command.Name, StringComparison.OrdinalIgnoreCase) ||
+        if (Defaults.Admin.Equals(command.Name, StringComparison.OrdinalIgnoreCase) ||
             Defaults.OrganizationAdmin.Equals(command.Name, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.BusinessAdmin.Equals(command.Name, StringComparison.OrdinalIgnoreCase))
+            Defaults.UserAdmin.Equals(command.Name, StringComparison.OrdinalIgnoreCase))
         {
             throw WildGooseFriendlyException.From(ErrorCodes.SystemRoleNameReserved);
         }
@@ -63,9 +63,9 @@ public class RoleAdminService(
             throw WildGooseFriendlyException.From(ErrorCodes.RoleNotFound);
         }
 
-        if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+        if (Defaults.Admin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.BusinessAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw WildGooseFriendlyException.From(ErrorCodes.CannotModifySystemRole);
         }
@@ -103,9 +103,9 @@ public class RoleAdminService(
             throw WildGooseFriendlyException.From(ErrorCodes.RoleNotFound);
         }
 
-        if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+        if (Defaults.Admin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.BusinessAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw WildGooseFriendlyException.From(ErrorCodes.CannotModifySystemRole);
         }
@@ -134,9 +134,9 @@ public class RoleAdminService(
             throw WildGooseFriendlyException.From(ErrorCodes.RoleNotFound);
         }
 
-        if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+        if (Defaults.Admin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.BusinessAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw WildGooseFriendlyException.From(ErrorCodes.CannotModifySystemRole);
         }
@@ -240,9 +240,9 @@ public class RoleAdminService(
             return;
         }
 
-        if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+        if (Defaults.Admin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
             Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.BusinessAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw WildGooseFriendlyException.From(ErrorCodes.CannotModifySystemRole);
         }
@@ -304,7 +304,7 @@ public class RoleAdminService(
                 .RoleId
             join role in DbContext.Set<WildGoose.Domain.Entity.Role>() on roleAssignableRole.AssignableId equals role.Id
             where userRole.UserId == userId && role.Name != Defaults.OrganizationAdmin &&
-                  role.Name != Defaults.AdminRole
+                  role.Name != Defaults.Admin
             select new RoleBasicDto
             {
                 Id = role.Id,

@@ -85,8 +85,8 @@ public abstract class BaseTests
             UserId = "65965555b951f01bf13b1adc",
             UserDisplayName = "admin",
             UserName = "admin",
-            Roles = [Defaults.AdminRole],
-            Subjects = [Defaults.AdminRole, "65965555b951f01bf13b1adc"]
+            Roles = [Defaults.Admin],
+            Subjects = [Defaults.Admin, "65965555b951f01bf13b1adc"]
         });
     }
 
@@ -123,8 +123,8 @@ public abstract class BaseTests
             UserId = "507f1f77bcf86cd799439021",
             UserDisplayName = "user_admin",
             UserName = "user_admin",
-            Roles = [Defaults.BusinessAdmin],
-            Subjects = [Defaults.BusinessAdmin, "507f1f77bcf86cd799439021"]
+            Roles = [Defaults.UserAdmin],
+            Subjects = [Defaults.UserAdmin, "507f1f77bcf86cd799439021"]
         });
     }
 

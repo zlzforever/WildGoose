@@ -83,21 +83,21 @@ public static class AuthenticationExtensions
                 policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, "SecurityToken");
                 policy.RequireAuthenticatedUser();
                 policy.RequireClaim("scope", apiName);
-                policy.RequireRole("admin", "user-admin", "organization-admin");
+                policy.RequireRole(Defaults.Admin, Defaults.UserAdmin, Defaults.OrganizationAdmin);
             });
             options.AddPolicy("USER_ADMIN", policy =>
             {
                 policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, "SecurityToken");
                 policy.RequireAuthenticatedUser();
                 policy.RequireClaim("scope", apiName);
-                policy.RequireRole("user-admin");
+                policy.RequireRole(Defaults.UserAdmin);
             });
             options.AddPolicy("SUPER", policy =>
             {
                 policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, "SecurityToken");
                 policy.RequireAuthenticatedUser();
                 policy.RequireClaim("scope", apiName);
-                policy.RequireRole("admin");
+                policy.RequireRole(Defaults.Admin);
             });
         });
     }
