@@ -162,7 +162,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
 
         // 若有角色不是当前用户可授于角色（是别人授于的）也要能显示
         userDetail.roles.map((x) => {
-          if (roles.findIndex((y) => y.value === x.id) === -1) {
+          if (roles.findIndex((y) => y.value === x.name) === -1) {
             roles.push({
               value: x.name,
               label: x.name,
@@ -330,7 +330,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
             </Col>
             <Col span={12}>
               <Form.Item name="roles" label="角色">
-                <Select mode="multiple" options={roleOptions} />
+                <Select mode="multiple" options={roleOptions} virtual={false} />
               </Form.Item>
             </Col>
             {propertyDefs.map((def) => (
