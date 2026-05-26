@@ -323,7 +323,6 @@ public class WildGooseDbContext(DbContextOptions<WildGooseDbContext> options)
             return;
         }
 
-        entry.Reload();
         entry.State = EntityState.Modified;
         entity.SetDeletion(userId, userName);
     }

@@ -12,7 +12,6 @@ using WildGoose.Application.Services.Admin.Role.V10.Dto;
 using WildGoose.Application.Services.Admin.Role.V10.Queries;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
-using WildGoose.Domain.Extensions;
 using WildGoose.Domain.Options;
 
 namespace WildGoose.Application.Services.Admin.Role.V10;
@@ -288,14 +287,14 @@ public class RoleAdminService(
     {
         if (Session.IsSuperAdminOrUserAdmin())
         {
-            return DbContext.Set<WildGoose.Domain.Entity.Role>()
+            return await DbContext.Set<WildGoose.Domain.Entity.Role>()
                 .AsNoTracking()
                 .Where(x => x.Name != Defaults.OrganizationAdmin)
                 .Select(x => new RoleBasicDto
                 {
                     Id = x.Id,
                     Name = x.Name
-                }).ToList();
+                }).ToListAsync();
         }
 
         var userId = Session.UserId;

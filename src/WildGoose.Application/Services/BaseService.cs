@@ -156,7 +156,7 @@ public abstract class BaseService(
                 {
                     Logger.LogError(ex, "推送消息失败 {TopicName} {Event} {Message}", topicName,
                         JsonSerializer.Serialize(@event), ex.Message);
-                    await Task.Delay(100);
+                    await Task.Delay(10);
                 }
             }
         }

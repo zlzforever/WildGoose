@@ -6,7 +6,7 @@
 
 ## OVERVIEW
 
-User/role/organization management system built on ASP.NET Core Identity. .NET 10 backend + React 19 SPA frontend. Three fixed roles (admin, organization_admin, user_admin) with path-based hierarchical org permissions.
+User/role/organization management system built on ASP.NET Core Identity. .NET 10 backend + React 19 SPA frontend. Three fixed roles (admin, organization-admin, user-admin) with path-based hierarchical org permissions.
 
 ## STRUCTURE
 
@@ -54,7 +54,7 @@ WildGoose/
 - **C# 13 extension blocks** — `extension(T)` syntax used in SessionExtensions, PathExtensions, WebApplicationBuilderExtensions
 - **InternalsVisibleTo** — Application layer exposes internals to WildGoose + WildGoose.Tests
 - **Standard response envelope** — All responses auto-wrapped to `{Code, Success, Data/Msg}` by ResponseWrapperFilter
-- **3-tier RBAC** — admin (super), organization_admin (scoped), user_admin (users+orgs, no roles)
+- **3-tier RBAC** — admin (super), organization-admin (scoped), user-admin (users+orgs, no roles)
 - **Path-based org hierarchy** — Admin permissions via `OrganizationDetail.Path.StartsWith()` prefix matching
 
 ## ANTI-PATTERNS (THIS PROJECT)
@@ -98,5 +98,5 @@ docker build -f web.Dockerfile -t wildgoose-web .
 - CI pipelines only build Docker images — no `dotnet test` or lint in CI
 - Docker image tags are hardcoded (e.g., `20260512.1`), not auto-generated from git
 - `yarn.lock` is gitignored — frontend builds may not be reproducible
-- Special roles (admin, organization_admin, user_admin) cannot be added/modified/deleted
+- Special roles (admin, organization-admin, user-admin) cannot be added/modified/deleted
 - Password login can be disabled via `DISABLE_PASSWORD_LOGIN` config

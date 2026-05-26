@@ -32,7 +32,7 @@ path 构建， 因为 ObjectId 过于长了。
   同时还有大量第三方、供应商为服务，
   它们是另一个管理领域，只是允许复用 wild_goose_user 表（表示相同的人， 相同的人可以在不同的供应商来回切换）。而不同服务范围（角色）由另一个领域管理，并提供给
   STS 授权时使用。
-* 有三个基本角色可以访问本系统： 超级管理员(admin)、组织管理员(organization_admin)、用户管理员(user_admin)。
+* 有三个基本角色可以访问本系统： 超级管理员(admin)、组织管理员(organization-admin)、用户管理员(user-admin)。
 * 每个角色可以设置： 可授于角色， 可授于角色不考虑继承关系。
 * 超级管理员这个角色名就含了最高级别权限， 超级管理员不需要再添加它的可授于角色。
 * 用户管理员是用于管理用户、机构等， 仅没有角色的管理权限。因为使用超级太危险了， 特设定这个角色。
@@ -61,7 +61,7 @@ POST api/admin/v1.0/roles
 + 仅超级管理员可添加角色。
 + 请求体中包含角色名称、可授于角色列表。
 + 不允许添加已存在的角色名称。
-+ 不允许添加特殊角色（如 admin、organization_admin、user_admin）。
++ 不允许添加特殊角色（如 admin、organization-admin、user-admin）。
 + 返回新添加的角色的标识。
 
 #### 删除角色接口
@@ -70,7 +70,7 @@ POST api/admin/v1.0/roles/{id}/delete
 
 + 仅超级管理员可删除角色。
 + 请求体中包含角色标识。
-+ 不允许删除特殊角色（如 admin、organization_admin、user_admin）。
++ 不允许删除特殊角色（如 admin、organization-admin、user-admin）。
 + 同时删除该角色在用户角色表中的所有记录。
 
 #### 查询角色信息接口
@@ -86,7 +86,7 @@ POST api/admin/v1.0/roles/{id}
 
 + 仅超级管理员可修改角色。
 + 请求体中包含角色名称、描述。
-+ 不允许修改特殊角色（如 admin、organization_admin、user_admin）。
++ 不允许修改特殊角色（如 admin、organization-admin、user-admin）。
 
 #### 修改角色权限声明
 
@@ -94,7 +94,7 @@ POST api/admin/v1.0/roles/{id}/statement
 
 + 仅超级管理员可修改角色的权限声明。
 + 请求体中包含新的权限声明。
-+ 不允许修改特殊角色（如 admin、organization_admin、user_admin）。
++ 不允许修改特殊角色（如 admin、organization-admin、user-admin）。
 
 #### 添加可授于角色
 
@@ -102,7 +102,7 @@ POST api/admin/v1.0/roles/{id}/assignableRoles
 
 + 仅超级管理员可添加角色的可授于角色。
 + 请求体中包含可授于角色列表。
-+ 不允许添加特殊角色（如 admin、organization_admin、user_admin）。
++ 不允许添加特殊角色（如 admin、organization-admin、user-admin）。
 
 #### 删除可授于角色
 

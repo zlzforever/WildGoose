@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Text;
 using WildGoose.Domain.Utils;
 
 namespace WildGoose.Middlewares;

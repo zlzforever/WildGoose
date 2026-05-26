@@ -59,6 +59,12 @@ public class OrganizationAdminService(
             }
         }
 
+        if (await DbContext
+                .Set<WildGoose.Domain.Entity.Organization>().AnyAsync(x => x.Name == command.Name))
+        {
+            throw WildGooseFriendlyException.From(ErrorCodes.OrganizationExists);
+        }
+
         var organization = Create(command);
         organization.Parent = parent;
 
@@ -145,6 +151,13 @@ public class OrganizationAdminService(
                     throw WildGooseFriendlyException.From(ErrorCodes.NoOrganizationPermission);
                 }
             }
+        }
+
+        if (await DbContext
+                .Set<WildGoose.Domain.Entity.Organization>()
+                .AnyAsync(x => x.Name == command.Name && x.Id != command.Id))
+        {
+            throw WildGooseFriendlyException.From(ErrorCodes.OrganizationExists);
         }
 
         organization.Code = command.Code;

@@ -43,6 +43,9 @@ public class UserAdminService(
         };
 
         var userExtension = new UserExtension { Id = user.Id };
+
+        await using var transaction = await DbContext.Database.BeginTransactionAsync();
+
         IdentityResult identityResult;
         if (Defaults.DisablePasswordLogin)
         {
@@ -59,6 +62,8 @@ public class UserAdminService(
             identityResult = await userManager.CreateAsync(user, command.Password);
         }
 
+        identityResult.CheckErrors();
+
         UserExtensionPropertyHelper.SetProperties(userExtension, command.Properties,
             wildGooseOptions.Value.UserPropertyMappings);
         await DbContext.AddAsync(userExtension);
@@ -66,6 +71,9 @@ public class UserAdminService(
         // comments by lewis 20231117: _userManager 会自己调用 SaveChanges
         identityResult.CheckErrors();
         await DbContext.SaveChangesAsync();
+
+        // 所有操作成功，提交事务
+        await transaction.CommitAsync();
 
         await PublishEventAsync(dapOptions.Value, new UserAddedEvent
         {

@@ -112,6 +112,9 @@ public static class ErrorCodes
     /// <summary>组织：禁止操作顶级组织</summary>
     public const int CannotModifyTopLevelOrganization = 5008;
 
+    /// <summary>组织：机构已经存在</summary>
+    public const int OrganizationExists = 5009;
+
     #endregion
 
     #region 角色相关 (6xxx)

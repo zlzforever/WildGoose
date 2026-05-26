@@ -113,16 +113,6 @@ public class UserAdminService(
     }
 
     /// <summary>
-    /// 获取用户扩展属性映射字典
-    /// </summary>
-    /// <returns></returns>
-    public Dictionary<string, string> GetPropertyMap()
-    {
-        return _wildGooseOptions.UserPropertyMappings
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.DisplayName);
-    }
-
-    /// <summary>
     /// 若 organizationId 为空， 组织管理员则查询其有管理权限（含下级）的所有用户， 超级管理员、用户管理员则查询所有用户。
     /// 若 organizationId 不为空， isRecursive 参数才生效， 表示查询的时候是否仅查询本级组织。组织管理员需要检查是否有管理 organizationId 的权限。
     /// </summary>
@@ -150,7 +140,7 @@ public class UserAdminService(
         command.Organizations ??= new();
         command.Roles ??= new();
 
-        if (command.Roles.Contains(Defaults.OrganizationAdminRoleId))
+        if (command.Roles.Contains(Defaults.OrganizationAdmin))
         {
             throw WildGooseFriendlyException.From(ErrorCodes.InvalidRole);
         }
@@ -175,63 +165,77 @@ public class UserAdminService(
             NormalizedUserName = normalizedUserName
         };
 
-        // 只能设置当前用户可管理的机构
-        var organizations = await SetOrganizationsAsync(user.Id, command.Organizations);
         var roles = SetRoles(command.Roles);
 
         var userExtension = new UserExtension { Id = user.Id };
         UserExtensionPropertyHelper.SetProperties(userExtension, command.Properties,
             _wildGooseOptions.UserPropertyMappings);
         userExtension.SetPasswordInfo(command.Password);
-        await DbContext.AddAsync(userExtension);
 
-        // 会做用户名、手机、密码校验（Identity 框架会自动添加默认角色）
-        IdentityResult identityResult;
-        if (Defaults.DisablePasswordLogin)
-        {
-            identityResult = await userManager.CreateAsync(user);
-        }
-        else
-        {
-            identityResult = await userManager.CreateAsync(user, command.Password);
-        }
-
+        // ✅ 核心修复1：事务提前开启，包裹所有数据库操作
         await using var transaction = await DbContext.Database.BeginTransactionAsync();
+
         try
         {
-            await userManager.AddToRolesAsync(user, roles);
-            // comments by lewis 20231117: _userManager 会自己调用 SaveChanges
-            identityResult.CheckErrors();
+            // 会做用户名、手机、密码校验（Identity 框架会自动添加默认角色）
+            // 1. 创建用户（内部SaveChanges自动加入当前事务）
+            IdentityResult createResult;
+            if (Defaults.DisablePasswordLogin)
+            {
+                createResult = await userManager.CreateAsync(user);
+            }
+            else
+            {
+                createResult = await userManager.CreateAsync(user, command.Password);
+            }
 
+            createResult.CheckErrors();
+
+            // ✅ 核心修复2：检查添加角色的结果（原代码完全遗漏）
+            var addRolesResult = await userManager.AddToRolesAsync(user, roles);
+            addRolesResult.CheckErrors();
+
+            // ✅ 核心修复3：机构关联操作移入事务内
+            var organizations = await SetOrganizationsAsync(user.Id, command.Organizations);
+
+            // 4. 添加用户扩展信息
+            await DbContext.AddAsync(userExtension);
+
+            // 5. 保存自定义实体变更
             await DbContext.SaveChangesAsync();
+
+            // 所有操作成功，提交事务
             await transaction.CommitAsync();
+
+            // ✅ 事件发布在事务提交后（避免事件发了但数据库回滚）
+            await PublishEventAsync(_daprOptions, new UserAddedEvent
+            {
+                UserId = user.Id
+            });
+
+            return new UserDto
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Name = user.Name,
+                Organizations = organizations,
+                Enabled = user.IsEnabled,
+                PhoneNumber = user.PhoneNumber,
+                Roles = roles,
+                IsAdministrator = false,
+                CreationTime = user.CreationTime.HasValue
+                    ? user.CreationTime.Value.ToLocalTime().ToString(Defaults.SecondTimeFormat)
+                    : "-"
+            };
         }
         catch (Exception e)
         {
-            logger.LogError(e, "添加用户失败 {UserId}", command.Name);
+            logger.LogError(e, "添加用户失败 UserId: {UserId}, UserName: {UserName}", user.Id, command.UserName);
+            // 回滚事务
             await transaction.RollbackAsync();
+
             throw WildGooseFriendlyException.From(ErrorCodes.InternalError);
         }
-
-        await PublishEventAsync(_daprOptions, new UserAddedEvent
-        {
-            UserId = user.Id
-        });
-
-        return new UserDto
-        {
-            Id = user.Id,
-            UserName = user.UserName,
-            Name = user.Name,
-            Organizations = organizations,
-            Enabled = user.IsEnabled,
-            PhoneNumber = user.PhoneNumber,
-            Roles = roles,
-            IsAdministrator = false,
-            CreationTime = user.CreationTime.HasValue
-                ? user.CreationTime.Value.ToLocalTime().ToString(Defaults.SecondTimeFormat)
-                : "-"
-        };
     }
 
     /// <summary>
