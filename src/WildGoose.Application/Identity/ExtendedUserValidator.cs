@@ -27,15 +27,17 @@ public class ExtendedUserValidator<TUser> : UserValidator<TUser>
     {
         var errors = new List<IdentityError>();
         var userName = await manager.GetUserNameAsync(user);
-        var allowedUserNameCharacters = manager.Options.User.AllowedUserNameCharacters;
         if (string.IsNullOrWhiteSpace(userName))
         {
             errors.Add(Describer.InvalidUserName(userName));
+            return errors;
         }
-        else if (!string.IsNullOrEmpty(allowedUserNameCharacters))
+
+        var allowedUserNameCharacters = manager.Options.User.AllowedUserNameCharacters;
+        if (!string.IsNullOrEmpty(allowedUserNameCharacters))
         {
             // 使用字符匹配
-            if (userName.All(c => allowedUserNameCharacters.Contains(c)))
+            if (userName.All(allowedUserNameCharacters.Contains))
             {
             }
             // 使用正则
@@ -47,29 +49,27 @@ public class ExtendedUserValidator<TUser> : UserValidator<TUser>
                 errors.Add(Describer.InvalidUserName(userName));
             }
         }
+
+        var userId = await manager.GetUserIdAsync(user);
+        var normalizeName = manager.NormalizeName(userName);
+        if (await manager.Users.AnyAsync(x => x.Id != userId && x.NormalizedUserName == normalizeName))
+        {
+            errors.Add(Describer.DuplicateUserName(userName));
+        }
+
+        if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+        {
+            user.PhoneNumber = null;
+        }
         else
         {
-            var userId = await manager.GetUserIdAsync(user);
-            var normalizeName = manager.NormalizeName(userName);
-            if (await manager.Users.AnyAsync(x => x.Id != userId && x.NormalizedUserName == normalizeName))
+            if (await manager.Users.AnyAsync(x => x.Id != userId && x.PhoneNumber == user.PhoneNumber))
             {
-                errors.Add(Describer.DuplicateUserName(userName));
-            }
-
-            if (string.IsNullOrWhiteSpace(user.PhoneNumber))
-            {
-                user.PhoneNumber = null;
-            }
-            else
-            {
-                if (await manager.Users.AnyAsync(x => x.Id != userId && x.PhoneNumber == user.PhoneNumber))
+                errors.Add(new IdentityError
                 {
-                    errors.Add(new IdentityError
-                    {
-                        Code = "DuplicatePhoneNumber",
-                        Description = "手机号已经存在"
-                    });
-                }
+                    Code = "DuplicatePhoneNumber",
+                    Description = "手机号已经存在"
+                });
             }
         }
 
