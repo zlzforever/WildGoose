@@ -19,5 +19,5 @@ jobs:
     - name: Build the Docker image
       run: docker build . --file api.Dockerfile --tag zlzforever/wildgoose-api:20260525.5
     - name: Publish the Docker image
-      run: docker push zlzforever/wildgoose-api:20260525.4
+      run: docker push zlzforever/wildgoose-api:20260525.5
       
