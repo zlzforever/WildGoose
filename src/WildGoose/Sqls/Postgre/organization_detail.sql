@@ -44,7 +44,7 @@ BEGIN
         IF NOT EXISTS (
             SELECT 1
             FROM pg_trigger
-            WHERE tgrelid = '${table_prefix}organization'::regclass  -- 表名
+            WHERE tgrelid = '${schema_prefix}.${table_prefix}organization'::regclass  -- 表名
               AND tgname = 'refresh_${table_prefix}organization_detail_trigger'  -- 触发器名
         ) THEN
 CREATE TRIGGER  refresh_${table_prefix}organization_detail_trigger

@@ -3,8 +3,10 @@ using Dapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
+using Npgsql;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
 using WildGoose.Domain.Options;
@@ -12,11 +14,12 @@ using WildGoose.Domain.Utils;
 
 namespace WildGoose.Application;
 
-public static class SeedData
+public class SeedData
 {
     public static async Task Init(IServiceProvider serviceProvider)
     {
         var scope = serviceProvider.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<SeedData>();
         var dbOptions = scope.ServiceProvider.GetRequiredService<IOptions<DbOptions>>().Value;
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
         Defaults.OrganizationTableName =
@@ -87,7 +90,7 @@ public static class SeedData
             defaultPassword = string.IsNullOrEmpty(defaultPassword)
                 ? PasswordGenerator.GeneratePassword()
                 : defaultPassword;
-            Console.WriteLine("Default admin password: " + defaultPassword);
+            logger.LogInformation("Default admin password: {AdminPassword}", defaultPassword);
             await userMgr.CreateAsync(admin, defaultPassword);
             await userMgr.AddToRoleAsync(admin, "admin");
         }
@@ -96,6 +99,16 @@ public static class SeedData
         var materializedName = $"{dbOptions.TablePrefix}organization_detail";
         var databaseName = conn.Database;
         var isMysql = "mysql".Equals(dbOptions.DatabaseType, StringComparison.OrdinalIgnoreCase);
+        var schema = "public";
+        if (!isMysql)
+        {
+            var npgsqlBuilder = new NpgsqlConnectionStringBuilder(conn.ConnectionString);
+            if (!string.IsNullOrEmpty(npgsqlBuilder.SearchPath))
+            {
+                schema = npgsqlBuilder.SearchPath.Split(',')[0].Trim();
+            }
+        }
+
         var materializedExistSql = isMysql
             ? $$"""
                 SELECT EXISTS (
@@ -112,7 +125,7 @@ public static class SeedData
                              JOIN pg_namespace n ON c.relnamespace = n.oid
                     WHERE c.relname = '{{materializedName}}'
                       AND c.relkind = 'm'  -- 'm' 表示物化视图
-                      AND n.nspname = 'public'  -- 默认为 public
+                      AND n.nspname = '{{schema}}'
                 )
                 """;
         if (isMysql)
@@ -135,7 +148,8 @@ public static class SeedData
                 ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sqls", "MySql", "organization_detail.sql")
                 : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sqls", "Postgre", "organization_detail.sql");
             var text = await File.ReadAllTextAsync(sqlPath);
-            text = text.Replace("${table_prefix}", dbOptions.TablePrefix);
+            text = text.Replace("${table_prefix}", dbOptions.TablePrefix)
+                       .Replace("${schema_prefix}", schema);
             await conn.ExecuteAsync(text);
         }
 
