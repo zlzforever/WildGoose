@@ -299,6 +299,44 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
     }
 
     /// <summary>
+    /// 添加重复用户名应返回友好错误
+    /// </summary>
+    [Fact]
+    public async Task AddDuplicateUserNameShouldFailWithFriendlyMessage()
+    {
+        var scope = fixture.Instance.Services.CreateScope();
+        var session = scope.ServiceProvider.GetRequiredService<ISession>();
+        LoadSuperAdmin(session);
+
+        var userAdminService = scope.ServiceProvider.GetRequiredService<UserAdminService>();
+        var userName = CreateName();
+        await userAdminService.AddAsync(new AddUserCommand
+        {
+            UserName = userName,
+            Name = "测试用户",
+            Password = "Test@123456",
+            PhoneNumber = GenerateChinesePhoneNumber(),
+            Organizations = [],
+            Roles = []
+        });
+
+        var exception = await Assert.ThrowsAsync<WildGooseFriendlyException>(async () =>
+        {
+            await userAdminService.AddAsync(new AddUserCommand
+            {
+                UserName = userName,
+                Name = "重复用户",
+                Password = "Test@123456",
+                PhoneNumber = GenerateChinesePhoneNumber(),
+                Organizations = [],
+                Roles = []
+            });
+        });
+
+        Assert.Equal($"用户名 '{userName}' 已存在", exception.Message);
+    }
+
+    /// <summary>
     /// 添加用户时不能直接授予组织管理员角色
     /// </summary>
     [Fact]
