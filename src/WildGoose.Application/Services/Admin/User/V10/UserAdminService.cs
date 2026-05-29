@@ -228,6 +228,11 @@ public class UserAdminService(
                     : "-"
             };
         }
+        catch (WildGooseFriendlyException)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
         catch (Exception e)
         {
             logger.LogError(e, "添加用户失败 UserId: {UserId}, UserName: {UserName}", user.Id, command.UserName);
