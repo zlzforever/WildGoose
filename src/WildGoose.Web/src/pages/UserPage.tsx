@@ -54,6 +54,14 @@ import { ApartmentOutlined } from "@ant-design/icons"
 const { Search } = Input
 const { Text } = Typography
 
+/** 如果值是手机号格式，则用 * 隐藏中间部分，只保留前 2 和后 2 位 */
+const maskPhoneNumber = (value: string): string => {
+  if (/^1\d{10}$/.test(value)) {
+    return value.slice(0, 2) + "******" + value.slice(-2)
+  }
+  return value
+}
+
 type MenuItem = Required<MenuProps>["items"][number]
 
 const UserPage = (props?: { breadcrumb?: boolean }) => {
@@ -98,16 +106,19 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
       title: "姓名",
       dataIndex: "name",
       key: "name",
+      render: (value: string) => maskPhoneNumber(value),
     },
     {
       title: "帐号",
       dataIndex: "userName",
       key: "userName",
+      render: (value: string) => maskPhoneNumber(value),
     },
     {
       title: "手机号",
       dataIndex: "phoneNumber",
       key: "phoneNumber",
+      render: (value: string) => maskPhoneNumber(value),
     },
     {
       title: "管理员",
