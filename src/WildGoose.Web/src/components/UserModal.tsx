@@ -12,7 +12,7 @@ import {
   SelectProps,
   message,
 } from "antd"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   getSubOrganizationList,
   getUser,
@@ -24,6 +24,10 @@ import * as dayjs from "dayjs"
 
 const phoneValidator = (_: any, value: any, callback: any) => {
   if (value) {
+    // 跳过掩码值（包含 * 说明是已通过验证的手机号）
+    if (typeof value === "string" && value.includes("*")) {
+      return callback()
+    }
     const reg: any = /^(13[0-9]|14[01456879]|15[0-35-9]|16[2567]|17[0-8]|18[0-9]|19[0-35-9])\d{8}$/
     if (reg.test(value)) {
       return callback()
@@ -31,6 +35,14 @@ const phoneValidator = (_: any, value: any, callback: any) => {
     return Promise.reject(new Error("手机号无效"))
   }
   return callback()
+}
+
+/** 如果值是手机号格式，则用 * 隐藏中间部分，只保留前 2 和后 2 位 */
+const maskPhoneNumber = (value?: string): string => {
+  if (value && /^1\d{10}$/.test(value)) {
+    return value.slice(0, 2) + "******" + value.slice(-2)
+  }
+  return value ?? ""
 }
 
 export interface UserProps {
@@ -46,6 +58,7 @@ export interface UserModalProps extends UserProps {
 
 const UserModal: React.FC<UserModalProps> = (props) => {
   const [form] = Form.useForm<UpdateUserDto>()
+  const rawValuesRef = useRef<Record<string, string>>({})
   const [organizationTreeData, setOrganizationTreeData] = useState<OrganizationTreeNode[]>([])
   // const [organizationTreeSelectedKeys, setOrganizationTreeSelectedKeys] = useState<string[]>()
   const [organizationTreeDict, setOrganizationTreeDict] = useState<
@@ -131,13 +144,17 @@ const UserModal: React.FC<UserModalProps> = (props) => {
           return
         }
         const userDetail = res.data as UserDetailDto
+        const rawName = userDetail.name ?? ""
+        const rawUserName = userDetail.userName ?? ""
+        const rawPhone = userDetail.phoneNumber ?? ""
+        rawValuesRef.current = { name: rawName, userName: rawUserName, phoneNumber: rawPhone }
         values.code = userDetail.code
         values.email = userDetail.email
         values.hiddenSensitiveData = userDetail.hiddenSensitiveData
-        values.name = userDetail.name
-        values.phoneNumber = userDetail.phoneNumber
+        values.name = maskPhoneNumber(rawName)
+        values.phoneNumber = maskPhoneNumber(rawPhone)
         values.title = userDetail.title
-        values.userName = userDetail.userName
+        values.userName = maskPhoneNumber(rawUserName)
 
         if (userDetail.departureTime) {
           values.departureTime = dayjs.unix(userDetail.departureTime)
@@ -217,10 +234,36 @@ const UserModal: React.FC<UserModalProps> = (props) => {
     }
   }
 
+  /** 聚焦时显示完整值 */
+  const handleFocus = (field: "name" | "userName" | "phoneNumber") => {
+    const raw = rawValuesRef.current[field]
+    if (raw) {
+      form.setFieldValue(field, raw)
+    }
+  }
+
+  /** 失焦时若为手机号格式则掩码，并保存当前完整值 */
+  const handleBlur = (field: "name" | "userName" | "phoneNumber") => {
+    const value = form.getFieldValue(field)
+    if (typeof value === "string") {
+      rawValuesRef.current[field] = value
+      if (/^1\d{10}$/.test(value)) {
+        form.setFieldValue(field, maskPhoneNumber(value))
+      }
+    }
+  }
+
   const onOk = async () => {
     const result = await form.validateFields()
     if (result) {
       const values = form.getFieldsValue()
+      // 如果字段仍为掩码后的值，恢复为完整的原始值提交给接口
+      for (const field of ["name", "userName", "phoneNumber"] as const) {
+        const raw = rawValuesRef.current[field]
+        if (raw && values[field] === maskPhoneNumber(raw)) {
+          values[field] = raw
+        }
+      }
       let user
       // 编辑
       if (props.id) {
@@ -258,7 +301,12 @@ const UserModal: React.FC<UserModalProps> = (props) => {
                 label="帐号"
                 rules={[{ required: true, message: "请输入帐号" }]}
               >
-                <Input placeholder="请输入帐号" maxLength={36} />
+                <Input
+                  placeholder="请输入帐号"
+                  maxLength={36}
+                  onFocus={() => handleFocus("userName")}
+                  onBlur={() => handleBlur("userName")}
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -267,7 +315,12 @@ const UserModal: React.FC<UserModalProps> = (props) => {
                 label="姓名"
                 rules={[{ required: true, message: "请输入姓名" }]}
               >
-                <Input placeholder="请输入姓名" maxLength={256} />
+                <Input
+                  placeholder="请输入姓名"
+                  maxLength={256}
+                  onFocus={() => handleFocus("name")}
+                  onBlur={() => handleBlur("name")}
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -276,7 +329,12 @@ const UserModal: React.FC<UserModalProps> = (props) => {
                 label="手机号"
                 rules={[{ required: true, message: "请输入手机号" }, { validator: phoneValidator }]}
               >
-                <Input placeholder="请输入手机号" maxLength={11} />
+                <Input
+                  placeholder="请输入手机号"
+                  maxLength={11}
+                  onFocus={() => handleFocus("phoneNumber")}
+                  onBlur={() => handleBlur("phoneNumber")}
+                />
               </Form.Item>
             </Col>
             {props.id ? (
