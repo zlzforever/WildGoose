@@ -1,12 +1,9 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using WildGoose.Domain;
 
 namespace WildGoose.Authentication.GatewayJwtBearer;
 
@@ -71,19 +68,49 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
         try
         {
             var json = Convert.FromBase64String(base64);
-            Logger.LogDebug("X-Userinfo value is {UserInfo}", json);
 
             using var memoryStream = new MemoryStream(json);
-            var profile = JsonSerializer.Deserialize<Profile>(memoryStream, _jsonOptions.JsonSerializerOptions);
+            var profile =
+                JsonSerializer.Deserialize<Dictionary<string, JsonElement?>>(memoryStream,
+                    _jsonOptions.JsonSerializerOptions);
             if (profile == null)
             {
                 Logger.LogInformation("Deserialize X-Userinfo value failed");
                 return AuthenticateResult.NoResult();
             }
 
+            Logger.LogDebug("Deserialize X-Userinfo value success: {Profile}",
+                JsonSerializer.Serialize(profile, _jsonOptions.JsonSerializerOptions));
+
+            var claims = new List<Claim>();
+            Add(claims, profile, "sub");
+            Add(claims, profile, "iss");
+            Add(claims, profile, "aud");
+            Add(claims, profile, "jti");
+            Add(claims, profile, "exp");
+            Add(claims, profile, "client_id");
+            Add(claims, profile, "role");
+            Add(claims, profile, "security-stamp");
+            Add(claims, profile, "iat");
+            Add(claims, profile, "sid");
+            Add(claims, profile, "oi_prst");
+            Add(claims, profile, "oi_au_id");
+            Add(claims, profile, "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", "name");
+            Add(claims, profile, "name");
+            var jsonElement = profile["scope"];
+            if (jsonElement != null)
+            {
+                var scope = jsonElement.Value.ToString();
+                foreach (var s in scope.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    claims.Add(new Claim("scope", s));
+                }
+            }
+
             if (!string.IsNullOrEmpty(options.Issuer))
             {
-                if (!options.Issuer.Equals(profile.Iss))
+                var iss = claims.FirstOrDefault(x => x.Type == "iss")?.Value;
+                if (!options.Issuer.Equals(iss))
                 {
                     return AuthenticateResult.Fail("Issuer is invalid");
                 }
@@ -91,87 +118,31 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
 
             if (!string.IsNullOrEmpty(options.Audience))
             {
-                if (!options.Audience.Equals(profile.Aud))
+                if (!claims.Any(x => x.Type == "aud" && x.Value == options.Audience))
                 {
                     return AuthenticateResult.Fail("Audience is invalid");
                 }
             }
 
             var now = DateTimeOffset.UtcNow;
-            var notBefore = DateTimeOffset.FromUnixTimeSeconds(profile.Nbf);
-            if (now < notBefore)
+            var nbf = claims.FirstOrDefault(x => x.Type == "nbf")?.Value;
+            if (nbf != null)
             {
-                return AuthenticateResult.Fail("Token is not available");
-            }
-
-            var expired = DateTimeOffset.FromUnixTimeSeconds(profile.Exp);
-            if (now > expired)
-            {
-                return AuthenticateResult.Fail("Token is expired");
-            }
-
-            var claims = new List<Claim>
-            {
-                new(JwtClaimTypes.Subject, profile.Sub)
-            };
-            if (!string.IsNullOrEmpty(profile.Name))
-            {
-                claims.Add(new Claim(JwtClaimTypes.Name, profile.Name));
-            }
-
-            if (!string.IsNullOrEmpty(profile.Sid))
-            {
-                claims.Add(new Claim(JwtClaimTypes.SessionId, profile.Sid));
-            }
-
-            if (!string.IsNullOrEmpty(profile.PhoneNumber))
-            {
-                claims.Add(new Claim(JwtClaimTypes.PhoneNumber, profile.PhoneNumber));
-            }
-
-            if (!string.IsNullOrEmpty(profile.FamilyName))
-            {
-                claims.Add(new Claim(JwtClaimTypes.FamilyName, profile.FamilyName));
-            }
-
-            if (!string.IsNullOrEmpty(profile.GivenName))
-            {
-                claims.Add(new Claim(JwtClaimTypes.GivenName, profile.GivenName));
-            }
-
-            if (!string.IsNullOrEmpty(profile.Email))
-            {
-                claims.Add(new Claim(JwtClaimTypes.Email, profile.Email));
-            }
-
-            if (!string.IsNullOrEmpty(profile.ClientId))
-            {
-                claims.Add(new Claim(JwtClaimTypes.ClientId, profile.ClientId));
-            }
-
-            var roles = profile.Role;
-            if (roles != null)
-            {
-                if (roles.RootElement.ValueKind == JsonValueKind.String)
+                var notBefore = DateTimeOffset.FromUnixTimeSeconds(long.Parse(nbf));
+                if (now < notBefore)
                 {
-                    claims.Add(new Claim(ClaimTypes.Role, roles.RootElement.ToString()));
-                }
-                else if (roles.RootElement.ValueKind == JsonValueKind.Array)
-                {
-                    var b = roles.RootElement.Deserialize<List<string>>();
-                    if (b != null)
-                    {
-                        foreach (var v in b)
-                        {
-                            claims.Add(new Claim(ClaimTypes.Role, v));
-                        }
-                    }
+                    return AuthenticateResult.Fail("Token is not available");
                 }
             }
 
-            foreach (var scope in profile.Scope)
+            var exp = claims.FirstOrDefault(x => x.Type == "exp")?.Value;
+            if (exp != null)
             {
-                claims.Add(new Claim(JwtClaimTypes.Scope, scope));
+                var expired = DateTimeOffset.FromUnixTimeSeconds(long.Parse(exp));
+                if (now > expired)
+                {
+                    return AuthenticateResult.Fail("Token is expired");
+                }
             }
 
             var identity = new ClaimsIdentity(claims, Scheme.Name);
@@ -188,122 +159,50 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
         return result;
     }
 
-    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
-    [SuppressMessage("ReSharper", "UnusedMember.Local")]
-    private sealed class Profile
+    private void Add(List<Claim> claims, Dictionary<string, JsonElement?> json, string key, string? name = null)
     {
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("sub")]
-        public required string Sub { get; set; }
+        if (!json.TryGetValue(key, out var jsonElement))
+        {
+            return;
+        }
 
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("client_id")]
-        public string? ClientId { get; set; }
+        if (jsonElement == null)
+        {
+            return;
+        }
 
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("given_name")]
-        public string? GivenName { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("family_name")]
-        public string? FamilyName { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("email")]
-        public string? Email { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("exp")]
-        public int Exp { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("phone_number")]
-        public string? PhoneNumber { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("amr")]
-        public List<string>? Amr { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("auth_time")]
-        public int AuthTime { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("idp")]
-        public string? Idp { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("jti")]
-        public string? Jti { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("scope")]
-        public List<string> Scope { get; set; } = new();
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("nbf")]
-        public int Nbf { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("iat")]
-        public int Iat { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("iss")]
-        public string? Iss { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("aud")]
-        public string? Aud { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("name")]
-        public string? Name { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("sid")]
-        public string? Sid { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        [JsonPropertyName("role")]
-        public JsonDocument? Role { get; set; }
+        var property = name ?? key;
+        if (jsonElement.Value.ValueKind == JsonValueKind.String)
+        {
+            var v = jsonElement.Value.GetString();
+            if (!string.IsNullOrEmpty(v))
+            {
+                claims.Add(new Claim(property, v));
+            }
+        }
+        else if (jsonElement.Value.ValueKind == JsonValueKind.Number)
+        {
+            claims.Add(new Claim(property, jsonElement.Value.GetInt64().ToString()));
+        }
+        else if (jsonElement.Value.ValueKind == JsonValueKind.True ||
+                 jsonElement.Value.ValueKind == JsonValueKind.False)
+        {
+            claims.Add(new Claim(property, jsonElement.Value.GetBoolean().ToString()));
+        }
+        else if (jsonElement.Value.ValueKind == JsonValueKind.Array)
+        {
+            var v = jsonElement.Value.Deserialize<List<string>>();
+            if (v != null)
+            {
+                foreach (var p in v)
+                {
+                    claims.Add(new Claim(property, p));
+                }
+            }
+        }
+        else
+        {
+            claims.Add(new Claim(property, jsonElement.Value.ToString()));
+        }
     }
 }

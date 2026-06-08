@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 using WildGoose.Authentication.GatewayJwtBearer;
 using WildGoose.Authentication.JwtBearer;
 using WildGoose.Authentication.Token;
@@ -12,22 +13,40 @@ public static class AuthenticationExtensions
 {
     public static void ConfigAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
+        var authenticationSchemeValue = configuration["AuthenticationSchemes"] ??
+                                        "GatewayBearer, Bearer, SecurityToken";
+        var authenticationSchemes = authenticationSchemeValue.Split(',',
+            StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray();
+
         // 验证
         var authenticationBuilder = services.AddAuthentication();
         // JsonHeader Authentication
-        services.Configure<GatewayJwtBearerOptions>(configuration.GetSection("GatewayBearer"));
-        authenticationBuilder
-            .AddScheme<GatewayJwtBearerOptions, GatewayJwtBearerHandler>("GatewayBearer", _ => { });
+        if (authenticationSchemes.Contains("GatewayBearer", StringComparer.OrdinalIgnoreCase))
+        {
+            Log.Logger.Information("Adding GatewayJwtBearer authentication");
+            services.Configure<GatewayJwtBearerOptions>(configuration.GetSection("GatewayBearer"));
+            authenticationBuilder
+                .AddScheme<GatewayJwtBearerOptions, GatewayJwtBearerHandler>("GatewayBearer", _ => { });
+        }
+
 
         // JwtBearer Authentication
-        services.Configure<JwtBearerSettings>(configuration.GetSection("JwtBearer"));
-        services.AddJwtBearerAuthentication(authenticationBuilder, configuration);
+        if (authenticationSchemes.Contains("JwtBearer", StringComparer.OrdinalIgnoreCase))
+        {
+            Log.Logger.Information("Adding JwtBearer authentication");
+            services.Configure<JwtBearerSettings>(configuration.GetSection("JwtBearer"));
+            services.AddJwtBearerAuthentication(authenticationBuilder, configuration);
+        }
 
-        authenticationBuilder.AddScheme<TokenAuthOptions, TokenAuthHandler>("SecurityToken",
-            tOptions =>
-            {
-                tOptions.SecurityToken = Environment.GetEnvironmentVariable("WildGooseSecurityToken") ?? "";
-            });
+        if (authenticationSchemes.Contains("SecurityToken", StringComparer.OrdinalIgnoreCase))
+        {
+            Log.Logger.Information("Adding SecurityTokenJwtBearer authentication");
+            authenticationBuilder.AddScheme<TokenAuthOptions, TokenAuthHandler>("SecurityToken",
+                tOptions =>
+                {
+                    tOptions.SecurityToken = Environment.GetEnvironmentVariable("WildGooseSecurityToken") ?? "";
+                });
+        }
 
         // adds an authorization policy to make sure the token is for scope 'api1'
         var apiName = configuration["ApiName"];
@@ -37,10 +56,6 @@ public static class AuthenticationExtensions
             throw WildGooseFriendlyException.From(ErrorCodes.ApiNameRequired);
         }
 
-        var authenticationSchemeValue = configuration["AuthenticationSchemes"] ??
-                                        "GatewayBearer, Bearer, SecurityToken";
-        var authenticationSchemes = authenticationSchemeValue.Split(',',
-            StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray();
         // 注册授权策略
         services.AddAuthorization(options =>
         {
