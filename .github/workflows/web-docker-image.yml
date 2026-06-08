@@ -2,10 +2,17 @@ name: Web Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
-
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker image tag'
+        required: true
+        default: 'dev'
+env:
+  TAG: ${{ github.event.inputs.tag || 'dev' }}
 jobs:
 
   build:
@@ -17,6 +24,6 @@ jobs:
     - name: Login docker regsitry
       run: docker login -u ${{ secrets.DOCKER_USER }} -p  ${{ secrets.DOCKER_PASSWORD }}    
     - name: Build the Docker image
-      run: docker build . --file web.Dockerfile --tag zlzforever/wildgoose-web:20260525.1
+      run: docker build . --file web.Dockerfile --tag zlzforever/wildgoose-web:${{ env.TAG }}
     - name: Publish the Docker image
-      run: docker push zlzforever/wildgoose-web:20260525.1
+      run: docker push zlzforever/wildgoose-web:${{ env.TAG }}
