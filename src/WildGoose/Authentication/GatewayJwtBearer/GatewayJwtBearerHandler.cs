@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 namespace WildGoose.Authentication.GatewayJwtBearer;
 
 /// <summary>
-///
+/// TODO: 优化 claims 查询性能
 /// </summary>
 public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOptions>
 {
@@ -89,13 +89,12 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
             Add(claims, profile, "jti");
             Add(claims, profile, "exp");
             Add(claims, profile, "client_id");
+            Add(claims, profile, ClaimTypes.Role, "role");
             Add(claims, profile, "role");
             Add(claims, profile, "security-stamp");
             Add(claims, profile, "iat");
             Add(claims, profile, "sid");
-            Add(claims, profile, "oi_prst");
-            Add(claims, profile, "oi_au_id");
-            Add(claims, profile, "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", "name");
+            Add(claims, profile, ClaimTypes.Name, "name");
             Add(claims, profile, "name");
             var jsonElement = profile["scope"];
             if (jsonElement != null)
