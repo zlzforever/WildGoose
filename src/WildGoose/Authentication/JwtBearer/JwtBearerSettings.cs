@@ -7,14 +7,11 @@ public class JwtBearerSettings
 {
     public static string JwtBearerRsaSecurityKey = "JwtBearerRsaSecurityKey";
     public string? Authority { get; set; }
+    public bool RequireHttpsMetadata { get; set; } = true;
     public bool ValidateAudience { get; set; } = true;
     public bool ValidateIssuer { get; set; } = true;
     public string? ValidIssuer { get; set; }
-    public string? ValidAudience { get; set; }
     public bool ValidateLifetime { get; set; } = true;
-    public RSAParametersInfo? Key { get; set; }
-    public bool RequireHttpsMetadata { get; set; } = true;
-
     // ReSharper disable once UnusedAutoPropertyAccessor.Global
     public string? MetadataAddress { get; set; }
     public string? KeyPath { get; set; }
@@ -28,37 +25,31 @@ public class JwtBearerSettings
     /// <returns></returns>
     public string GetMetadataAddress()
     {
-        // 试验性代码，authority 不设计 https/requireHttpsMetadata
-        if (!RequireHttpsMetadata && string.IsNullOrEmpty(MetadataAddress) &&
+        if (string.IsNullOrEmpty(MetadataAddress) &&
             !string.IsNullOrEmpty(Authority))
         {
-            var metadataAddress =
-                Authority.Replace("https://", "http://", StringComparison.OrdinalIgnoreCase);
-            if (!metadataAddress.EndsWith("/", StringComparison.Ordinal))
-            {
-                metadataAddress += "/";
-            }
-
-            return metadataAddress + ".well-known/openid-configuration";
+            var authority = Authority.Replace("http://", string.Empty).Replace("https://", string.Empty).TrimEnd("/");
+            var schema = RequireHttpsMetadata ? "https" : "http";
+            return $"{schema}://{authority}/.well-known/openid-configuration";
         }
 
-        return MetadataAddress ?? string.Empty;
+        throw new ArgumentException("Authority or MetadataAddress cannot be null or empty.");
     }
 
     public RsaSecurityKey? GetRsaSecurityKey()
     {
         if (string.IsNullOrEmpty(KeyPath))
         {
-            return Key?.GetRsaSecurityKey();
+            return null;
         }
 
         var json = File.ReadAllText(KeyPath);
-        Key = JsonSerializer.Deserialize<RSAParametersInfo>(json, new JsonSerializerOptions
+        var key = JsonSerializer.Deserialize<RSAParametersInfo>(json, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = false,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
-        return Key?.GetRsaSecurityKey();
+        return key?.GetRsaSecurityKey();
     }
 }

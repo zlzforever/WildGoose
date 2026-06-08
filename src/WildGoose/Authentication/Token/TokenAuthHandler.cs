@@ -44,7 +44,8 @@ public class TokenAuthHandler(IOptionsMonitor<TokenAuthOptions> options, ILogger
             new(ClaimTypes.Name, "SecurityToken"),
             new(ClaimTypes.NameIdentifier, "TokenUser"),
             new(ClaimTypes.AuthenticationMethod, "SecurityToken"),
-            new("scope", Defaults.ApiName)
+            new("scope", Defaults.ApiName),
+            new("aud", Defaults.ApiName)
         };
         var authRoles = Context.Request.Headers["X-AUTH-ROLE"].ToString();
         if (!string.IsNullOrEmpty(authRoles))

@@ -83,19 +83,21 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
                 JsonSerializer.Serialize(profile, _jsonOptions.JsonSerializerOptions));
 
             var claims = new List<Claim>();
-            Add(claims, profile, "sub");
+            Add(claims, profile, "sub", ClaimTypes.NameIdentifier);
+            Add(claims, profile, ClaimTypes.NameIdentifier, ClaimTypes.NameIdentifier);
+            Add(claims, profile, "role", ClaimTypes.Role);
+            Add(claims, profile, ClaimTypes.Role, ClaimTypes.Role);
+            Add(claims, profile, "name", ClaimTypes.Name);
+            Add(claims, profile, ClaimTypes.Name, ClaimTypes.Name);
             Add(claims, profile, "iss");
             Add(claims, profile, "aud");
             Add(claims, profile, "jti");
             Add(claims, profile, "exp");
             Add(claims, profile, "client_id");
-            Add(claims, profile, ClaimTypes.Role, "role");
-            Add(claims, profile, "role");
             Add(claims, profile, "security-stamp");
             Add(claims, profile, "iat");
             Add(claims, profile, "sid");
-            Add(claims, profile, ClaimTypes.Name, "name");
-            Add(claims, profile, "name");
+
             var jsonElement = profile["scope"];
             if (jsonElement != null)
             {

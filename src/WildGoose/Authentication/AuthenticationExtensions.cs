@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -7,12 +8,19 @@ using WildGoose.Authentication.JwtBearer;
 using WildGoose.Authentication.Token;
 using WildGoose.Domain;
 
-namespace WildGoose;
+namespace WildGoose.Authentication;
 
 public static class AuthenticationExtensions
 {
     public static void ConfigAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
+        var apiName = configuration["ApiName"];
+        Defaults.ApiName = apiName;
+        if (string.IsNullOrEmpty(apiName))
+        {
+            throw WildGooseFriendlyException.From(ErrorCodes.ApiNameRequired);
+        }
+
         var authenticationSchemeValue = configuration["AuthenticationSchemes"] ??
                                         "GatewayBearer, Bearer, SecurityToken";
         var authenticationSchemes = authenticationSchemeValue.Split(',',
@@ -26,16 +34,16 @@ public static class AuthenticationExtensions
             Log.Logger.Information("Adding GatewayJwtBearer authentication");
             services.Configure<GatewayJwtBearerOptions>(configuration.GetSection("GatewayBearer"));
             authenticationBuilder
-                .AddScheme<GatewayJwtBearerOptions, GatewayJwtBearerHandler>("GatewayBearer", _ => { });
+                .AddScheme<GatewayJwtBearerOptions, GatewayJwtBearerHandler>("GatewayBearer",
+                    o => { o.Audience = apiName; });
         }
-
 
         // JwtBearer Authentication
         if (authenticationSchemes.Contains("JwtBearer", StringComparer.OrdinalIgnoreCase))
         {
             Log.Logger.Information("Adding JwtBearer authentication");
             services.Configure<JwtBearerSettings>(configuration.GetSection("JwtBearer"));
-            services.AddJwtBearerAuthentication(authenticationBuilder, configuration);
+            services.AddJwtBearerAuthentication(authenticationBuilder, configuration, apiName);
         }
 
         if (authenticationSchemes.Contains("SecurityToken", StringComparer.OrdinalIgnoreCase))
@@ -46,14 +54,6 @@ public static class AuthenticationExtensions
                 {
                     tOptions.SecurityToken = Environment.GetEnvironmentVariable("WildGooseSecurityToken") ?? "";
                 });
-        }
-
-        // adds an authorization policy to make sure the token is for scope 'api1'
-        var apiName = configuration["ApiName"];
-        Defaults.ApiName = apiName;
-        if (string.IsNullOrEmpty(apiName))
-        {
-            throw WildGooseFriendlyException.From(ErrorCodes.ApiNameRequired);
         }
 
         // 注册授权策略
@@ -73,28 +73,28 @@ public static class AuthenticationExtensions
                 policy.AddAuthenticationSchemes(authenticationSchemes);
                 policy.RequireAuthenticatedUser();
                 policy.RequireClaim("scope", apiName);
-                policy.RequireClaim("role", Defaults.Admin, Defaults.UserAdmin, Defaults.OrganizationAdmin);
+                policy.RequireRole(Defaults.Admin, Defaults.UserAdmin, Defaults.OrganizationAdmin);
             });
             options.AddPolicy("USER_ADMIN", policy =>
             {
                 policy.AddAuthenticationSchemes(authenticationSchemes);
                 policy.RequireAuthenticatedUser();
                 policy.RequireClaim("scope", apiName);
-                policy.RequireClaim("role", Defaults.UserAdmin);
+                policy.RequireRole(Defaults.UserAdmin);
             });
             options.AddPolicy("SUPER", policy =>
             {
                 policy.AddAuthenticationSchemes(authenticationSchemes);
                 policy.RequireAuthenticatedUser();
                 policy.RequireClaim("scope", apiName);
-                policy.RequireClaim("role", Defaults.Admin);
+                policy.RequireRole(Defaults.Admin);
             });
         });
     }
 
     public static AuthenticationBuilder AddJwtBearerAuthentication(this IServiceCollection services,
         AuthenticationBuilder builder,
-        IConfiguration configuration)
+        IConfiguration configuration, string apiName)
     {
         var jwtBearerOptions = configuration.GetSection("JwtBearer").Get<JwtBearerSettings>();
         if (jwtBearerOptions == null)
@@ -109,8 +109,25 @@ public static class AuthenticationExtensions
         }
 
         builder
-            .AddJwtBearer(options =>
+            .AddJwtBearer("JwtBearer", options =>
             {
+                // 1. 不要设置 Authority！
+                options.Authority = null;
+
+                // 2. 手动设置元数据地址（或直接给密钥）
+                if (rsaSecurityKey != null)
+                {
+                    // 可选：禁用自动发现配置的额外校验
+                    options.ConfigurationManager = null;
+                    options.TokenValidationParameters.IssuerSigningKey = rsaSecurityKey;
+                }
+                else
+                {
+                    // 手动设置元数据地址
+                    options.MetadataAddress = jwtBearerOptions.GetMetadataAddress();
+                }
+
+                options.Audience = apiName;
                 options.Events = new JwtBearerEvents
                 {
                     OnAuthenticationFailed = context =>
@@ -119,31 +136,43 @@ public static class AuthenticationExtensions
                         return Task.CompletedTask;
                     }
                 };
-
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
+                    // Aud 验证
                     ValidateAudience = jwtBearerOptions.ValidateAudience,
+                    // 开启 Issuer 验证
                     ValidateIssuer = jwtBearerOptions.ValidateIssuer,
                     ValidIssuer = jwtBearerOptions.ValidIssuer,
-                    ValidAudience = jwtBearerOptions.ValidAudience,
+                    // 验证过期
                     ValidateLifetime = jwtBearerOptions.ValidateLifetime
                 };
+                // 关键2：Token解析完成后，拦截拆分scope为多条Claim
+                options.Events.OnTokenValidated = ctx =>
+                {
+                    if (ctx.Principal == null)
+                    {
+                        return Task.CompletedTask;
+                    }
 
-                if (rsaSecurityKey != null)
-                {
-                    // 可选：禁用自动发现配置的额外校验
-                    options.ConfigurationManager = null;
-                    options.Authority = null;
-                    options.RequireHttpsMetadata = false;
-                    options.TokenValidationParameters.IssuerSigningKey = rsaSecurityKey;
-                }
-                else
-                {
-                    options.Authority = jwtBearerOptions.Authority ?? throw new ApplicationException(
-                        "JwtBearer:Authority is null or empty. Please check your configuration.");
-                    options.RequireHttpsMetadata = jwtBearerOptions.RequireHttpsMetadata;
-                    options.MetadataAddress = jwtBearerOptions.GetMetadataAddress();
-                }
+                    var scopeClaim = ctx.Principal.FindFirst("scope");
+                    if (scopeClaim != null && !string.IsNullOrWhiteSpace(scopeClaim.Value))
+                    {
+                        var scopes = scopeClaim.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        if (ctx.Principal.Identity is not ClaimsIdentity identity)
+                        {
+                            return Task.CompletedTask;
+                        }
+
+                        // 删除原始单条scope，插入多条独立scope claim
+                        identity.RemoveClaim(scopeClaim);
+                        foreach (var s in scopes)
+                        {
+                            identity.AddClaim(new Claim("scope", s));
+                        }
+                    }
+
+                    return Task.CompletedTask;
+                };
             });
 
         return builder;

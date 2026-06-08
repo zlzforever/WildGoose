@@ -12,6 +12,7 @@ using Microsoft.IdentityModel.Logging;
 using WildGoose.Application;
 using WildGoose.Application.Ef;
 using WildGoose.Application.Identity;
+using WildGoose.Authentication;
 using WildGoose.Domain;
 using WildGoose.Domain.Entity;
 using WildGoose.Domain.Options;
