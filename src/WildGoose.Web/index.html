@@ -20,6 +20,7 @@
       if (!pathname || pathname === "/") {
         localStorage.setItem("RedirectPath", "")
       } else if (
+        pathname === "/signin-oidc" ||
         pathname === "/signin-redirect-callback" ||
         pathname === "/signin-silent-callback" ||
         pathname === "/signout-redirect-callback"

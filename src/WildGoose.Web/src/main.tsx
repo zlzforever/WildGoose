@@ -21,16 +21,20 @@ try {
   let user
   let oidcCallback
   if (signinRedirectCallbackPath.find((x) => location.pathname.endsWith(x))) {
+    console.log("Handling OIDC callback for signin...")
     user = await signinRedirectCallback()
     oidcCallback = true
   } else if (signoutRedirectCallbackPath.find((x) => location.pathname.endsWith(x))) {
+    console.log("Handling OIDC callback for signout...")
     await signoutRedirectCallback()
   } else if (location.pathname.endsWith(signinSilentCallbackPath)) {
+    console.log("Handling OIDC callback for silent signin...")
     user = await signinSilentCallback()
     oidcCallback = true
   } else {
     user = await getUser()
     if (user == null) {
+      console.log("No user found, redirecting to signin...")
       await signinRedirect()
     }
   }
@@ -44,6 +48,7 @@ try {
     localStorage.setItem("RedirectPath", "")
   }
 } catch (error) {
+  console.error("Authentication error:", error)
   await signinRedirect()
 }
 
