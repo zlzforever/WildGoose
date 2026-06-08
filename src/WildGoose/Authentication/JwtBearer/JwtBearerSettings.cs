@@ -1,8 +1,7 @@
 using System.Text.Json;
 using Microsoft.IdentityModel.Tokens;
-using WildGoose.Jwt;
 
-namespace WildGoose;
+namespace WildGoose.Authentication.JwtBearer;
 
 public class JwtBearerSettings
 {

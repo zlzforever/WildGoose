@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 
-namespace WildGoose.Filters;
+namespace WildGoose.Authentication.Token;
 
 public class TokenAuthOptions
     : AuthenticationSchemeOptions

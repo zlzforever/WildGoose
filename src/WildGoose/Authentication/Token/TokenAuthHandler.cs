@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using WildGoose.Domain;
 
-namespace WildGoose.Filters;
+namespace WildGoose.Authentication.Token;
 
 public class TokenAuthHandler(IOptionsMonitor<TokenAuthOptions> options, ILoggerFactory logger, UrlEncoder encoder)
     : AuthenticationHandler<TokenAuthOptions>(options, logger, encoder)

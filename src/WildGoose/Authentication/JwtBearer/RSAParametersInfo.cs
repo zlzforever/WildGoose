@@ -4,7 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
-namespace WildGoose.Jwt;
+namespace WildGoose.Authentication.JwtBearer;
 
 // ReSharper disable once InconsistentNaming
 public class RSAParametersInfo
