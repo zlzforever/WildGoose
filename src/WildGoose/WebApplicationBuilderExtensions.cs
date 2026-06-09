@@ -10,6 +10,7 @@ using WildGoose.Application.Services.Admin.Role.V10;
 using WildGoose.Application.Services.Admin.User.V10;
 using WildGoose.Application.Services.Organization.V10;
 using WildGoose.Application.Services.User.V10;
+using WildGoose.Domain;
 using WildGoose.Serilog;
 using ISession = WildGoose.Domain.ISession;
 
@@ -50,6 +51,9 @@ public static class WebApplicationBuilderExtensions
             }
 
             builder.Logging.AddSerilog();
+            var factory = new LoggerFactory();
+            factory.AddSerilog();
+            Defaults.Logger = factory.CreateLogger("WildGoose");
             return builder;
         }
 

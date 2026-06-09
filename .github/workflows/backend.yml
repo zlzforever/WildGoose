@@ -19,7 +19,9 @@ jobs:
     steps:
     - name: Login docker regsitry
       run: docker login -u ${{ secrets.DOCKER_USER }} -p  ${{ secrets.DOCKER_PASSWORD }}
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
     - name: Build the Docker image
       run: docker build . --file api.Dockerfile --tag zlzforever/wildgoose-api:${{ env.TAG }}
     - name: Publish the Docker image

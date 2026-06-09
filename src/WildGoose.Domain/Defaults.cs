@@ -1,9 +1,12 @@
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace WildGoose.Domain;
 
 public static class Defaults
 {
+    public static ILogger Logger = NullLogger.Instance;
     public const string SuperOrUserAdminOrOrgAdminPolicy = "SUPER_OR_USER_ADMIN_OR_ORG_ADMIN";
     public const string SuperPolicy = "SUPER";
     public const string Admin = "admin";
