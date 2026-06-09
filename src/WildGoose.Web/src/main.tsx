@@ -32,10 +32,15 @@ try {
     user = await signinSilentCallback()
     oidcCallback = true
   } else {
-    user = await getUser()
-    if (user == null) {
-      console.log("No user found, redirecting to signin...")
-      await signinRedirect()
+    if (window.wildgoose.gateway?.enabled) {
+      // Gateway mode: gateway handles OIDC at the proxy level.
+      // No eager auth check — first API call triggers gateway auth flow.
+    } else {
+      user = await getUser()
+      if (user == null) {
+        console.log("No user found, redirecting to signin...")
+        await signinRedirect()
+      }
     }
   }
   if (oidcCallback) {

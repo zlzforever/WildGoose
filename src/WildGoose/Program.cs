@@ -1,9 +1,11 @@
+using System.Net;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dapper;
 using Identity.Sm;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -30,8 +32,8 @@ public class Program
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         var builder = WebApplication.CreateBuilder(args);
-
         builder.AddSerilog();
+
         builder.Configuration.AddEnvironmentVariables();
         var mvcBuilder = builder.Services.AddControllers(x =>
         {
@@ -70,12 +72,6 @@ public class Program
         var dbOptions = AddEfCore(builder);
 
         builder.RegisterServices();
-        // 应该不需要 cookie 认证
-        // builder.Services.AddAuthentication(o =>
-        // {
-        //     o.DefaultScheme = IdentityConstants.ApplicationScheme;
-        //     o.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-        // }).AddIdentityCookies();
         builder.Services.ConfigAuthentication(builder.Configuration);
         builder.Services.AddMemoryCache();
         builder.Services.AddHealthChecks();
@@ -161,6 +157,12 @@ public class Program
 
         await SeedData.Init(app.Services);
 
+        app.UseForwardedHeaders(new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto |
+                               ForwardedHeaders.XForwardedHost,
+            KnownProxies = { }
+        });
         app.UseMiddleware<DecryptRequestMiddleware>();
         app.UseRouting();
         var healthCheckPath = Environment.GetEnvironmentVariable("HEALTH_CHECK_PATH") ?? "/healthz";

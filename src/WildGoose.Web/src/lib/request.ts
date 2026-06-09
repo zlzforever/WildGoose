@@ -40,7 +40,7 @@ instance.interceptors.request.use(async (requestConfig) => {
       displayName = user.profile.nickname
     }
     requestConfig.headers["z-user-name"] = encodeURIComponent(displayName)
-    if (user.access_token) {
+    if (user.access_token && !window.wildgoose.gateway?.enabled) {
       requestConfig.headers["Authorization"] = `Bearer ${user.access_token}`
     }
   }
@@ -118,6 +118,10 @@ instance.interceptors.response.use(
     // localStorage.removeItem(E_Storage.USER_PASSWORD_STRENGTH)
     // window.location.href = `${config.pathPrefix}/`
     if (error.response?.status === 401) {
+      if (window.wildgoose.gateway?.enabled) {
+        window.location.reload()
+        return
+      }
       const user = await getUser()
       if (user && user.refresh_token) {
         await signinSilent()

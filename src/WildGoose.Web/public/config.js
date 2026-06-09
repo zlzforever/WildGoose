@@ -6,6 +6,9 @@ window.wildgoose = {
   pageSize: 10,
   enableEncryption: true,
   disablePasswordLogin: false,
+  gateway: {
+    enabled: false,  // true when deployed behind a gateway that handles OIDC
+  },
   oidc: {
     // 1. 保留 authority（作为 issuer 标识），但禁用发现
     authority: authority,
