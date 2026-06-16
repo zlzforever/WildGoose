@@ -704,6 +704,8 @@ public class UserAdminService(
                 UserName = x.UserName,
                 PhoneNumber = x.PhoneNumber,
                 Name = x.Name,
+                GivenName = x.GivenName,
+                FamilyName = x.FamilyName,
                 LockoutEnd = x.LockoutEnd,
                 CreationTime = x.CreationTime
             })
@@ -749,6 +751,8 @@ public class UserAdminService(
                 UserName = x.UserName,
                 PhoneNumber = x.PhoneNumber,
                 Name = x.Name,
+                FamilyName = x.FamilyName,
+                GivenName = x.GivenName,
                 LockoutEnd = x.LockoutEnd,
                 CreationTime = x.CreationTime
             })
@@ -807,6 +811,8 @@ public class UserAdminService(
                 UserName = x.UserName,
                 PhoneNumber = x.PhoneNumber,
                 Name = x.Name,
+                GivenName = x.GivenName,
+                FamilyName = x.FamilyName,
                 LockoutEnd = x.LockoutEnd,
                 CreationTime = x.CreationTime
             })
@@ -859,7 +865,7 @@ public class UserAdminService(
         {
             Id = x.Id,
             UserName = x.UserName,
-            Name = x.Name,
+            Name = string.IsNullOrEmpty(x.Name) ? $"{x.FamilyName}{x.GivenName}" : x.Name,
             Enabled = WildGoose.Domain.Entity.User.CheckEnabled(x.LockoutEnd),
             PhoneNumber = x.PhoneNumber,
             CreationTime = x.CreationTime.HasValue
@@ -960,6 +966,8 @@ public class UserAdminService(
         public string Id { get; set; }
         public string UserName { get; set; }
         public string PhoneNumber { get; set; }
+        public string GivenName { get; set; }
+        public string FamilyName { get; set; }
         public string Name { get; set; }
         public DateTimeOffset? LockoutEnd { get; set; }
         public DateTimeOffset? CreationTime { get; set; }
