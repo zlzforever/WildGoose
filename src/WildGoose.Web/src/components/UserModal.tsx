@@ -175,6 +175,18 @@ const UserModal: React.FC<UserModalProps> = (props) => {
 
         concatOrganizations(organizations, userDetail.organizations, cache)
 
+        // 加载用户父节点下的所有子节点（平级机构），
+        // 避免 TreeSelect 因已存在子节点而跳过 loadData
+        const loadedParentIds = new Set<string>()
+        for (const org of userDetail.organizations) {
+          if (org.parentId  && !loadedParentIds.has(org.parentId)) {
+            loadedParentIds.add(org.parentId)
+            const siblingRes = await getSubOrganizationList(org.parentId)
+            const siblings = (siblingRes.data as OrganizationDto[]) ?? []
+            concatOrganizations(organizations, siblings, cache)
+          }
+        }
+
         values.organizations = userDetail.organizations.map((x) => x.id)
 
         // 若有角色不是当前用户可授于角色（是别人授于的）也要能显示
