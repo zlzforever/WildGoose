@@ -71,6 +71,7 @@ public static class WebApplicationBuilderExtensions
                 HttpSession.Create(provider.GetRequiredService<IHttpContextAccessor>()));
             builder.Services.TryAddScoped<PermissionService>();
             builder.Services.TryAddSingleton<ScopeServiceProvider>();
+            builder.Services.TryAddScoped<NonceStore>();
             builder.Services.AddHostedService<GenerateTop3LevelOrganizationsToFileService>();
         }
     }

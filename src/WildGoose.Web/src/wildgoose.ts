@@ -147,6 +147,7 @@ declare global {
   }
 
   type AddUserDto = {
+    nonce: string
     password: string
     organizations: string[]
     phoneNumber?: string

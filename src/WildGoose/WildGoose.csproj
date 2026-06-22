@@ -22,6 +22,8 @@
         <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.3.2" />
         <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0"/>
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.6.0"/>
+        <PackageReference Include="Microsoft.Extensions.Caching.Postgres" Version="1.2.2"/>
     </ItemGroup>
 
     <ItemGroup>

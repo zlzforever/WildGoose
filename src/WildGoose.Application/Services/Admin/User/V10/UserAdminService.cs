@@ -32,6 +32,7 @@ public class UserAdminService(
     IOptions<IdentityExtensionOptions> identityExtensionOptions,
     IMemoryCache memoryCache,
     ObjectStorageService objectStorageService,
+    NonceStore nonceStore,
     IOptions<WildGooseOptions> wildGooseOptions)
     : BaseService(dbContext, session, dbOptions, logger, memoryCache)
 {
@@ -143,6 +144,11 @@ public class UserAdminService(
         if (command.Roles.Contains(Defaults.OrganizationAdmin))
         {
             throw WildGooseFriendlyException.From(ErrorCodes.InvalidRole);
+        }
+
+        if (!await nonceStore.SetAsync($"ADD_USER_NONCE:{command.Nonce}", [], TimeSpan.FromMinutes(5)))
+        {
+            throw WildGooseFriendlyException.From(ErrorCodes.Forbidden);
         }
 
         // 机构管理员添加用户时，必须设置机构，不然无法鉴权。
@@ -274,10 +280,13 @@ public class UserAdminService(
                 await userManager.SetLockoutEnabledAsync(user, true);
             }
 
-            // commit by henry at 2025/09/11 从先删除再锁定(会报错-该用户不允许锁定) 改成 先锁定再删除
-            (await userManager.SetLockoutEndDateAsync(
-                user,
-                DateTimeOffset.MaxValue)).CheckErrors();
+            // SetLockoutEndDateAsync 会调用 UpdateUser 导致产生用户验证
+            // // commit by henry at 2025/09/11 从先删除再锁定(会报错-该用户不允许锁定) 改成 先锁定再删除
+            // (await userManager.SetLockoutEndDateAsync(
+            //     user,
+            //     DateTimeOffset.MaxValue)).CheckErrors();
+
+            user.LockoutEnd = DateTimeOffset.MaxValue;
 
             // 使用原生 EF 删除，软删除
             DbContext.Set<WildGoose.Domain.Entity.User>().Remove(user);

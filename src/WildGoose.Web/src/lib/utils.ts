@@ -8,12 +8,11 @@ import CryptoJS from "crypto-js"
 // }
 
 const uuid = () => {
-  return "xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    // 加密安全随机数（关键替换）
-    const r = crypto.getRandomValues(new Uint8Array(1))[0] % 16
-    const v = c === "x" ? r : (r & 0x3) | 0x8
-    return v.toString(16)
-  })
+  const timestamp = Date.now().toString(16).padStart(12, "0")
+  const random = "xxxxxxxxxxxxxxxxxxxx".replace(/x/g, () =>
+    (crypto.getRandomValues(new Uint8Array(1))[0] % 16).toString(16)
+  )
+  return timestamp + random
 }
 
 const randomKey = () => {

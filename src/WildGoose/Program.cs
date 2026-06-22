@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -10,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.IdentityModel.Logging;
 using WildGoose.Application;
 using WildGoose.Application.Ef;
@@ -73,7 +73,7 @@ public class Program
 
         builder.RegisterServices();
         builder.Services.ConfigAuthentication(builder.Configuration);
-        builder.Services.AddMemoryCache();
+        AddCache(builder);
         builder.Services.AddHealthChecks();
         var identityBuilder = builder.Services.AddIdentityCore<User>(o =>
             {
@@ -86,7 +86,6 @@ public class Program
             .AddUserConfirmation<DefaultUserConfirmation<User>>()
             .AddUserValidator<ExtendedUserValidator<User>>()
             .AddEntityFrameworkStores<WildGooseDbContext>();
-
         Defaults.DisablePasswordLogin = "true".Equals(builder.Configuration["DISABLE_PASSWORD_LOGIN"]);
         if (Defaults.DisablePasswordLogin)
         {
@@ -118,7 +117,7 @@ public class Program
                 policy =>
                 {
                     var origins = builder.Configuration.GetSection("AllowedCorsOrigins").Get<string[]>();
-                    origins = origins == null || origins.Length == 0 ? new[] { "http://localhost:5173" } : origins;
+                    origins = origins == null || origins.Length == 0 ? ["http://localhost:5173"] : origins;
                     policy.WithOrigins(origins)
                         .SetIsOriginAllowed(_ => true)
                         .AllowAnyHeader()
@@ -155,13 +154,14 @@ public class Program
             }
         }
 
+        // 获取才会初始化表
+        app.Services.GetRequiredService<HybridCache>();
         await SeedData.Init(app.Services);
 
         app.UseForwardedHeaders(new ForwardedHeadersOptions
         {
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto |
-                               ForwardedHeaders.XForwardedHost,
-            KnownProxies = { }
+                               ForwardedHeaders.XForwardedHost
         });
         app.UseMiddleware<DecryptRequestMiddleware>();
         app.UseRouting();
@@ -176,6 +176,55 @@ public class Program
         await app.RunAsync();
 
         Console.WriteLine("Bye");
+    }
+
+    private static void AddCache(WebApplicationBuilder builder)
+    {
+        var section = builder.Configuration.GetSection("DbContext");
+        var dbOptions = section.Get<DbOptions>();
+        if (dbOptions == null)
+        {
+            throw new ArgumentException($"Missing configuration for {nameof(DbOptions)}");
+        }
+
+        // Add services to the container.
+        var connectionString = dbOptions.ConnectionString ??
+                               throw new InvalidOperationException(
+                                   "Connection string 'DbContext:ConnectionString' not found.");
+        builder.Services.AddMemoryCache();
+        var databaseType = dbOptions.DatabaseType;
+        if ("mysql".Equals(databaseType, StringComparison.OrdinalIgnoreCase))
+        {
+            
+        }
+        else
+        {
+            builder.Services.AddDistributedPostgresCache(options =>
+            {
+                options.ConnectionString = connectionString;
+                options.SchemaName = builder.Configuration.GetValue<string>("PostgresCache:SchemaName", "public");
+                options.TableName = builder.Configuration.GetValue<string>("PostgresCache:TableName", "cache_entries");
+                options.CreateIfNotExists = builder.Configuration.GetValue("PostgresCache:CreateIfNotExists", true);
+                options.UseWAL = builder.Configuration.GetValue("PostgresCache:UseWAL", false);
+
+                var expirationInterval =
+                    builder.Configuration.GetValue<string>("PostgresCache:ExpiredItemsDeletionInterval");
+                if (!string.IsNullOrEmpty(expirationInterval) &&
+                    TimeSpan.TryParse(expirationInterval, out var interval))
+                {
+                    options.ExpiredItemsDeletionInterval = interval;
+                }
+
+                var slidingExpiration =
+                    builder.Configuration.GetValue<string>("PostgresCache:DefaultSlidingExpiration");
+                if (!string.IsNullOrEmpty(slidingExpiration) && TimeSpan.TryParse(slidingExpiration, out var sliding))
+                {
+                    options.DefaultSlidingExpiration = sliding;
+                }
+            });
+        }
+
+        builder.Services.AddHybridCache();
     }
 
     private static DbOptions AddEfCore(WebApplicationBuilder builder)
@@ -193,7 +242,6 @@ public class Program
                                    "Connection string 'DbContext:ConnectionString' not found.");
         var tablePrefix = dbOptions.TablePrefix;
         var databaseType = dbOptions.DatabaseType;
-        Console.WriteLine($"Using {tablePrefix} database type: {databaseType}");
         if ("mysql".Equals(databaseType, StringComparison.OrdinalIgnoreCase))
         {
             builder.Services.AddDbContextPool<WildGooseDbContext>(options =>

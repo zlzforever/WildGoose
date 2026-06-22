@@ -21,6 +21,7 @@ import {
   getAssignableRoles,
 } from "../services/wildgoose/api"
 import * as dayjs from "dayjs"
+import { uuid } from "../lib/utils"
 
 const phoneValidator = (_: any, value: any, callback: any) => {
   if (value) {
@@ -58,6 +59,8 @@ export interface UserModalProps extends UserProps {
 
 const UserModal: React.FC<UserModalProps> = (props) => {
   const [form] = Form.useForm<UpdateUserDto>()
+  const [loading, setLoading] = useState(false)
+  const nonceRef = useRef("")
   const rawValuesRef = useRef<Record<string, string>>({})
   const [organizationTreeData, setOrganizationTreeData] = useState<OrganizationTreeNode[]>([])
   // const [organizationTreeSelectedKeys, setOrganizationTreeSelectedKeys] = useState<string[]>()
@@ -75,6 +78,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
       if (!props.open) {
         return
       }
+      nonceRef.current = uuid()
       const roleReps = await getAssignableRoles()
       const roles = (roleReps.data as RoleBasicDto[]).map((x) => {
         return {
@@ -266,30 +270,36 @@ const UserModal: React.FC<UserModalProps> = (props) => {
   }
 
   const onOk = async () => {
-    const result = await form.validateFields()
-    if (result) {
-      const values = form.getFieldsValue()
-      // 如果字段仍为掩码后的值，恢复为完整的原始值提交给接口
-      for (const field of ["name", "userName", "phoneNumber"] as const) {
-        const raw = rawValuesRef.current[field]
-        if (raw && values[field] === maskPhoneNumber(raw)) {
-          values[field] = raw
+    setLoading(true)
+    try {
+      const result = await form.validateFields()
+      if (result) {
+        const values: Record<string, unknown> = form.getFieldsValue()
+        // 如果字段仍为掩码后的值，恢复为完整的原始值提交给接口
+        for (const field of ["name", "userName", "phoneNumber"] as const) {
+          const raw = rawValuesRef.current[field]
+          if (raw && values[field] === maskPhoneNumber(raw)) {
+            values[field] = raw
+          }
+        }
+        let user
+        // 编辑
+        if (props.id) {
+          user = (await updateUser(props.id, values)).data
+        }
+        // 新增
+        else {
+          values.nonce = nonceRef.current
+          user = (await addUser(values)).data
+        }
+        if (props.onOk) {
+          props.onOk(user)
         }
       }
-      let user
-      // 编辑
-      if (props.id) {
-        user = (await updateUser(props.id, values)).data
-      }
-      // 新增
-      else {
-        user = (await addUser(values)).data
-      }
-      if (props.onOk) {
-        props.onOk(user)
-      }
+    } finally {
+      setLoading(false)
+      nonceRef.current = uuid()
     }
-    // form.validateFields().then(async () => {})
   }
   return (
     <>
@@ -297,6 +307,7 @@ const UserModal: React.FC<UserModalProps> = (props) => {
         title={title}
         width={720}
         maskClosable={false}
+        confirmLoading={loading}
         open={props.open}
         onOk={onOk}
         onCancel={() => {
