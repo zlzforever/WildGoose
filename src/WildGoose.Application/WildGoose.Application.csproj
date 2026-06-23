@@ -14,6 +14,9 @@
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
         <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
         <PackageReference Include="System.IO.Hashing" Version="10.0.8" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.6.0"/>
+        <PackageReference Include="Microsoft.Extensions.Caching.Postgres" Version="1.2.2"/>
+        <PackageReference Include="Pomelo.Extensions.Caching.MySql" Version="2.2.1" />
     </ItemGroup>
 
     <ItemGroup>

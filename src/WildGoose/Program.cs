@@ -69,11 +69,10 @@ public class Program
         builder.Services.Configure<DaprOptions>(builder.Configuration.GetSection("Dapr"));
 
         builder.Services.AddHttpContextAccessor();
-        var dbOptions = AddEfCore(builder);
-
+        var dbOptions = builder.AddEfCore();
         builder.RegisterServices();
         builder.Services.ConfigAuthentication(builder.Configuration);
-        AddCache(builder);
+        builder.AddCache(dbOptions);
         builder.Services.AddHealthChecks();
         var identityBuilder = builder.Services.AddIdentityCore<User>(o =>
             {
@@ -176,110 +175,5 @@ public class Program
         await app.RunAsync();
 
         Console.WriteLine("Bye");
-    }
-
-    private static void AddCache(WebApplicationBuilder builder)
-    {
-        var section = builder.Configuration.GetSection("DbContext");
-        var dbOptions = section.Get<DbOptions>();
-        if (dbOptions == null)
-        {
-            throw new ArgumentException($"Missing configuration for {nameof(DbOptions)}");
-        }
-
-        // Add services to the container.
-        var connectionString = dbOptions.ConnectionString ??
-                               throw new InvalidOperationException(
-                                   "Connection string 'DbContext:ConnectionString' not found.");
-        builder.Services.AddMemoryCache();
-        var databaseType = dbOptions.DatabaseType;
-        if ("mysql".Equals(databaseType, StringComparison.OrdinalIgnoreCase))
-        {
-            
-        }
-        else
-        {
-            builder.Services.AddDistributedPostgresCache(options =>
-            {
-                options.ConnectionString = connectionString;
-                options.SchemaName = builder.Configuration.GetValue<string>("PostgresCache:SchemaName", "public");
-                options.TableName = builder.Configuration.GetValue<string>("PostgresCache:TableName", "cache_entries");
-                options.CreateIfNotExists = builder.Configuration.GetValue("PostgresCache:CreateIfNotExists", true);
-                options.UseWAL = builder.Configuration.GetValue("PostgresCache:UseWAL", false);
-
-                var expirationInterval =
-                    builder.Configuration.GetValue<string>("PostgresCache:ExpiredItemsDeletionInterval");
-                if (!string.IsNullOrEmpty(expirationInterval) &&
-                    TimeSpan.TryParse(expirationInterval, out var interval))
-                {
-                    options.ExpiredItemsDeletionInterval = interval;
-                }
-
-                var slidingExpiration =
-                    builder.Configuration.GetValue<string>("PostgresCache:DefaultSlidingExpiration");
-                if (!string.IsNullOrEmpty(slidingExpiration) && TimeSpan.TryParse(slidingExpiration, out var sliding))
-                {
-                    options.DefaultSlidingExpiration = sliding;
-                }
-            });
-        }
-
-        builder.Services.AddHybridCache();
-    }
-
-    private static DbOptions AddEfCore(WebApplicationBuilder builder)
-    {
-        var section = builder.Configuration.GetSection("DbContext");
-        var dbOptions = section.Get<DbOptions>();
-        if (dbOptions == null)
-        {
-            throw new ArgumentException($"Missing configuration for {nameof(DbOptions)}");
-        }
-
-        // Add services to the container.
-        var connectionString = dbOptions.ConnectionString ??
-                               throw new InvalidOperationException(
-                                   "Connection string 'DbContext:ConnectionString' not found.");
-        var tablePrefix = dbOptions.TablePrefix;
-        var databaseType = dbOptions.DatabaseType;
-        if ("mysql".Equals(databaseType, StringComparison.OrdinalIgnoreCase))
-        {
-            builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
-            {
-                if (dbOptions.EnableSensitiveDataLogging)
-                {
-                    options.EnableSensitiveDataLogging();
-                }
-
-                options.ConfigureWarnings(warnings =>
-                {
-                    warnings.Ignore(RelationalEventId.PendingModelChangesWarning);
-                });
-
-                options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 29)),
-                    b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
-                options.ReplaceService<IMigrationsSqlGenerator, MySqlPrefixedMigrationsSqlGenerator>();
-            });
-        }
-        else
-        {
-            builder.Services.AddDbContextPool<WildGooseDbContext>(options =>
-            {
-                if (dbOptions.EnableSensitiveDataLogging)
-                {
-                    options.EnableSensitiveDataLogging();
-                }
-
-                options.ConfigureWarnings(warnings =>
-                {
-                    warnings.Ignore(RelationalEventId.PendingModelChangesWarning);
-                });
-                options.UseNpgsql(connectionString,
-                    b => { b.MigrationsHistoryTable($"{tablePrefix}migrations_history"); });
-                options.ReplaceService<IMigrationsSqlGenerator, NpgsqlPrefixedMigrationsSqlGenerator>();
-            });
-        }
-
-        return dbOptions;
     }
 }

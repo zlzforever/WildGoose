@@ -1,11 +1,16 @@
 using Dapper;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Postgres;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using WildGoose.Domain.Options;
+using MySqlConnector;
+using Npgsql;
+using Pomelo.Extensions.Caching.MySql;
+using WildGoose.Application.Cache;
 
 namespace WildGoose.Application;
 
-public class NonceStore(WildGooseDbContext dbContext, IOptions<DbOptions> dbOptions)
+public class NonceStore(IDistributedCache distributedCache, IServiceProvider serviceProvider)
 {
     /// <summary>
     /// 写入一次性 Nonce（带过期时间，和 IDistributedCache 行为对齐）
@@ -15,19 +20,11 @@ public class NonceStore(WildGooseDbContext dbContext, IOptions<DbOptions> dbOpti
     /// <param name="ttl">过期时长</param>
     public async Task<bool> SetAsync(string nonceKey, byte[] payload, TimeSpan ttl)
     {
-        var isMySql = string.Equals(dbOptions.Value.DatabaseType, "mysql",
-            StringComparison.OrdinalIgnoreCase);
-
-        var tableName = $"{dbOptions.Value.TablePrefix}cache_entries";
-        var conn = dbContext.Database.GetDbConnection();
-
-        if (isMySql)
+        if (distributedCache is MySqlCache)
         {
-            var sql = $"""
-                           INSERT IGNORE INTO {tableName} (id, value, expiresattime)
-                           VALUES (@Key, @Value, DATE_ADD(NOW(), INTERVAL @TtlSecond SECOND))
-                       """;
-
+            var options = serviceProvider.GetRequiredService<IOptions<MySqlCacheOptions>>().Value;
+            var sql = MySqlUtil.BuildInsertQuery(options.ConnectionString, options.SchemaName, options.TableName);
+            await using var conn = new MySqlConnection(options.ConnectionString);
             var effected = await conn.ExecuteAsync(sql, new
             {
                 Key = nonceKey,
@@ -37,18 +34,26 @@ public class NonceStore(WildGooseDbContext dbContext, IOptions<DbOptions> dbOpti
             return effected > 0;
         }
 
-        var pgSql = $"""
-                         INSERT INTO {tableName} (id, value, expiresattime)
-                         VALUES (@Key, @Value, NOW() + @Ttl)
-                         ON CONFLICT (id) DO NOTHING
-                     """;
-
-        var pgEffected = await conn.ExecuteAsync(pgSql, new
+        if (distributedCache is PostgresCache)
         {
-            Key = nonceKey,
-            Value = payload,
-            Ttl = ttl
-        });
-        return pgEffected > 0;
+            var options = serviceProvider.GetRequiredService<IOptions<PostgresCacheOptions>>().Value;
+            var tableName = options.TableName;
+            var pgSql = $"""
+                             INSERT INTO {options.SchemaName}.{tableName} (id, value, expiresattime)
+                             VALUES (@Key, @Value, NOW() + @Ttl)
+                             ON CONFLICT (id) DO NOTHING
+                         """;
+            await using var conn = new NpgsqlConnection(options.ConnectionString);
+            var pgEffected = await conn.ExecuteAsync(pgSql, new
+            {
+                Key = nonceKey,
+                Value = payload,
+                Ttl = ttl
+            });
+            return pgEffected > 0;
+        }
+
+        throw new NotSupportedException("Unsupported IDistributedCache implementation: " +
+                                        distributedCache.GetType().FullName);
     }
 }
