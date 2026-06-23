@@ -32,9 +32,9 @@ public class Program
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         var builder = WebApplication.CreateBuilder(args);
-        builder.AddSerilog();
+        builder.AddSubstitution();
 
-        builder.Configuration.AddEnvironmentVariables();
+        builder.AddSerilog();
         var mvcBuilder = builder.Services.AddControllers(x =>
         {
             x.Filters.Add<ResponseWrapperFilter>();
@@ -154,7 +154,11 @@ public class Program
         }
 
         // 获取才会初始化表
-        app.Services.GetRequiredService<HybridCache>();
+        var hybridCache = app.Services.GetRequiredService<HybridCache>();
+        await hybridCache.SetAsync("wildgoose:init", "1", new HybridCacheEntryOptions
+        {
+            Expiration = TimeSpan.FromDays(1)
+        });
         await SeedData.Init(app.Services);
 
         app.UseForwardedHeaders(new ForwardedHeadersOptions
