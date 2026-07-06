@@ -69,7 +69,7 @@ public class RoleAdminService(
             throw WildGooseFriendlyException.From(ErrorCodes.CannotModifySystemRole);
         }
 
-        await using var transaction = await DbContext.Database.BeginTransactionAsync();
+        var transaction = DbContext.Database.CurrentTransaction ?? await DbContext.Database.BeginTransactionAsync();
         try
         {
             await DbContext.Set<IdentityUserRole<string>>().Where(x => x.RoleId == role.Id)

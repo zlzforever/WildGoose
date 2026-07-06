@@ -38,7 +38,7 @@ public class OrganizationAdminService(
         {
             if (!Session.IsSuperAdminOrUserAdmin())
             {
-                throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly);
+                throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnlyCreateTopLevelOrg);
             }
 
             command.ParentId = null;
@@ -129,7 +129,7 @@ public class OrganizationAdminService(
         {
             if (!await CanManageOrganizationAsync(command.Id))
             {
-                throw new WildGooseFriendlyException(ErrorCodes.SuperAdminOnly, "仅允许超级管理员操作/设置一级机构");
+                throw new WildGooseFriendlyException(ErrorCodes.SuperAdminOnlyCreateTopLevelOrg, "仅允许超级管理员操作/设置一级机构");
             }
         }
         else
@@ -141,7 +141,8 @@ public class OrganizationAdminService(
             {
                 if (!Session.IsSuperAdminOrUserAdmin())
                 {
-                    throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly, "仅允许超级管理员操作/设置一级机构");
+                    throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnlyCreateTopLevelOrg,
+                        "仅允许超级管理员操作/设置一级机构");
                 }
             }
             else
@@ -244,7 +245,7 @@ public class OrganizationAdminService(
         {
             if (!Session.IsSuperAdminOrUserAdmin())
             {
-                throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnly, "仅允许超级管理员操作一级机构");
+                throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnlyCreateTopLevelOrg, "仅允许超级管理员操作一级机构");
             }
         }
         else
@@ -262,7 +263,7 @@ public class OrganizationAdminService(
             throw WildGooseFriendlyException.From(ErrorCodes.HasChildOrganizations);
         }
 
-        await using var transaction = await DbContext.Database.BeginTransactionAsync();
+        var transaction = DbContext.Database.CurrentTransaction ?? await DbContext.Database.BeginTransactionAsync();
 
         try
         {
@@ -545,6 +546,27 @@ public class OrganizationAdminService(
         if (user == null)
         {
             throw WildGooseFriendlyException.From(ErrorCodes.UserNotFound);
+        }
+
+        if (Session.IsSuperAdminOrUserAdmin())
+        {
+            var isTopLevel = await DbContext.Set<Domain.Entity.Organization>()
+                .AsNoTracking()
+                .Where(x => x.Id == command.Id)
+                .AnyAsync(x => x.Parent == null);
+            if (!isTopLevel)
+            {
+                throw WildGooseFriendlyException.From(ErrorCodes.SuperAdminOnlyTopLevelOrg);
+            }
+        }
+
+        var isDirectMember = await DbContext.Set<OrganizationUser>()
+            .AsNoTracking()
+            .Where(x => x.OrganizationId == command.Id && x.UserId == command.UserId)
+            .AnyAsync();
+        if (!isDirectMember)
+        {
+            throw WildGooseFriendlyException.From(ErrorCodes.OnlyDirectMemberCanBeAdmin);
         }
 
         var exist = await DbContext.Set<OrganizationAdministrator>()

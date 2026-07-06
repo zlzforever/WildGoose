@@ -351,7 +351,7 @@ public class OrganizationAdminServiceTests(WebApplicationFactoryFixture fixture)
             });
         });
 
-        Assert.Equal("仅允许超级管理员创建一级机构", exception.Message);
+        Assert.Equal("仅超级管理员可创建一级机构", exception.Message);
     }
 
     /// <summary>
@@ -892,20 +892,20 @@ public class OrganizationAdminServiceTests(WebApplicationFactoryFixture fixture)
 
         await organizationAdminService.AddAdministratorAsync(new AddAdministratorCommand
         {
-            Id = FrontEndOrg,
-            UserId = FrontendUserId
+            Id = RootOrg,
+            UserId = UserAdminUserId
         });
 
         // 验证机构管理员已添加
         var admin = await dbContext.Set<OrganizationAdministrator>()
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.OrganizationId == FrontEndOrg && x.UserId == FrontendUserId);
+            .FirstOrDefaultAsync(x => x.OrganizationId == RootOrg && x.UserId == UserAdminUserId);
         Assert.NotNull(admin);
 
         // 验证用户已被授予组织管理员角色
         var userRole = await dbContext.Set<IdentityUserRole<string>>()
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.UserId == FrontendUserId && x.RoleId == Defaults.OrganizationAdminRoleId);
+            .FirstOrDefaultAsync(x => x.UserId == UserAdminUserId && x.RoleId == Defaults.OrganizationAdminRoleId);
         Assert.NotNull(userRole);
     }
 
@@ -957,6 +957,52 @@ public class OrganizationAdminServiceTests(WebApplicationFactoryFixture fixture)
     }
 
     /// <summary>
+    /// 超级管理员只能设置顶级机构管理员，非顶级机构应失败
+    /// </summary>
+    [Fact]
+    public async Task SuperAdminAddNonTopLevelOrganizationAdminShouldFail()
+    {
+        var scope = fixture.Instance.Services.CreateScope();
+        var session = scope.ServiceProvider.GetRequiredService<ISession>();
+        LoadSuperAdmin(session);
+
+        var organizationAdminService = scope.ServiceProvider.GetRequiredService<OrganizationAdminService>();
+        var exception = await Assert.ThrowsAsync<WildGooseFriendlyException>(async () =>
+        {
+            await organizationAdminService.AddAdministratorAsync(new AddAdministratorCommand
+            {
+                Id = FrontEndOrg,
+                UserId = FrontendUserId
+            });
+        });
+
+        Assert.Equal("超级管理员只能添加一级机构管理员", exception.Message);
+    }
+
+    /// <summary>
+    /// 用户不属于该机构时添加为管理员应失败
+    /// </summary>
+    [Fact]
+    public async Task AddAdminUserNotInOrgShouldFail()
+    {
+        var scope = fixture.Instance.Services.CreateScope();
+        var session = scope.ServiceProvider.GetRequiredService<ISession>();
+        LoadSuperAdmin(session);
+
+        var organizationAdminService = scope.ServiceProvider.GetRequiredService<OrganizationAdminService>();
+        var exception = await Assert.ThrowsAsync<WildGooseFriendlyException>(async () =>
+        {
+            await organizationAdminService.AddAdministratorAsync(new AddAdministratorCommand
+            {
+                Id = RootOrg,
+                UserId = FrontendUserId
+            });
+        });
+
+        Assert.Equal("只能设置机构本级用户为机构管理员", exception.Message);
+    }
+
+    /// <summary>
     /// 组织管理员可以添加其管理范围内的机构管理员
     /// </summary>
     [Fact]
@@ -971,13 +1017,13 @@ public class OrganizationAdminServiceTests(WebApplicationFactoryFixture fixture)
         await organizationAdminService.AddAdministratorAsync(new AddAdministratorCommand
         {
             Id = FrontEndOrg,
-            UserId = BackendUserId
+            UserId = FrontendUserId
         });
 
         // 验证机构管理员已添加
         var admin = await dbContext.Set<OrganizationAdministrator>()
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.OrganizationId == FrontEndOrg && x.UserId == BackendUserId);
+            .FirstOrDefaultAsync(x => x.OrganizationId == FrontEndOrg && x.UserId == FrontendUserId);
         Assert.NotNull(admin);
     }
 
@@ -1001,15 +1047,15 @@ public class OrganizationAdminServiceTests(WebApplicationFactoryFixture fixture)
         // 先添加一个管理员
         await organizationAdminService.AddAdministratorAsync(new AddAdministratorCommand
         {
-            Id = FrontEndOrg,
-            UserId = BackendUserId
+            Id = RootOrg,
+            UserId = "507f1f77bcf86cd799439021"
         });
 
         // 删除管理员
         await organizationAdminService.DeleteAdministratorAsync(new DeleteAdministratorCommand
         {
-            Id = FrontEndOrg,
-            UserId = BackendUserId
+            Id = RootOrg,
+            UserId = "507f1f77bcf86cd799439021"
         });
 
         // 验证机构管理员已删除

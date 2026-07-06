@@ -44,7 +44,7 @@ public class UserAdminService(
 
         var userExtension = new UserExtension { Id = user.Id };
 
-        await using var transaction = await DbContext.Database.BeginTransactionAsync();
+        var transaction = DbContext.Database.CurrentTransaction ?? await DbContext.Database.BeginTransactionAsync();
 
         IdentityResult identityResult;
         if (Defaults.DisablePasswordLogin)

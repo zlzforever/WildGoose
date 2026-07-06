@@ -179,7 +179,7 @@ public class UserAdminService(
         userExtension.SetPasswordInfo(command.Password);
 
         // ✅ 核心修复1：事务提前开启，包裹所有数据库操作
-        await using var transaction = await DbContext.Database.BeginTransactionAsync();
+        var transaction = DbContext.Database.CurrentTransaction ?? await DbContext.Database.BeginTransactionAsync();
 
         try
         {
@@ -270,7 +270,7 @@ public class UserAdminService(
 
         await CheckUserPermissionAsync(user.Id);
 
-        await using var transaction = await DbContext.Database.BeginTransactionAsync();
+        var transaction = DbContext.Database.CurrentTransaction ?? await DbContext.Database.BeginTransactionAsync();
         try
         {
             // commit by henry at 2025/09/11
@@ -356,7 +356,7 @@ public class UserAdminService(
         user.UserName = command.UserName;
         user.Email = command.Email;
 
-        await using var transaction = await DbContext.Database.BeginTransactionAsync();
+        var transaction = DbContext.Database.CurrentTransaction ?? await DbContext.Database.BeginTransactionAsync();
         List<string> organizations;
         List<string> roles;
         try
@@ -380,6 +380,11 @@ public class UserAdminService(
             (await userManager.UpdateAsync(user)).CheckErrors();
             await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
+        }
+        catch (WildGooseFriendlyException wfe)
+        {
+            logger.LogError(wfe, "保存用户失败 {UserId}", command.Id);
+            throw;
         }
         catch (Exception e)
         {

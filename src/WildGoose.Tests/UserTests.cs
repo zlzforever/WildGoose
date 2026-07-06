@@ -25,7 +25,8 @@ public class UserTests(WebApplicationFactoryFixture fixture) : BaseTests
         }
 
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+        await using var transaction =
+            dbContext.Database.CurrentTransaction ?? await dbContext.Database.BeginTransactionAsync();
         var session = scope.ServiceProvider.GetRequiredService<ISession>();
         LoadSuperAdmin(session);
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();

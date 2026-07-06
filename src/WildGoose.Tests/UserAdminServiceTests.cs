@@ -1,6 +1,7 @@
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 using WildGoose.Application;
 using WildGoose.Application.Services.Admin.User.V10;
 using WildGoose.Application.Services.Admin.User.V10.Command;
@@ -261,7 +262,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         Assert.NotNull(user);
@@ -289,7 +290,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [TechOrg], // 技术部
-            Roles = [ManagerRole]
+            Roles = [ManagerRole], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         Assert.NotNull(user);
@@ -317,7 +318,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         var exception = await Assert.ThrowsAsync<WildGooseFriendlyException>(async () =>
@@ -329,7 +330,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
                 Password = "Test@123456",
                 PhoneNumber = GenerateChinesePhoneNumber(),
                 Organizations = [],
-                Roles = []
+                Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
             });
         });
 
@@ -357,11 +358,11 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
                 Password = "Test@123456",
                 PhoneNumber = GenerateChinesePhoneNumber(),
                 Organizations = ["65fd28c6ac42f1a071e1ed8c"],
-                Roles = [Defaults.OrganizationAdminRoleId]
+                Roles = [Defaults.OrganizationAdminRole], Nonce = ObjectId.GenerateNewId().ToString()
             });
         });
 
-        Assert.Equal("设置非法角色： 企业管理员", exception.Message);
+        Assert.Equal("无效角色", exception.Message);
     }
 
     /// <summary>
@@ -384,7 +385,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [FrontEndOrg],
-            Roles = [EmployeeRole]
+            Roles = [EmployeeRole], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         var name = CreateName();
@@ -432,7 +433,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 删除用户
@@ -482,7 +483,9 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
         var session = scope.ServiceProvider.GetRequiredService<ISession>();
         LoadSuperAdmin(session);
         var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+        await using var transaction =
+            dbContext.Database.CurrentTransaction ?? await dbContext.Database.BeginTransactionAsync();
 
         // 先创建一个用户
         var userAdminService = scope.ServiceProvider.GetRequiredService<UserAdminService>();
@@ -494,7 +497,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 禁用用户
@@ -531,7 +534,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         await userAdminService.DisableAsync(new DisableUserCommand { Id = addedUser.Id });
@@ -569,7 +572,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 修改密码
@@ -601,7 +604,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [TechOrg], //  技术部本级
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         Assert.NotNull(user);
@@ -627,7 +630,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [FrontEndOrg], //  技术部下级: 前端组
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         Assert.NotNull(user);
@@ -654,10 +657,10 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
                 Password = "Test@123456",
                 PhoneNumber = GenerateChinesePhoneNumber(),
                 Organizations = [],
-                Roles = []
+                Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
             });
         });
-        Assert.Equal("访问受限", exception.Message);
+        Assert.Equal("访问被拒绝", exception.Message);
     }
 
     /// <summary>
@@ -681,11 +684,11 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
                 Password = "Test@123456",
                 PhoneNumber = GenerateChinesePhoneNumber(),
                 Organizations = [RootOrg], // 总公司，无权限
-                Roles = []
+                Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
             });
         });
 
-        Assert.Equal("访问受限", exception.Message);
+        Assert.Equal("访问被拒绝", exception.Message);
     }
 
     /// <summary>
@@ -707,7 +710,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [TechOrg],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到组织管理员
@@ -746,7 +749,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [FrontEndOrg],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到组织管理员
@@ -786,7 +789,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [TechOrg], // 技术部
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到组织管理员
@@ -824,7 +827,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [FrontEndOrg], // 前端组
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到组织管理员
@@ -861,7 +864,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [RootOrg], // 总公司
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到组织管理员
@@ -898,7 +901,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [TechOrg], // 技术部
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到组织管理员
@@ -936,7 +939,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [FrontEndOrg], // 前端组
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到组织管理员
@@ -973,7 +976,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [RootOrg], // 总公司
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到组织管理员
@@ -1009,7 +1012,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [TechOrg],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到组织管理员
@@ -1042,7 +1045,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [FrontEndOrg],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到组织管理员
@@ -1074,7 +1077,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [RootOrg],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到组织管理员
@@ -1358,7 +1361,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         Assert.NotNull(user);
@@ -1386,7 +1389,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [TechOrg],
-            Roles = [EmployeeRole]
+            Roles = [EmployeeRole], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         Assert.NotNull(user);
@@ -1413,7 +1416,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         var updateCommand = new UpdateUserCommand
@@ -1453,7 +1456,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         await userAdminService.DeleteAsync(new DeleteUserCommand
@@ -1488,7 +1491,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         await userAdminService.DisableAsync(new DisableUserCommand
@@ -1522,7 +1525,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         await userAdminService.DisableAsync(new DisableUserCommand { Id = addedUser.Id });
@@ -1557,7 +1560,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         await userAdminService.ChangePasswordAsync(new ChangePasswordCommand
@@ -1595,11 +1598,11 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
                 Password = "Test@123456",
                 PhoneNumber = GenerateChinesePhoneNumber(),
                 Organizations = [TechOrg],
-                Roles = ["xxx"] // 组织管理员不可授于的角色
-            });
+                Roles = ["xxx"], Nonce = ObjectId.GenerateNewId().ToString()
+            }); // 组织管理员不可授于的角色
         });
 
-        Assert.Equal("存在不可授于的角色", exception.Message);
+        Assert.Equal("存在不可授于的角色: xxx", exception.Message);
     }
 
     /// <summary>
@@ -1622,7 +1625,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [TechOrg],
-            Roles = [EmployeeRole]
+            Roles = [EmployeeRole], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到技术部组织管理员
@@ -1643,7 +1646,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             await userAdminService.UpdateAsync(updateCommand);
         });
 
-        Assert.Equal("存在不可授于的角色", exception.Message);
+        Assert.Equal("存在不可授于的角色: xxx", exception.Message);
     }
 
     /// <summary>
@@ -1666,7 +1669,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [TechOrg],
-            Roles = ["employee", "manager"]
+            Roles = ["employee", "manager"], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到技术部组织管理员
@@ -1715,7 +1718,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [TechOrg],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到技术部组织管理员
@@ -1745,7 +1748,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [FrontEndOrg],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到技术部组织管理员
@@ -1780,7 +1783,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [TechOrg, FrontEndOrg],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到技术部组织管理员
@@ -1823,7 +1826,7 @@ public class UserAdminServiceTests(WebApplicationFactoryFixture fixture) : BaseT
             Password = "Test@123456",
             PhoneNumber = GenerateChinesePhoneNumber(),
             Organizations = [TechOrg, RootOrg],
-            Roles = []
+            Roles = [], Nonce = ObjectId.GenerateNewId().ToString()
         });
 
         // 切换到技术部组织管理员

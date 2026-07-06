@@ -8,7 +8,7 @@ TRUNCATE TABLE wild_goose_role CASCADE;
 TRUNCATE TABLE wild_goose_user CASCADE;
 
 -- 重置序列
-SELECT setval('wild_goose_organization_n_id_seq', 1, false);
+SELECT setval('wild_goose_organization_n_id_seq', (SELECT MAX(n_id) FROM wild_goose_organization), true);
 
 -- ============================================================================
 -- 1. 角色数据 (wild_goose_role)

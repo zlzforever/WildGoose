@@ -31,7 +31,7 @@ public abstract class BaseTests
     /// </summary>
     protected const string FrontEndOrg = "507f1f77bcf86cd799439033";
 
-    protected const string AdminUserId = "695b6dcf790f8d5acdf5f98d";
+    protected const string AdminUserId = "507f1f77bcf86cd799439020";
     protected const string TechAdminUserId = "507f1f77bcf86cd799439023";
     protected const string SaleAdminUserId = "507f1f77bcf86cd799439024";
     protected const string TechAndFrondEndUserId = "507f1f77bcf86cd799439023";

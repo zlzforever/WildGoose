@@ -100,8 +100,8 @@ public static class ErrorCodes
     /// <summary>组织：没有管理权限</summary>
     public const int NoOrganizationPermission = 5004;
 
-    /// <summary>组织：仅允许超级管理员操作</summary>
-    public const int SuperAdminOnly = 5005;
+    /// <summary>组织：仅超级管理员可创建一级机构</summary>
+    public const int SuperAdminOnlyCreateTopLevelOrg = 5005;
 
     /// <summary>组织：存在下级组织</summary>
     public const int HasChildOrganizations = 5006;
@@ -114,6 +114,12 @@ public static class ErrorCodes
 
     /// <summary>组织：机构已经存在</summary>
     public const int OrganizationExists = 5009;
+
+    /// <summary>组织：超级管理员只能添加一级机构管理员</summary>
+    public const int SuperAdminOnlyTopLevelOrg = 5010;
+
+    /// <summary>组织：只能设置机构本级用户为机构管理员</summary>
+    public const int OnlyDirectMemberCanBeAdmin = 5011;
 
     #endregion
 
@@ -192,10 +198,12 @@ public static class ErrorCodes
             ParentOrganizationNotFound => "父机构不存在",
             AncestorOrganizationNotFound => "上级机构不存在",
             NoOrganizationPermission => "没有管理机构的权限",
-            SuperAdminOnly => "仅允许超级管理员操作",
+            SuperAdminOnlyCreateTopLevelOrg => "仅超级管理员可创建一级机构",
             HasChildOrganizations => "请先删除下级机构",
             HasRelatedUsers => "请先删除关联用户",
             CannotModifyTopLevelOrganization => "仅允许超级管理员操作一级机构",
+            OnlyDirectMemberCanBeAdmin => "只能设置机构本级用户为机构管理员",
+            SuperAdminOnlyTopLevelOrg => "超级管理员只能添加一级机构管理员",
             RoleNotFound => "角色不存在",
             RoleAlreadyExists => "角色已经存在",
             CannotModifySystemRole => "禁止操作系统角色信息",
