@@ -110,8 +110,8 @@ public class HttpSession : ISession
                 return new HttpSession
                 {
                     HttpContext = accessor.HttpContext,
-                    Roles = [Defaults.Admin],
-                    Subjects = [Defaults.Admin, "6571be3ec966a3562687ae05"],
+                    Roles = [Defaults.AdminRole],
+                    Subjects = [Defaults.AdminRole, "6571be3ec966a3562687ae05"],
                     PhoneNumber = "",
                     UserDisplayName = "周正", UserId = "6571be3ec966a3562687ae05", UserName = "zz",
                     TraceIdentifier = ObjectId.GenerateNewId().ToString()
@@ -122,8 +122,8 @@ public class HttpSession : ISession
                 return new HttpSession
                 {
                     HttpContext = accessor.HttpContext,
-                    Roles = [Defaults.OrganizationAdmin],
-                    Subjects = [Defaults.OrganizationAdmin, "6571c63ddf028b057419206f"],
+                    Roles = [Defaults.OrganizationAdminRole],
+                    Subjects = [Defaults.OrganizationAdminRole, "6571c63ddf028b057419206f"],
                     PhoneNumber = "",
                     UserDisplayName = "周正", UserId = "6571c63ddf028b057419206f", UserName = "zz",
                     TraceIdentifier = ObjectId.GenerateNewId().ToString()

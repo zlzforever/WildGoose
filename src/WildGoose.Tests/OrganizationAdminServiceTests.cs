@@ -1021,7 +1021,7 @@ public class OrganizationAdminServiceTests(WebApplicationFactoryFixture fixture)
         // 验证组织管理员角色已被移除（如果这是该用户的最后一个机构管理员职位）
         var userRole = await dbContext.Set<IdentityUserRole<string>>()
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.UserId == BackendUserId && x.RoleId == Defaults.OrganizationAdmin);
+            .FirstOrDefaultAsync(x => x.UserId == BackendUserId && x.RoleId == Defaults.OrganizationAdminRole);
         // 可能为 null 或被删除，取决于用户是否还有其他机构管理员职位
     }
 

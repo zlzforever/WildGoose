@@ -85,8 +85,8 @@ public abstract class BaseTests
             UserId = "65965555b951f01bf13b1adc",
             UserDisplayName = "admin",
             UserName = "admin",
-            Roles = [Defaults.Admin],
-            Subjects = [Defaults.Admin, "65965555b951f01bf13b1adc"]
+            Roles = [Defaults.AdminRole],
+            Subjects = [Defaults.AdminRole, "65965555b951f01bf13b1adc"]
         });
     }
 
@@ -99,8 +99,8 @@ public abstract class BaseTests
             UserId = "68540d88ed70c9c6b320673d",
             UserDisplayName = "单元测试用户禁止删除",
             UserName = "单元测试用户禁止删除",
-            Roles = [Defaults.OrganizationAdmin],
-            Subjects = [Defaults.OrganizationAdmin, "68540d88ed70c9c6b320673d"]
+            Roles = [Defaults.OrganizationAdminRole],
+            Subjects = [Defaults.OrganizationAdminRole, "68540d88ed70c9c6b320673d"]
         });
     }
 
@@ -111,8 +111,8 @@ public abstract class BaseTests
             UserId = "507f1f77bcf86cd799439023",
             UserDisplayName = "技术部经理",
             UserName = "技术部经理",
-            Roles = [Defaults.OrganizationAdmin],
-            Subjects = [Defaults.OrganizationAdmin, "507f1f77bcf86cd799439023"]
+            Roles = [Defaults.OrganizationAdminRole],
+            Subjects = [Defaults.OrganizationAdminRole, "507f1f77bcf86cd799439023"]
         });
     }
 
@@ -123,8 +123,8 @@ public abstract class BaseTests
             UserId = "507f1f77bcf86cd799439021",
             UserDisplayName = "user_admin",
             UserName = "user_admin",
-            Roles = [Defaults.UserAdmin],
-            Subjects = [Defaults.UserAdmin, "507f1f77bcf86cd799439021"]
+            Roles = [Defaults.UserAdminRole],
+            Subjects = [Defaults.UserAdminRole, "507f1f77bcf86cd799439021"]
         });
     }
 

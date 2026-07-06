@@ -31,7 +31,7 @@ public class SeedData
 
         var defaultRoles = new List<(string Name, string Description, string Statement)>
         {
-            new(Defaults.Admin, "超级管理员", JsonSerializer.Serialize(new List<Statement>
+            new(Defaults.AdminRole, "超级管理员", JsonSerializer.Serialize(new List<Statement>
             {
                 new()
                 {
@@ -40,8 +40,8 @@ public class SeedData
                     Action = new List<string> { "*" }
                 }
             })),
-            new(Defaults.OrganizationAdmin, "机构管理员", "[]"),
-            new(Defaults.UserAdmin, "用户管理员", "[]")
+            new(Defaults.OrganizationAdminRole, "机构管理员", "[]"),
+            new(Defaults.UserAdminRole, "用户管理员", "[]")
         };
         foreach (var role in defaultRoles)
         {
@@ -61,17 +61,19 @@ public class SeedData
                 dbContext.Add(entity);
             }
 
-            switch (entity.Name)
+            if (Defaults.OrganizationAdminRole.Equals(entity.Name, StringComparison.OrdinalIgnoreCase))
             {
-                case Defaults.OrganizationAdmin:
-                    Defaults.OrganizationAdminRoleId = entity.Id;
-                    break;
-                case Defaults.Admin:
-                    Defaults.AdminRoleId = entity.Id;
-                    break;
-                case Defaults.UserAdmin:
-                    Defaults.UserAdminRoleId = entity.Id;
-                    break;
+                Defaults.OrganizationAdminRoleId = entity.Id;
+            }
+
+            if (Defaults.AdminRole.Equals(entity.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                Defaults.AdminRoleId = entity.Id;
+            }
+
+            if (Defaults.UserAdminRole.Equals(entity.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                Defaults.UserAdminRoleId = entity.Id;
             }
         }
 
@@ -149,7 +151,7 @@ public class SeedData
                 : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sqls", "Postgre", "organization_detail.sql");
             var text = await File.ReadAllTextAsync(sqlPath);
             text = text.Replace("${table_prefix}", dbOptions.TablePrefix)
-                       .Replace("${schema_prefix}", schema);
+                .Replace("${schema_prefix}", schema);
             await conn.ExecuteAsync(text);
         }
 

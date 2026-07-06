@@ -27,9 +27,9 @@ public class RoleAdminService(
 {
     public async Task<string> AddAsync(AddRoleCommand command)
     {
-        if (Defaults.Admin.Equals(command.Name, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.OrganizationAdmin.Equals(command.Name, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.UserAdmin.Equals(command.Name, StringComparison.OrdinalIgnoreCase))
+        if (Defaults.AdminRole.Equals(command.Name, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.OrganizationAdminRole.Equals(command.Name, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.UserAdminRole.Equals(command.Name, StringComparison.OrdinalIgnoreCase))
         {
             throw WildGooseFriendlyException.From(ErrorCodes.SystemRoleNameReserved);
         }
@@ -62,9 +62,9 @@ public class RoleAdminService(
             throw WildGooseFriendlyException.From(ErrorCodes.RoleNotFound);
         }
 
-        if (Defaults.Admin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+        if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.OrganizationAdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.UserAdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw WildGooseFriendlyException.From(ErrorCodes.CannotModifySystemRole);
         }
@@ -102,9 +102,9 @@ public class RoleAdminService(
             throw WildGooseFriendlyException.From(ErrorCodes.RoleNotFound);
         }
 
-        if (Defaults.Admin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+        if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.OrganizationAdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.UserAdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw WildGooseFriendlyException.From(ErrorCodes.CannotModifySystemRole);
         }
@@ -133,9 +133,9 @@ public class RoleAdminService(
             throw WildGooseFriendlyException.From(ErrorCodes.RoleNotFound);
         }
 
-        if (Defaults.Admin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+        if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.OrganizationAdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.UserAdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw WildGooseFriendlyException.From(ErrorCodes.CannotModifySystemRole);
         }
@@ -239,9 +239,9 @@ public class RoleAdminService(
             return;
         }
 
-        if (Defaults.Admin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.OrganizationAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
-            Defaults.UserAdmin.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
+        if (Defaults.AdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.OrganizationAdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase) ||
+            Defaults.UserAdminRole.Equals(role.NormalizedName, StringComparison.OrdinalIgnoreCase))
         {
             throw WildGooseFriendlyException.From(ErrorCodes.CannotModifySystemRole);
         }
@@ -289,7 +289,7 @@ public class RoleAdminService(
         {
             return await DbContext.Set<WildGoose.Domain.Entity.Role>()
                 .AsNoTracking()
-                .Where(x => x.Name != Defaults.OrganizationAdmin)
+                .Where(x => x.Name != Defaults.OrganizationAdminRole)
                 .Select(x => new RoleBasicDto
                 {
                     Id = x.Id,
@@ -302,8 +302,8 @@ public class RoleAdminService(
             join roleAssignableRole in DbContext.Set<RoleAssignableRole>() on userRole.RoleId equals roleAssignableRole
                 .RoleId
             join role in DbContext.Set<WildGoose.Domain.Entity.Role>() on roleAssignableRole.AssignableId equals role.Id
-            where userRole.UserId == userId && role.Name != Defaults.OrganizationAdmin &&
-                  role.Name != Defaults.Admin
+            where userRole.UserId == userId && role.Name != Defaults.OrganizationAdminRole &&
+                  role.Name != Defaults.AdminRole
             select new RoleBasicDto
             {
                 Id = role.Id,

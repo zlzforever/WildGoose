@@ -8,7 +8,7 @@ public static class SessionExtensions
     {
         private bool IsSuperAdmin()
         {
-            return session.Roles.Contains(Defaults.Admin);
+            return session.Roles.Contains(Defaults.AdminRole);
         }
 
         public bool IsSuperAdminOrUserAdmin()
@@ -18,12 +18,12 @@ public static class SessionExtensions
 
         private bool IsUserAdmin()
         {
-            return session.Roles.Contains(Defaults.UserAdmin);
+            return session.Roles.Contains(Defaults.UserAdminRole);
         }
 
         public bool IsOrganizationAdmin()
         {
-            return session.Roles.Contains(Defaults.OrganizationAdmin);
+            return session.Roles.Contains(Defaults.OrganizationAdminRole);
         }
     }
 }

@@ -68,21 +68,21 @@ public static class AuthenticationExtensions
                 policy.AddAuthenticationSchemes(authenticationSchemes);
                 policy.RequireAuthenticatedUser();
                 policy.RequireClaim("scope", apiName);
-                policy.RequireRole(Defaults.Admin, Defaults.UserAdmin, Defaults.OrganizationAdmin);
+                policy.RequireRole(Defaults.AdminRole, Defaults.UserAdminRole, Defaults.OrganizationAdminRole);
             });
             options.AddPolicy("USER_ADMIN", policy =>
             {
                 policy.AddAuthenticationSchemes(authenticationSchemes);
                 policy.RequireAuthenticatedUser();
                 policy.RequireClaim("scope", apiName);
-                policy.RequireRole(Defaults.UserAdmin);
+                policy.RequireRole(Defaults.UserAdminRole);
             });
             options.AddPolicy("SUPER", policy =>
             {
                 policy.AddAuthenticationSchemes(authenticationSchemes);
                 policy.RequireAuthenticatedUser();
                 policy.RequireClaim("scope", apiName);
-                policy.RequireRole(Defaults.Admin);
+                policy.RequireRole(Defaults.AdminRole);
             });
         });
     }

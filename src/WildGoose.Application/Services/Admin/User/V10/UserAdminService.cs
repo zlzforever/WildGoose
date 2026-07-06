@@ -141,7 +141,7 @@ public class UserAdminService(
         command.Organizations ??= new();
         command.Roles ??= new();
 
-        if (command.Roles.Contains(Defaults.OrganizationAdmin))
+        if (command.Roles.Contains(Defaults.OrganizationAdminRole))
         {
             throw WildGooseFriendlyException.From(ErrorCodes.InvalidRole);
         }
@@ -526,7 +526,7 @@ public class UserAdminService(
         // 如果删除了别人授于的角色， 也是允许的。若要加回来， 只能让有权限的人操作。
         var removeList = userRoles.Except(roles).ToList();
         // 企业管理员不能由编辑界面删除
-        removeList.Remove(Defaults.OrganizationAdmin);
+        removeList.Remove(Defaults.OrganizationAdminRole);
         // 添加的角色要鉴权, 若有别人添加的角色
         var addList = roles.Except(userRoles).ToList();
         await CheckAllRolePermissionAsync(addList);
@@ -680,7 +680,7 @@ public class UserAdminService(
     private ICollection<string> SetRoles(List<string> roleNames)
     {
         // 机构管理员只能通过专有接口添加
-        roleNames.Remove(Defaults.OrganizationAdmin);
+        roleNames.Remove(Defaults.OrganizationAdminRole);
 
         var finalRoles = new HashSet<string>(roleNames);
 
