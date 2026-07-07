@@ -11,3 +11,8 @@ body {
   margin: 0;
   min-width: 320px;
 }
+
+.organizationTree.ant-tree .ant-tree-switcher:before {
+  top: 50%;
+  transform: translateY(-50%);
+}

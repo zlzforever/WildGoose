@@ -72,6 +72,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
 
   const [status, setStatus] = useState("all")
   const [isRecursive, setIsRecursive] = useState("true")
+  const [loadedWithRecursive, setLoadedWithRecursive] = useState(true)
   const [isAdmin, setIsAdmin] = useState<boolean>(false)
   const [dataSource, setDataSource] = useState<UserDto[]>([])
   const [pagination, setPagination] = useState({
@@ -136,7 +137,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
           <>
             <Switch
               checked={record.isAdministrator}
-              disabled={String(isRecursive) === "true"}
+              disabled={loadedWithRecursive}
               onChange={async () => {
                 if (organizationTreeSelectedKeys && organizationTreeSelectedKeys.length > 0) {
                   const key = organizationTreeSelectedKeys[0]
@@ -372,18 +373,21 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
     status: string,
     limit: number,
     page: number,
+    recursive?: string,
   ) => {
+    const effectiveRecursive = recursive ?? isRecursive
     const res = await getUsers({
       organizationId: orgId,
       q: q,
       limit: limit,
-      isRecursive: isRecursive === "true",
+      isRecursive: effectiveRecursive === "true",
       status: status,
       page: page,
     })
     const result = res.data as PageData<UserDto>
     // 若正常返回分页数据
     if (result) {
+      setLoadedWithRecursive(effectiveRecursive === "true")
       setDataSource(result.data)
       setUserSelectedKeys([])
       setUserSelected(undefined)
@@ -849,6 +853,16 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                     style={{ width: 165 }}
                     onChange={(v) => {
                       setIsRecursive(v)
+                      if (organizationTreeSelectedKeys?.length > 0) {
+                        loadUsers(
+                          organizationTreeSelectedKeys[0],
+                          keyword,
+                          status,
+                          window.wildgoose.pageSize,
+                          1,
+                          v,
+                        )
+                      }
                     }}
                     options={[
                       { value: "true", label: "展示全部成员" },
@@ -864,7 +878,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
                     allowClear
                     style={{ width: 220 }}
                     onSearch={() => {
-                      if (organizationTreeSelectedKeys) {
+                      if (organizationTreeSelectedKeys?.length > 0) {
                         loadUsers(
                           organizationTreeSelectedKeys[0],
                           keyword,
