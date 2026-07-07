@@ -136,6 +136,7 @@ const UserPage = (props?: { breadcrumb?: boolean }) => {
           <>
             <Switch
               checked={record.isAdministrator}
+              disabled={String(isRecursive) === "true"}
               onChange={async () => {
                 if (organizationTreeSelectedKeys && organizationTreeSelectedKeys.length > 0) {
                   const key = organizationTreeSelectedKeys[0]
