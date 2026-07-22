@@ -85,6 +85,8 @@ public class SeedData
             {
                 Id = ObjectId.GenerateNewId().ToString(),
                 UserName = "admin",
+                Name = "系统管理员",
+                NormalizedUserName = "ADMIN",
                 EmailConfirmed = true
             };
             ((ICreation)admin).SetCreation("system", "system");

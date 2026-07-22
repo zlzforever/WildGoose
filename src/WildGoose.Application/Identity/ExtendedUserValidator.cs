@@ -8,6 +8,14 @@ namespace WildGoose.Application.Identity;
 public class ExtendedUserValidator<TUser> : UserValidator<TUser>
     where TUser : IdentityUser
 {
+    private static readonly bool AllowDuplicatePhoneNumber;
+
+    static ExtendedUserValidator()
+    {
+        AllowDuplicatePhoneNumber = "true".Equals(Environment.GetEnvironmentVariable("ALLOW_DUPLICATE_PHONE_NUMBER"),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     public ExtendedUserValidator(IdentityErrorDescriber errors = null) : base(errors)
     {
     }
@@ -57,19 +65,22 @@ public class ExtendedUserValidator<TUser> : UserValidator<TUser>
             errors.Add(Describer.DuplicateUserName(userName));
         }
 
-        if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+        if (!AllowDuplicatePhoneNumber)
         {
-            user.PhoneNumber = null;
-        }
-        else
-        {
-            if (await manager.Users.AnyAsync(x => x.Id != userId && x.PhoneNumber == user.PhoneNumber))
+            if (string.IsNullOrWhiteSpace(user.PhoneNumber))
             {
-                errors.Add(new IdentityError
+                user.PhoneNumber = null;
+            }
+            else
+            {
+                if (await manager.Users.AnyAsync(x => x.Id != userId && x.PhoneNumber == user.PhoneNumber))
                 {
-                    Code = "DuplicatePhoneNumber",
-                    Description = "手机号已经存在"
-                });
+                    errors.Add(new IdentityError
+                    {
+                        Code = "DuplicatePhoneNumber",
+                        Description = "手机号已经存在"
+                    });
+                }
             }
         }
 
