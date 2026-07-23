@@ -6,7 +6,7 @@ RUN yarn install --production=false
 COPY ./src/WildGoose.Web/ /workspace/
 RUN yarn run build
 
-FROM nginx:alpine3.18
+FROM nginx:alpine3.24-perl
 WORKDIR /app
 COPY --from=build /workspace/dist .
 COPY ./src/WildGoose.Web/nginx.conf /etc/nginx/nginx.conf
