@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using WildGoose.Domain;
 
 namespace WildGoose.Authentication.JwtBearer;
 
@@ -30,19 +31,6 @@ public static class JwtBearerAuthenticationExtensions
             // 1. 不要设置 Authority！
             options.Authority = null;
 
-            // 2. 手动设置元数据地址（或直接给密钥）
-            if (rsaSecurityKey != null)
-            {
-                // 可选：禁用自动发现配置的额外校验
-                options.ConfigurationManager = null;
-                options.TokenValidationParameters.IssuerSigningKey = rsaSecurityKey;
-            }
-            else
-            {
-                // 手动设置元数据地址
-                options.MetadataAddress = jwtBearerOptions.GetMetadataAddress();
-            }
-
             options.Audience = apiName;
             options.Events = new JwtBearerEvents
             {
@@ -53,6 +41,8 @@ public static class JwtBearerAuthenticationExtensions
                 }
             };
 
+            // Create TokenValidationParameters FIRST so the if/else below
+            // sets keys/configuration on it without being overwritten
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 // Aud 验证
@@ -64,12 +54,22 @@ public static class JwtBearerAuthenticationExtensions
                 ValidateLifetime = jwtBearerOptions.ValidateLifetime
             };
 
-            var metadataAddress = jwtBearerOptions.GetMetadataAddress();
-            options.ConfigurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
-                metadataAddress,
-                new OpenIdConnectConfigurationRetriever(),
-                new HttpDocumentRetriever(new HttpClient(new HttpClientProxy()))
-            );
+            // 2. 手动设置元数据地址（或直接给密钥）
+            if (rsaSecurityKey != null)
+            {
+                options.TokenValidationParameters.IssuerSigningKey = rsaSecurityKey;
+                options.ConfigurationManager = null;
+            }
+            else
+            {
+                options.MetadataAddress = jwtBearerOptions.GetMetadataAddress();
+                options.ConfigurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
+                    jwtBearerOptions.GetMetadataAddress(),
+                    new OpenIdConnectConfigurationRetriever(),
+                    new HttpDocumentRetriever(new HttpClient(new HttpClientProxy()))
+                );
+            }
+
             // 关键2：Token解析完成后，拦截拆分scope为多条Claim
             options.Events.OnTokenValidated = ctx =>
             {
@@ -116,21 +116,35 @@ public static class JwtBearerAuthenticationExtensions
         public string? KeyPath { get; set; }
 
         /// <summary>
-        /// Authority: https  && RequireHttpsMetadata: true ->  MetadataAddress: ""
-        /// Authority: https  && RequireHttpsMetadata: false ->  MetadataAddress: "http://"
-        /// Authority: http  && RequireHttpsMetadata: true ->  MetadataAddress: ""
-        /// Authority: http  && RequireHttpsMetadata: true ->  MetadataAddress: "http://"
+        /// Builds the OIDC metadata address from <see cref="Authority"/> preserving the original scheme.
+        /// Falls back to <see cref="RequireHttpsMetadata"/> only when Authority has no explicit scheme.
         /// </summary>
-        /// <returns></returns>
         public string GetMetadataAddress()
         {
-            if (string.IsNullOrEmpty(MetadataAddress) &&
-                !string.IsNullOrEmpty(Authority))
+            if (!string.IsNullOrEmpty(MetadataAddress))
             {
-                var authority = Authority.Replace("http://", string.Empty).Replace("https://", string.Empty)
-                    .TrimEnd("/");
-                var schema = RequireHttpsMetadata ? "https" : "http";
-                return $"{schema}://{authority}/.well-known/openid-configuration";
+                return MetadataAddress;
+            }
+
+            if (!string.IsNullOrEmpty(Authority))
+            {
+                var authority = Authority.TrimEnd('/');
+                string scheme;
+                if (authority.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                {
+                    scheme = "https";
+                    authority = authority["https://".Length..];
+                }
+                else if (authority.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+                {
+                    scheme = "http";
+                    authority = authority["http://".Length..];
+                }
+                else
+                {
+                    scheme = RequireHttpsMetadata ? "https" : "http";
+                }
+                return $"{scheme}://{authority}/.well-known/openid-configuration";
             }
 
             throw new ArgumentException("Authority or MetadataAddress cannot be null or empty.");
@@ -143,13 +157,15 @@ public static class JwtBearerAuthenticationExtensions
             CancellationToken cancellationToken)
         {
             var response = await base.SendAsync(request, cancellationToken);
-            if (response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
-                return response;
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                Defaults.Logger.LogWarning(
+                    "OIDC Discovery request to {RequestUri} returned {StatusCode}: {ResponseBody}",
+                    request.RequestUri, (int)response.StatusCode, body);
             }
 
-            throw new HttpRequestException(
-                $"Request: {request.RequestUri}, status code: {response.StatusCode}, response: {await response.Content.ReadAsStringAsync(cancellationToken)}");
+            return response;
         }
     }
 }
