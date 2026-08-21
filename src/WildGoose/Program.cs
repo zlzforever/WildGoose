@@ -71,7 +71,7 @@ public class Program
         builder.Services.AddHttpContextAccessor();
         var dbOptions = builder.AddEfCore();
         builder.RegisterServices();
-        builder.Services.ConfigAuthentication(builder.Configuration);
+        builder.Services.ConfigAuthenticationCore(builder.Configuration, builder.Environment);
         builder.AddCache(dbOptions);
         builder.Services.AddHealthChecks();
         var identityBuilder = builder.Services.AddIdentityCore<User>(o =>
@@ -172,6 +172,7 @@ public class Program
         app.UseHealthChecks(healthCheckPath);
         app.UseCors(corsPolicyName);
         app.UseResponseCaching();
+        app.UseAuthentication();
         app.UseAuthorization();
         app.UseCloudEvents();
         app.MapSubscribeHandler();

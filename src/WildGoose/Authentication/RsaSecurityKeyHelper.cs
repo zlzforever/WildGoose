@@ -9,69 +9,75 @@ namespace WildGoose.Authentication;
 
 public static class RsaSecurityKeyHelper
 {
-    private static readonly ConcurrentDictionary<string, RsaSecurityKey?> Cache = new();
+    private static readonly ConcurrentDictionary<string, RsaSecurityKey> Cache = new();
 
     public static RsaSecurityKey? GetRsaSecurityKey(string? keyPath)
     {
-        if (string.IsNullOrEmpty(keyPath))
+        if (string.IsNullOrWhiteSpace(keyPath))
         {
             return null;
         }
 
-        return Cache.GetOrAdd(keyPath, path =>
+        var path = Path.GetFullPath(keyPath);
+        if (Cache.TryGetValue(path, out var cachedKey))
         {
-            try
-            {
-                var json = System.IO.File.ReadAllText(keyPath);
-                var document = JsonSerializer.Deserialize<JsonDocument>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = false,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                });
-                if (document == null)
-                {
-                    return null;
-                }
+            return cachedKey;
+        }
 
-                var n = document.RootElement.GetString("n");
-                var e = document.RootElement.GetString("e");
-                var d = document.RootElement.GetString("d");
-                var p = document.RootElement.GetString("p");
-                var q = document.RootElement.GetString("q");
-                var dp = document.RootElement.GetString("dp");
-                var dq = document.RootElement.GetString("dq");
-                var inverseQ = document.RootElement.GetString("qi");
-
-                var parameters = new RSAParameters
-                {
-                    Modulus = Base64UrlEncoder.DecodeBytes(n),
-                    Exponent = Base64UrlEncoder.DecodeBytes(e),
-                    D = string.IsNullOrEmpty(d)
-                        ? null
-                        : Base64UrlEncoder.DecodeBytes(d),
-                    P = string.IsNullOrEmpty(p)
-                        ? null
-                        : Base64UrlEncoder.DecodeBytes(p),
-                    Q = string.IsNullOrEmpty(q)
-                        ? null
-                        : Base64UrlEncoder.DecodeBytes(q),
-                    DP = string.IsNullOrEmpty(dp)
-                        ? null
-                        : Base64UrlEncoder.DecodeBytes(dp),
-                    DQ = string.IsNullOrEmpty(dq)
-                        ? null
-                        : Base64UrlEncoder.DecodeBytes(dq),
-                    InverseQ = string.IsNullOrEmpty(inverseQ)
-                        ? null
-                        : Base64UrlEncoder.DecodeBytes(inverseQ)
-                };
-                return new RsaSecurityKey(parameters);
-            }
-            catch (Exception ex)
+        try
+        {
+            var key = LoadKey(path);
+            if (key == null)
             {
-                Defaults.Logger.LogError(ex, $"Error loading RSA key from {path}");
                 return null;
             }
+
+            Cache.TryAdd(path, key);
+            return key;
+        }
+        catch (Exception ex)
+        {
+            Defaults.Logger.LogError(ex, "Error loading RSA key from {KeyPath}", path);
+            return null;
+        }
+    }
+
+    private static RsaSecurityKey? LoadKey(string path)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("kty", out var keyType) ||
+            !string.Equals(keyType.GetString(), "RSA", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        if (!root.TryGetProperty("n", out var modulusElement) ||
+            !root.TryGetProperty("e", out var exponentElement))
+        {
+            return null;
+        }
+
+        var modulus = modulusElement.GetString();
+        var exponent = exponentElement.GetString();
+        if (string.IsNullOrWhiteSpace(modulus) || string.IsNullOrWhiteSpace(exponent))
+        {
+            return null;
+        }
+
+        var key = new RsaSecurityKey(new RSAParameters
+        {
+            Modulus = Base64UrlEncoder.DecodeBytes(modulus),
+            Exponent = Base64UrlEncoder.DecodeBytes(exponent)
         });
+
+        if (root.TryGetProperty("kid", out var keyIdElement) &&
+            keyIdElement.ValueKind == JsonValueKind.String)
+        {
+            key.KeyId = keyIdElement.GetString();
+        }
+
+        return key;
     }
 }

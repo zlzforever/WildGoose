@@ -87,7 +87,7 @@ WildGoose/
 ├── src/
 │   ├── WildGoose/                   # API 宿主项目
 │   │   ├── Program.cs               # 入口、中间件管道、服务注册
-│   │   ├── AuthenticationExtensions.cs  # JWT + X-AUTH-TOKEN 双重认证配置
+│   │   ├── Authentication/              # JWT、Gateway 和 X-AUTH-TOKEN 认证配置
 │   │   ├── Controllers/
 │   │   │   ├── Admin/V10/           # 管理员接口 V1.0（User/Role/Organization）
 │   │   │   ├── Admin/V11/           # 管理员接口 V1.1（简化用户创建）
@@ -98,7 +98,7 @@ WildGoose/
 │   │   │   └── TokenAuthHandler.cs       # X-AUTH-TOKEN 认证处理器
 │   │   ├── Middlewares/
 │   │   │   └── DecryptRequestMiddleware.cs  # AES-ECB 请求体解密中间件
-│   │   └── Jwt/                       # JWT 相关（JwtBearerSettings, RSAParametersInfo）
+│   │   └── Authentication/JwtBearer/    # JwtBearer 设置、OIDC 和本地 JWK
 │   ├── WildGoose.Application/       # 业务逻辑层
 │   │   ├── Services/
 │   │   │   ├── BaseService.cs        # 抽象基类：权限检查、Dapr 事件、组织查询
@@ -295,23 +295,22 @@ if (options.AddUserRoles.Length == 0 || !Session.Roles.Any(x => options.AddUserR
 
 ### 3.4 JWT 认证配置
 
-**绑定类：** `JwtBearerSettings`（位于 `src/WildGoose/Jwt/JwtBearerSettings.cs`）  
+**绑定类：** `JwtBearerSettings`（位于 `src/WildGoose/Authentication/JwtBearer/JwtBearerSettings.cs`）
 **配置节：** `"JwtBearer"`  
-**读取方式：** `configuration.GetSection("JwtBearer").Get<JwtBearerSettings>()`
+**认证 scheme：** `JwtBearer`（请求头固定为 `Authorization: Bearer <token>`）
 
 ```json5
 {
   "JwtBearer": {
-    "Authority": "http://localhost:8099",       // OIDC Authority 地址
-    "RequireHttpsMetadata": false,              // 是否要求 HTTPS 元数据
-    "ValidateAudience": false,                  // 是否验证 Audience
-    "ValidateIssuer": false,                    // 是否验证 Issuer
-    "ValidateLifetime": true,                   // 是否验证 Token 生命周期
-    "ValidIssuer": null,                        // 合法颁发者（ValidateIssuer=true 时需设置）
-    "ValidAudience": null,                      // 合法受众（ValidateAudience=true 时需设置）
-    "MetadataAddress": null,                    // OIDC 元数据地址（留空则自动从 Authority 发现）
-    "KeyPath": "jwt.jwk",                       // RSA 私钥 JWK 文件路径（可选）
-    "Key": null                                 // 内联 RSA 密钥参数（可选，与 KeyPath 二选一）
+    "Authority": "https://identity.example.invalid", // OIDC authority/issuer
+    "MetadataAddress": null,                          // 显式 discovery 地址，优先于 Authority
+    "KeyPath": null,                                  // 本地 RSA 公钥 JWK 路径；非空时优先使用
+    "RequireHttpsMetadata": true,
+    "ValidateAudience": true,
+    "ValidAudience": "sample-wildgoose-api",        // 为空时回退 ApiName
+    "ValidateIssuer": true,
+    "ValidIssuer": "https://identity.example.invalid",
+    "ValidateLifetime": true
   }
 }
 ```
@@ -320,39 +319,39 @@ if (options.AddUserRoles.Length == 0 || !Session.Roles.Any(x => options.AddUserR
 
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `Authority` | string | `null` | OIDC 签发者地址 |
-| `RequireHttpsMetadata` | bool | `true` | 是否要求 OIDC 元数据通过 HTTPS 获取 |
-| `ValidateAudience` | bool | `true` | 是否验证 `aud` 声明 |
-| `ValidateIssuer` | bool | `true` | 是否验证 `iss` 声明 |
-| `ValidIssuer` | string | `null` | 合法的 Issuer 值 |
-| `ValidAudience` | string | `null` | 合法的 Audience 值 |
-| `ValidateLifetime` | bool | `true` | 是否验证 Token 过期时间 |
-| `MetadataAddress` | string | `null` | OIDC 发现地址。如果 `RequireHttpsMetadata=false` 且 `Authority` 是 HTTPS，会自动将 `Authority` 替换为 HTTP 构造元数据地址 |
-| `KeyPath` | string | `null` | 指向本地 JWK JSON 文件的路径。非空时从文件加载 RSA 密钥，同时会禁用 `Authority` 发现（`ConfigurationManager = null`） |
-| `Key` | `RSAParametersInfo` | `null` | 内联 RSA 密钥参数（JWK 格式）。当 `KeyPath` 和 `Key` 均为空时，会使用 `Authority` 进行 OIDC 发现 |
+| `Authority` | string | `null` | OIDC issuer/authority。未配置 `MetadataAddress` 时自动解析为 `{Authority}/.well-known/openid-configuration` |
+| `MetadataAddress` | string | `null` | 显式 OIDC discovery 地址，必须是绝对 `http`/`https` URL；配置后优先于 `Authority` |
+| `KeyPath` | string | `null` | 本地 RSA JWK 文件路径。非空时只使用本地 `n`/`e` 公钥，不拉取 OIDC metadata；加载失败直接启动失败，不回退远端 |
+| `RequireHttpsMetadata` | bool | `true` | OIDC metadata 的 HTTPS 约束。生产必须为 `true`；Development 才能显式设为 `false` |
+| `ValidateAudience` | bool | `true` | 是否验证 `aud`；生产不可关闭 |
+| `ValidAudience` | string | `ApiName` | 合法的 audience；为空时使用 `ApiName` |
+| `ValidateIssuer` | bool | `true` | 是否验证 `iss`；生产不可关闭 |
+| `ValidIssuer` | string | `null` | 本地 JWK 模式启用 issuer 验证时必填；配置后使用大小写敏感的精确匹配 |
+| `ValidateLifetime` | bool | `true` | 验证 `exp` 和 `nbf`；生产不可关闭 |
 
-#### RSAParametersInfo（内联密钥格式）
-
-当使用 `Key` 属性配置 RSA 密钥时使用此格式：
+本地 JWK 模式优先级高于 `Authority`/`MetadataAddress`。建议验证端只提供公钥字段：
 
 ```json
 {
-  "Key": {
-    "kty": "RSA",
-    "alg": "RS256",
-    "n": "modulus_base64url",
-    "e": "AQAB",
-    "d": "private_exponent_base64url",
-    "p": "prime1_base64url",
-    "q": "prime2_base64url",
-    "dp": "exponent1_base64url",
-    "dq": "exponent2_base64url",
-    "qi": "coefficient_base64url"
-  }
+  "kty": "RSA",
+  "kid": "production-key-1",
+  "n": "modulus_base64url",
+  "e": "AQAB"
 }
 ```
 
-> **私钥内容（D, P, Q, DP, DQ, Qi）**仅为 Token 签发端所需。仅验证 Token 时可只提供 `n` 和 `e`（公钥即可）。
+配置优先级遵循 ASP.NET Core provider 顺序：`appsettings.json` → `appsettings.{Environment}.json` → 环境变量/部署注入配置。生产配置应通过部署 secret 提供真实 issuer、audience 和公钥路径；基础样例不引用仓库中的 `jwt.jwk`。已提交的 RSA 私钥文件本轮不改写，密钥轮换作为后续任务，禁止生产继续使用该文件。
+
+启动前会 fail-fast：
+
+| 模式 | 条件 | 结果 |
+|------|------|------|
+| OIDC | `HTTP + RequireHttpsMetadata=true` | 启动失败 |
+| OIDC 生产 | HTTP metadata，或 `RequireHttpsMetadata=false` | 启动失败 |
+| OIDC Development | 显式 `RequireHttpsMetadata=false` | 允许开发例外 |
+| OIDC | `HTTPS + RequireHttpsMetadata=true` | 正常启动 |
+| 本地 JWK | 文件缺失、格式损坏、非 RSA、缺少 `n/e` | 启动失败，不回退 OIDC |
+| 任意模式 | 没有 `KeyPath`、`Authority`、`MetadataAddress` | 启动失败 |
 
 #### ApiName（应用标识）
 
@@ -477,7 +476,7 @@ Docker 部署时，`docker-entrypoint.sh` 会自动替换 `${BASE_PATH}`、`${BA
 
 ### 4.2 授权策略
 
-系统使用 ASP.NET Core Policy 授权，通过 `AuthenticationExtensions.cs` 注册：
+系统使用 ASP.NET Core Policy 授权，通过 `src/WildGoose/Authentication/AuthenticationExtensions.cs` 注册：
 
 | Policy 名称 | 常量 | 允许的角色 | JWT 要求 |
 |-------------|------|-----------|----------|
@@ -518,16 +517,26 @@ Docker 部署时，`docker-entrypoint.sh` 会自动替换 `${BASE_PATH}`、`${BA
 
 ### 5.1 JWT Bearer 认证
 
-**主认证方案**。系统验证 JWT 的以下内容：
+**主认证方案**。JWT-only 样例只启用已注册的 `JwtBearer` scheme，并设置为默认 authenticate/challenge/forbid scheme。系统验证 JWT 的以下内容：
 
 1. **签名**：通过 OIDC 发现获取 JWK，或使用本地配置的 RSA 公钥验证
-2. **Scope**：JWT 必须包含 `"scope"` 声明且值等于配置的 `ApiName`
-3. **Role**：根据端点要求的策略，JWT 必须包含相应的 `role` 声明（`admin` / `user-admin` / `organization-admin`）
-4. **Audience/Issuer**（可选）：通过 `JwtBearer:ValidateAudience` / `JwtBearer:ValidateIssuer` 控制
+2. **Issuer/Audience/Lifetime**：生产强制校验 `iss`、`aud`、`exp`/`nbf`
+3. **Scope**：空格分隔的所有 `scope` claim 会规范化为独立 claim；授权策略要求其中包含配置的 `ApiName`
+4. **Role/Name**：`role` 映射为 `ClaimTypes.Role`，`name` 映射为 `ClaimTypes.Name`
 
 **双模式密钥**：
 1. **OIDC 发现模式**：配置 `Authority`，系统自动从 OIDC 元数据获取公钥
 2. **本地 JWK 模式**：配置 `KeyPath` 指向本地 JWK 文件，禁用 OIDC 发现
+
+认证结果：
+
+| 状态 | 场景 |
+|------|------|
+| 401 | 缺少/格式错误/签名错误/issuer 错误/audience 错误/过期或尚未生效的 token |
+| 403 | token 已认证，但缺少 `ApiName` scope 或目标策略要求的角色 |
+| 2xx | 签名、issuer、audience、lifetime、scope 和 role 均满足端点策略 |
+
+`GatewayBearer`（`X-Userinfo`）和 `SecurityToken`（`X-AUTH-TOKEN`）的 handler 与配置节保持兼容，但不属于本轮 JWT-only 样例或本轮策略改造。未知的 `AuthenticationSchemes` 值会在启动配置阶段明确失败。
 
 ### 5.2 X-AUTH-TOKEN 服务间认证
 
