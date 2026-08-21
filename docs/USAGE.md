@@ -536,7 +536,7 @@ Docker 部署时，`docker-entrypoint.sh` 会自动替换 `${BASE_PATH}`、`${BA
 | 403 | token 已认证，但缺少 `ApiName` scope 或目标策略要求的角色 |
 | 2xx | 签名、issuer、audience、lifetime、scope 和 role 均满足端点策略 |
 
-`GatewayBearer`（`X-Userinfo`）和 `SecurityToken`（`X-AUTH-TOKEN`）的 handler 与配置节保持兼容，但不属于本轮 JWT-only 样例或本轮策略改造。未知的 `AuthenticationSchemes` 值会在启动配置阶段明确失败。
+`GatewayBearer`（`X-Userinfo`）和 `SecurityToken`（`X-AUTH-TOKEN`）的 handler 与配置节保持兼容，但不属于本轮 JWT-only 样例或本轮策略改造。`AuthenticationSchemes` 中的历史名称 `GatewayJwtBearer` 会归一化为 `GatewayBearer`，并兼容 `GatewayJwtBearer` 配置节；未知的其他值会在启动配置阶段明确失败。
 
 ### 5.2 X-AUTH-TOKEN 服务间认证
 

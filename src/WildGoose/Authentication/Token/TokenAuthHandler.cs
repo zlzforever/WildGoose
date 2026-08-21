@@ -33,8 +33,7 @@ public class TokenAuthHandler(IOptionsMonitor<TokenAuthOptions> options, ILogger
 
         if (token != Options.SecurityToken)
         {
-            Logger.LogError("认证码匹配失败 {TraceId} {Expected} {Actual}", Context.TraceIdentifier, Options.SecurityToken,
-                token);
+            Logger.LogError("认证码匹配失败 {TraceId}", Context.TraceIdentifier);
             return AuthenticateResult.Fail("401");
         }
 

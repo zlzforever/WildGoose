@@ -102,17 +102,11 @@ public static class JwtBearerAuthenticationExtensions
 
             options.Events = new JwtBearerEvents
             {
-                OnAuthenticationFailed = context =>
+                OnTokenValidated = ctx =>
                 {
-                    context.Response.StatusCode = 401;
+                    NormalizeClaims(ctx.Principal);
                     return Task.CompletedTask;
                 }
-            };
-
-            options.Events.OnTokenValidated = ctx =>
-            {
-                NormalizeClaims(ctx.Principal);
-                return Task.CompletedTask;
             };
         });
 
@@ -163,6 +157,14 @@ public static class JwtBearerAuthenticationExtensions
         {
             throw new InvalidOperationException(
                 "JwtBearer:RequireHttpsMetadata=true is incompatible with an http metadata address.");
+        }
+
+        if (environment.IsDevelopment() &&
+            metadataAddress.Scheme == Uri.UriSchemeHttps &&
+            !settings.RequireHttpsMetadata)
+        {
+            throw new InvalidOperationException(
+                "Development JwtBearer metadata may disable RequireHttpsMetadata only for an explicit http endpoint.");
         }
 
         if (!environment.IsDevelopment() &&

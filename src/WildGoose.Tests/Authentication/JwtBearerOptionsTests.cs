@@ -129,6 +129,21 @@ public sealed class JwtBearerOptionsTests : IDisposable
     }
 
     [Fact]
+    public void Development_RejectsHttpsMetadataWhenRequireHttpsMetadataIsDisabled()
+    {
+        var configuration = CreateConfiguration(new Dictionary<string, string?>
+        {
+            ["JwtBearer:MetadataAddress"] = "https://issuer.example/.well-known/openid-configuration",
+            ["JwtBearer:RequireHttpsMetadata"] = "false"
+        });
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            BuildProvider(configuration, "Development"));
+
+        Assert.Contains("RequireHttpsMetadata", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MissingTrustSource_FailsBeforeServiceProviderBuild()
     {
         var exception = Assert.Throws<InvalidOperationException>(() =>
@@ -152,7 +167,7 @@ public sealed class JwtBearerOptionsTests : IDisposable
         var exception = Assert.Throws<InvalidOperationException>(() => BuildProvider(configuration, "Production"));
 
         Assert.Contains(keyPath, exception.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("fallback", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("fall back", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

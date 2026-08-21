@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using WildGoose.Authentication;
+using WildGoose.Authentication.GatewayJwtBearer;
 using WildGoose.Domain;
 using Xunit;
 
@@ -85,6 +86,34 @@ public sealed class AuthenticationPolicyTests
             services.ConfigAuthenticationCore(configuration, new TestHostEnvironment()));
 
         Assert.Contains("NotRegistered", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HistoricalGatewayJwtBearerAlias_UsesGatewayBearerAndLegacyConfigurationSection()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ApiName"] = "wildgoose-api",
+            ["AuthenticationSchemes"] = "GatewayJwtBearer",
+            ["GatewayJwtBearer:Name"] = "X-Legacy-Userinfo",
+            ["GatewayJwtBearer:Issuer"] = "https://issuer.example",
+            ["GatewayJwtBearer:Audience"] = "wildgoose-api"
+        }).Build();
+
+        services.ConfigAuthenticationCore(configuration, new TestHostEnvironment());
+        using var provider = services.BuildServiceProvider(validateScopes: true);
+
+        var scheme = await provider.GetRequiredService<IAuthenticationSchemeProvider>()
+            .GetSchemeAsync("GatewayBearer");
+        var options = provider.GetRequiredService<IOptionsMonitor<GatewayJwtBearerOptions>>().Get("GatewayBearer");
+
+        Assert.NotNull(scheme);
+        Assert.Equal("GatewayBearer", scheme.Name);
+        Assert.Equal("X-Legacy-Userinfo", options.Name);
+        Assert.Equal("https://issuer.example", options.Issuer);
+        Assert.Equal("wildgoose-api", options.Audience);
     }
 
     private static ServiceProvider BuildProvider(string schemes)

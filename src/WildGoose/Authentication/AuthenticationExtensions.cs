@@ -40,7 +40,13 @@ public static class AuthenticationExtensions
         if (authenticationSchemes.Contains("GatewayBearer", StringComparer.OrdinalIgnoreCase))
         {
             Defaults.Logger.LogInformation("Adding GatewayJwtBearer authentication");
-            services.Configure<GatewayJwtBearerOptions>(configuration.GetSection("GatewayBearer"));
+            var gatewaySection = configuration.GetSection("GatewayBearer");
+            if (!gatewaySection.GetChildren().Any())
+            {
+                gatewaySection = configuration.GetSection("GatewayJwtBearer");
+            }
+
+            services.Configure<GatewayJwtBearerOptions>("GatewayBearer", gatewaySection);
             authenticationBuilder
                 .AddScheme<GatewayJwtBearerOptions, GatewayJwtBearerHandler>("GatewayBearer",
                     options =>
@@ -131,9 +137,17 @@ public static class AuthenticationExtensions
 
     private static string NormalizeScheme(string scheme)
     {
-        return string.Equals(scheme, "Bearer", StringComparison.OrdinalIgnoreCase)
-            ? "JwtBearer"
-            : scheme;
+        if (string.Equals(scheme, "Bearer", StringComparison.OrdinalIgnoreCase))
+        {
+            return "JwtBearer";
+        }
+
+        if (string.Equals(scheme, "GatewayJwtBearer", StringComparison.OrdinalIgnoreCase))
+        {
+            return "GatewayBearer";
+        }
+
+        return scheme;
     }
 
     private sealed class DefaultHostEnvironment : IHostEnvironment
