@@ -340,7 +340,7 @@ if (options.AddUserRoles.Length == 0 || !Session.Roles.Any(x => options.AddUserR
 }
 ```
 
-配置优先级遵循 ASP.NET Core provider 顺序：`appsettings.json` → `appsettings.{Environment}.json` → 环境变量/部署注入配置。生产配置应通过部署 secret 提供真实 issuer、audience 和公钥路径；基础样例不引用仓库中的 `jwt.jwk`。已提交的 RSA 私钥文件本轮不改写，密钥轮换作为后续任务，禁止生产继续使用该文件。
+配置优先级遵循 ASP.NET Core provider 顺序：`appsettings.json` → `appsettings.{Environment}.json` → 环境变量/部署注入配置。生产配置应通过部署 secret 提供真实 issuer、audience 和公钥路径；基础样例不引用仓库中的 `jwt.jwk`。JWT-only 样例只启用 `JwtBearer`，生产 Docker 发布只发布 `src/WildGoose/WildGoose.csproj`，不会携带测试项目或测试 JWK。已提交的 `src/WildGoose.Tests/jwt.jwk` RSA 私钥本轮不改写，密钥轮换按 Q1 遗留另行排期；在轮换完成前禁止生产使用该文件。
 
 启动前会 fail-fast：
 
@@ -480,11 +480,11 @@ Docker 部署时，`docker-entrypoint.sh` 会自动替换 `${BASE_PATH}`、`${BA
 
 | Policy 名称 | 常量 | 允许的角色 | JWT 要求 |
 |-------------|------|-----------|----------|
-| `SUPER` | `Defaults.SuperPolicy` | `admin` | Bearer Token 或 X-AUTH-TOKEN，scope 包含 `ApiName` |
+| `SUPER` | `Defaults.SuperPolicy` | `admin` | 已在 `AuthenticationSchemes` 启用的认证方案，scope 包含 `ApiName` |
 | `SUPER_OR_USER_ADMIN_OR_ORG_ADMIN` | `Defaults.SuperOrUserAdminOrOrgAdminPolicy` | `admin`, `user-admin`, `organization-admin` | 同上 |
 | `USER_ADMIN` | `"USER_ADMIN"` | `user-admin` | 同上 |
 
-授权同时支持 `JwtBearerDefaults.AuthenticationScheme` 和 `"SecurityToken"`（X-AUTH-TOKEN）两种认证方案。
+授权策略的认证方案由 `AuthenticationSchemes` 配置显式决定。只有配置中包含 `SecurityToken` 时，`X-AUTH-TOKEN` 才参与策略认证；JWT-only 配置不会隐式启用它。配置同时包含 `JwtBearer` 与 `SecurityToken` 时，策略可以接受任一已注册方案。
 
 ### 4.3 权限声明模型
 
@@ -541,6 +541,16 @@ Docker 部署时，`docker-entrypoint.sh` 会自动替换 `${BASE_PATH}`、`${BA
 ### 5.2 X-AUTH-TOKEN 服务间认证
 
 **辅助认证方案**，用于服务间调用（无需 OIDC 流程）。
+
+该方案仅在 `AuthenticationSchemes` 显式包含 `SecurityToken` 时注册并参与授权。例如：
+
+```json
+{
+  "AuthenticationSchemes": "SecurityToken"
+}
+```
+
+JWT-only 配置保持 `"AuthenticationSchemes": "JwtBearer"`，不会因为设置了 `WildGooseSecurityToken` 而自动启用 `X-AUTH-TOKEN`。
 
 - **认证头**：请求头 `X-AUTH-TOKEN` 中传入安全令牌
 - **令牌值**：由环境变量 `WildGooseSecurityToken` 设置

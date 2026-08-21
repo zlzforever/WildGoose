@@ -26,12 +26,76 @@ namespace WildGoose;
 
 public class Program
 {
+    private const string CorsPolicyName = "___AllowSpecificOrigin";
+
     public static async Task Main(string[] args)
+    {
+        var builder = CreateBuilder(args);
+        var dbOptions = builder.Configuration.GetSection("DbContext").Get<DbOptions>()
+                        ?? throw new InvalidOperationException("DbContext configuration is required.");
+
+        var app = builder.Build();
+
+        var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Program");
+        LogHelper.Logger = new SerilogIdentityLogger(logger);
+
+        var rootFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot");
+        if (!Directory.Exists(rootFolder))
+        {
+            Directory.CreateDirectory(rootFolder);
+        }
+
+        if (dbOptions.AutoMigrationEnabled)
+        {
+            using var scope = app.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
+            var migrations = (await dbContext.Database.GetPendingMigrationsAsync()).ToList();
+            if (migrations.Any())
+            {
+                logger.LogInformation("Applying migrations: {Migrations}", string.Join(", ", migrations));
+                await dbContext.Database.MigrateAsync();
+            }
+            else
+            {
+                logger.LogInformation("No Applying migrations");
+            }
+        }
+
+        // 获取才会初始化表
+        var hybridCache = app.Services.GetRequiredService<HybridCache>();
+        await hybridCache.SetAsync("wildgoose:init", "1", new HybridCacheEntryOptions
+        {
+            Expiration = TimeSpan.FromDays(1)
+        });
+        await SeedData.Init(app.Services);
+
+        app.UseForwardedHeaders(new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto |
+                               ForwardedHeaders.XForwardedHost
+        });
+        app.UseMiddleware<DecryptRequestMiddleware>();
+        app.UseRouting();
+        var healthCheckPath = Environment.GetEnvironmentVariable("HEALTH_CHECK_PATH") ?? "/healthz";
+        app.UseHealthChecks(healthCheckPath);
+        app.UseCors(CorsPolicyName);
+        app.UseResponseCaching();
+        app.UseAuthentication();
+        app.UseAuthorization();
+        app.UseCloudEvents();
+        app.MapSubscribeHandler();
+        app.MapControllers().RequireCors(CorsPolicyName);
+        await app.RunAsync();
+
+        Console.WriteLine("Bye");
+    }
+
+    internal static WebApplicationBuilder CreateBuilder(WebApplicationOptions options)
     {
         DefaultTypeMap.MatchNamesWithUnderscores = true;
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-        var builder = WebApplication.CreateBuilder(args);
+        var builder = WebApplication.CreateBuilder(options);
         builder.AddSubstitution();
 
         builder.AddSerilog();
@@ -39,11 +103,11 @@ public class Program
         {
             x.Filters.Add<ResponseWrapperFilter>();
             x.Filters.Add<GlobalExceptionFilter>();
-        }).AddJsonOptions(options =>
+        }).AddJsonOptions(jsonOptions =>
         {
-            options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowReadingFromString;
-            options.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
-            options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            jsonOptions.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowReadingFromString;
+            jsonOptions.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+            jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         });
         mvcBuilder.ConfigureApiBehaviorOptions(x =>
         {
@@ -109,10 +173,9 @@ public class Program
         }
 
         // 全开放，应该在网关上统一处理
-        var corsPolicyName = "___AllowSpecificOrigin";
         builder.Services.AddCors(options =>
         {
-            options.AddPolicy(name: corsPolicyName,
+            options.AddPolicy(name: CorsPolicyName,
                 policy =>
                 {
                     var origins = builder.Configuration.GetSection("AllowedCorsOrigins").Get<string[]>();
@@ -126,59 +189,11 @@ public class Program
                 });
         });
 
-        var app = builder.Build();
+        return builder;
+    }
 
-        var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Program");
-        LogHelper.Logger = new SerilogIdentityLogger(logger);
-
-        var rootFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot");
-        if (!Directory.Exists(rootFolder))
-        {
-            Directory.CreateDirectory(rootFolder);
-        }
-
-        if (dbOptions.AutoMigrationEnabled)
-        {
-            using var scope = app.Services.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<WildGooseDbContext>();
-            var migrations = (await dbContext.Database.GetPendingMigrationsAsync()).ToList();
-            if (migrations.Any())
-            {
-                logger.LogInformation("Applying migrations: {Migrations}", string.Join(", ", migrations));
-                await dbContext.Database.MigrateAsync();
-            }
-            else
-            {
-                logger.LogInformation("No Applying migrations");
-            }
-        }
-
-        // 获取才会初始化表
-        var hybridCache = app.Services.GetRequiredService<HybridCache>();
-        await hybridCache.SetAsync("wildgoose:init", "1", new HybridCacheEntryOptions
-        {
-            Expiration = TimeSpan.FromDays(1)
-        });
-        await SeedData.Init(app.Services);
-
-        app.UseForwardedHeaders(new ForwardedHeadersOptions
-        {
-            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto |
-                               ForwardedHeaders.XForwardedHost
-        });
-        app.UseMiddleware<DecryptRequestMiddleware>();
-        app.UseRouting();
-        var healthCheckPath = Environment.GetEnvironmentVariable("HEALTH_CHECK_PATH") ?? "/healthz";
-        app.UseHealthChecks(healthCheckPath);
-        app.UseCors(corsPolicyName);
-        app.UseResponseCaching();
-        app.UseAuthentication();
-        app.UseAuthorization();
-        app.UseCloudEvents();
-        app.MapSubscribeHandler();
-        app.MapControllers().RequireCors(corsPolicyName);
-        await app.RunAsync();
-
-        Console.WriteLine("Bye");
+    private static WebApplicationBuilder CreateBuilder(string[] args)
+    {
+        return CreateBuilder(new WebApplicationOptions { Args = args });
     }
 }

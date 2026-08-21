@@ -68,13 +68,22 @@ public static class WebApplicationBuilderExtensions
 
             void ReplaceSource(ConfigurationManager configurationManager, int index, string path)
             {
-                if (!File.Exists(path))
+                var fullPath = Path.IsPathRooted(path)
+                    ? path
+                    : Path.GetFullPath(path, env.ContentRootPath);
+                if (!File.Exists(fullPath))
                 {
                     return;
                 }
 
                 var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-                using var document = JsonDocument.Parse(SubstituteEnv(File.ReadAllText(path)));
+                using var document = JsonDocument.Parse(
+                    SubstituteEnv(File.ReadAllText(fullPath)),
+                    new JsonDocumentOptions
+                    {
+                        AllowTrailingCommas = true,
+                        CommentHandling = JsonCommentHandling.Skip
+                    });
                 AddJsonValues(document.RootElement, null, values);
                 configurationManager.Sources[index] = new MemoryConfigurationSource
                 {
@@ -87,12 +96,19 @@ public static class WebApplicationBuilderExtensions
                 switch (element.ValueKind)
                 {
                     case JsonValueKind.Object:
+                        var hasProperties = false;
                         foreach (var property in element.EnumerateObject())
                         {
+                            hasProperties = true;
                             var key = string.IsNullOrEmpty(prefix)
                                 ? property.Name
                                 : $"{prefix}:{property.Name}";
                             AddJsonValues(property.Value, key, values);
+                        }
+
+                        if (!hasProperties && !string.IsNullOrEmpty(prefix))
+                        {
+                            values[prefix] = null;
                         }
 
                         break;
@@ -102,6 +118,11 @@ public static class WebApplicationBuilderExtensions
                         {
                             AddJsonValues(item, $"{prefix}:{index}", values);
                             index++;
+                        }
+
+                        if (index == 0 && !string.IsNullOrEmpty(prefix))
+                        {
+                            values[prefix] = null;
                         }
 
                         break;

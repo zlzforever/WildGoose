@@ -47,9 +47,12 @@ public sealed class TokenAuthenticationLoggingTests
         var result = await handler.AuthenticateAsync();
 
         Assert.False(result.Succeeded);
+        Assert.Equal("401", result.Failure?.Message);
         var logText = string.Join('\n', loggerProvider.Messages);
+        Assert.Contains("trace-token-test", logText, StringComparison.Ordinal);
         Assert.DoesNotContain(expectedToken, logText, StringComparison.Ordinal);
         Assert.DoesNotContain(actualToken, logText, StringComparison.Ordinal);
+        Assert.DoesNotContain("private-key-material", logText, StringComparison.Ordinal);
 
         var validContext = new DefaultHttpContext
         {

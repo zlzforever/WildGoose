@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -87,6 +88,80 @@ public sealed class JwtAuthenticationIntegrationTests : IAsyncDisposable
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.DoesNotContain(token, body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task FutureNotBefore_Returns401()
+    {
+        await StartApplicationAsync();
+        var token = CreateToken(
+            [new Claim("scope", "wildgoose-api")],
+            expires: DateTime.UtcNow.AddMinutes(20),
+            notBefore: DateTime.UtcNow.AddMinutes(10));
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _client!.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UnsignedToken_Returns401()
+    {
+        await StartApplicationAsync();
+        var token = new JwtSecurityToken(
+            "https://issuer.example",
+            "wildgoose-api",
+            [new Claim("scope", "wildgoose-api")],
+            DateTime.UtcNow.AddMinutes(-1),
+            DateTime.UtcNow.AddMinutes(10));
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            new JwtSecurityTokenHandler().WriteToken(token));
+        var response = await _client!.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task HmacSignedToken_Returns401()
+    {
+        await StartApplicationAsync();
+        var key = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes("not-a-rsa-signing-key-with-at-least-256-bits"));
+        var token = new JwtSecurityToken(
+            "https://issuer.example",
+            "wildgoose-api",
+            [new Claim("scope", "wildgoose-api")],
+            DateTime.UtcNow.AddMinutes(-1),
+            DateTime.UtcNow.AddMinutes(10),
+            new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            new JwtSecurityTokenHandler().WriteToken(token));
+        var response = await _client!.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("Basic abc")]
+    [InlineData("Bearer")]
+    [InlineData("NotBearer abc")]
+    public async Task NonBearerOrMalformedAuthorization_Returns401(string authorization)
+    {
+        await StartApplicationAsync();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
+        request.Headers.TryAddWithoutValidation("Authorization", authorization);
+
+        var response = await _client!.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Theory]
@@ -202,18 +277,19 @@ public sealed class JwtAuthenticationIntegrationTests : IAsyncDisposable
         string issuer = "https://issuer.example",
         string audience = "wildgoose-api",
         DateTime? expires = null,
-        RSA? signingRsa = null)
+        RSA? signingRsa = null,
+        DateTime? notBefore = null)
     {
         var securityKey = new RsaSecurityKey(signingRsa ?? _signingRsa!) { KeyId = "test-key" };
         var effectiveExpiration = expires ?? DateTime.UtcNow.AddMinutes(10);
-        var notBefore = effectiveExpiration < DateTime.UtcNow
+        var effectiveNotBefore = notBefore ?? (effectiveExpiration < DateTime.UtcNow
             ? effectiveExpiration.AddMinutes(-10)
-            : DateTime.UtcNow.AddMinutes(-1);
+            : DateTime.UtcNow.AddMinutes(-1));
         var token = new JwtSecurityToken(
             issuer,
             audience,
             claims,
-            notBefore,
+            effectiveNotBefore,
             effectiveExpiration,
             new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256));
         return new JwtSecurityTokenHandler().WriteToken(token);

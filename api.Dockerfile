@@ -10,14 +10,14 @@ WORKDIR /workspace
 COPY "./src/WildGoose/WildGoose.csproj" "/workspace/src/WildGoose/"
 COPY "./src/WildGoose.Application/WildGoose.Application.csproj" "/workspace/src/WildGoose.Application/"
 COPY "./src/WildGoose.Domain/WildGoose.Domain.csproj" "/workspace/src/WildGoose.Domain/"
-COPY "./src/WildGoose.Tests/WildGoose.Tests.csproj" "/workspace/src/WildGoose.Tests/"
-COPY "./WildGoose.sln" "/workspace/WildGoose.sln"
-RUN dotnet restore .
-COPY . .
-RUN dotnet build
+RUN dotnet restore src/WildGoose/WildGoose.csproj
+COPY ./src/WildGoose /workspace/src/WildGoose
+COPY ./src/WildGoose.Application /workspace/src/WildGoose.Application
+COPY ./src/WildGoose.Domain /workspace/src/WildGoose.Domain
+RUN dotnet build src/WildGoose/WildGoose.csproj --no-restore -c Release
 
 FROM build AS publish
-RUN dotnet publish  -o /app/publish
+RUN dotnet publish src/WildGoose/WildGoose.csproj --no-restore -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
