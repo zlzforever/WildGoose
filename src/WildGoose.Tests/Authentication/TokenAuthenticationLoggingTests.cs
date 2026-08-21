@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WildGoose.Authentication.Token;
+using WildGoose.Domain;
 using Xunit;
 
 namespace WildGoose.Tests.Authentication;
@@ -15,6 +16,7 @@ public sealed class TokenAuthenticationLoggingTests
     {
         const string expectedToken = "expected-secret";
         const string actualToken = "actual-secret";
+        Defaults.ApiName = "wildgoose-api";
         var loggerProvider = new CaptureLoggerProvider();
         using var loggerFactory = LoggerFactory.Create(logging =>
         {
@@ -48,6 +50,32 @@ public sealed class TokenAuthenticationLoggingTests
         var logText = string.Join('\n', loggerProvider.Messages);
         Assert.DoesNotContain(expectedToken, logText, StringComparison.Ordinal);
         Assert.DoesNotContain(actualToken, logText, StringComparison.Ordinal);
+
+        var validContext = new DefaultHttpContext
+        {
+            TraceIdentifier = "trace-token-success-test"
+        };
+        validContext.Request.Headers["X-AUTH-TOKEN"] = expectedToken;
+        validContext.SetEndpoint(new Endpoint(
+            _ => Task.CompletedTask,
+            new EndpointMetadataCollection(),
+            "token-test"));
+        var validHandler = new TokenAuthHandler(
+            new StaticOptionsMonitor<TokenAuthOptions>(new TokenAuthOptions
+            {
+                SecurityToken = expectedToken
+            }),
+            loggerFactory,
+            UrlEncoder.Default);
+
+        await validHandler.InitializeAsync(
+            new AuthenticationScheme("SecurityToken", null, typeof(TokenAuthHandler)),
+            validContext);
+        var validResult = await validHandler.AuthenticateAsync();
+
+        Assert.True(validResult.Succeeded);
+        logText = string.Join('\n', loggerProvider.Messages);
+        Assert.DoesNotContain(expectedToken, logText, StringComparison.Ordinal);
     }
 
     private sealed class StaticOptionsMonitor<T>(T value) : IOptionsMonitor<T>

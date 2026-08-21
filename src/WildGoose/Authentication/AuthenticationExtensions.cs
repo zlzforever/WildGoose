@@ -46,6 +46,7 @@ public static class AuthenticationExtensions
                 gatewaySection = configuration.GetSection("GatewayJwtBearer");
             }
 
+            services.Configure<GatewayJwtBearerOptions>(gatewaySection);
             services.Configure<GatewayJwtBearerOptions>("GatewayBearer", gatewaySection);
             authenticationBuilder
                 .AddScheme<GatewayJwtBearerOptions, GatewayJwtBearerHandler>("GatewayBearer",

@@ -107,13 +107,18 @@ public sealed class AuthenticationPolicyTests
 
         var scheme = await provider.GetRequiredService<IAuthenticationSchemeProvider>()
             .GetSchemeAsync("GatewayBearer");
-        var options = provider.GetRequiredService<IOptionsMonitor<GatewayJwtBearerOptions>>().Get("GatewayBearer");
+        var optionsMonitor = provider.GetRequiredService<IOptionsMonitor<GatewayJwtBearerOptions>>();
+        var options = optionsMonitor.Get("GatewayBearer");
+        var currentOptions = optionsMonitor.CurrentValue;
 
         Assert.NotNull(scheme);
         Assert.Equal("GatewayBearer", scheme.Name);
         Assert.Equal("X-Legacy-Userinfo", options.Name);
         Assert.Equal("https://issuer.example", options.Issuer);
         Assert.Equal("wildgoose-api", options.Audience);
+        Assert.Equal("X-Legacy-Userinfo", currentOptions.Name);
+        Assert.Equal("https://issuer.example", currentOptions.Issuer);
+        Assert.Equal("wildgoose-api", currentOptions.Audience);
     }
 
     private static ServiceProvider BuildProvider(string schemes)
