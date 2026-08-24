@@ -299,6 +299,8 @@ if (options.AddUserRoles.Length == 0 || !Session.Roles.Any(x => options.AddUserR
 **配置节：** `"JwtBearer"`  
 **认证 scheme：** `JwtBearer`（请求头固定为 `Authorization: Bearer <token>`）
 
+**默认 scheme：** 未配置或留空 `AuthenticationSchemes` 时，系统只注册 `JwtBearer`，并将其设置为默认 authenticate、challenge 和 forbid scheme。这是有意的 JWT-only 兼容性变化；依赖历史 `GatewayBearer` 或 `SecurityToken` 默认认证的部署必须显式配置 `AuthenticationSchemes`，否则仅配置对应凭据不会再启用这些方案。
+
 ```json5
 {
   "JwtBearer": {
@@ -484,7 +486,7 @@ Docker 部署时，`docker-entrypoint.sh` 会自动替换 `${BASE_PATH}`、`${BA
 | `SUPER_OR_USER_ADMIN_OR_ORG_ADMIN` | `Defaults.SuperOrUserAdminOrOrgAdminPolicy` | `admin`, `user-admin`, `organization-admin` | 同上 |
 | `USER_ADMIN` | `"USER_ADMIN"` | `user-admin` | 同上 |
 
-授权策略的认证方案由 `AuthenticationSchemes` 配置显式决定。只有配置中包含 `SecurityToken` 时，`X-AUTH-TOKEN` 才参与策略认证；JWT-only 配置不会隐式启用它。配置同时包含 `JwtBearer` 与 `SecurityToken` 时，策略可以接受任一已注册方案。
+授权策略的认证方案由 `AuthenticationSchemes` 配置显式决定。未配置或留空时默认只有 `JwtBearer`；`GatewayBearer`、`SecurityToken` 及其对应的 `X-Userinfo`、`X-AUTH-TOKEN` 认证只有在 `AuthenticationSchemes` 中显式列出时才注册并参与策略。配置同时包含多个 scheme 时，策略可以接受任一已注册方案。
 
 ### 4.3 权限声明模型
 
@@ -517,7 +519,7 @@ Docker 部署时，`docker-entrypoint.sh` 会自动替换 `${BASE_PATH}`、`${BA
 
 ### 5.1 JWT Bearer 认证
 
-**主认证方案**。JWT-only 样例只启用已注册的 `JwtBearer` scheme，并设置为默认 authenticate/challenge/forbid scheme。系统验证 JWT 的以下内容：
+**主认证方案**。未配置 `AuthenticationSchemes` 时，应用默认只启用已注册的 `JwtBearer` scheme，并设置为默认 authenticate/challenge/forbid scheme；JWT-only 配置也可以显式写成 `"AuthenticationSchemes": "JwtBearer"`。系统验证 JWT 的以下内容：
 
 1. **签名**：通过 OIDC 发现获取 JWK，或使用本地配置的 RSA 公钥验证
 2. **Issuer/Audience/Lifetime**：生产强制校验 `iss`、`aud`、`exp`/`nbf`
@@ -536,7 +538,7 @@ Docker 部署时，`docker-entrypoint.sh` 会自动替换 `${BASE_PATH}`、`${BA
 | 403 | token 已认证，但缺少 `ApiName` scope 或目标策略要求的角色 |
 | 2xx | 签名、issuer、audience、lifetime、scope 和 role 均满足端点策略 |
 
-`GatewayBearer`（`X-Userinfo`）和 `SecurityToken`（`X-AUTH-TOKEN`）的 handler 与配置节保持兼容，但不属于本轮 JWT-only 样例或本轮策略改造。`AuthenticationSchemes` 中的历史名称 `GatewayJwtBearer` 会归一化为 `GatewayBearer`，并兼容 `GatewayJwtBearer` 配置节；未知的其他值会在启动配置阶段明确失败。
+`GatewayBearer`（`X-Userinfo`）和 `SecurityToken`（`X-AUTH-TOKEN`）的 handler 与配置节保持兼容，但不会被默认注册。`AuthenticationSchemes` 中的历史名称 `GatewayJwtBearer` 会归一化为 `GatewayBearer`，并兼容 `GatewayJwtBearer` 配置节；未知的其他值会在启动配置阶段明确失败。
 
 ### 5.2 X-AUTH-TOKEN 服务间认证
 

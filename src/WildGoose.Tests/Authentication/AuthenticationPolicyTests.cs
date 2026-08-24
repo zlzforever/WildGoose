@@ -27,6 +27,22 @@ public sealed class AuthenticationPolicyTests
     }
 
     [Fact]
+    public async Task MissingAuthenticationSchemes_UsesOnlyJwtBearerByDefault()
+    {
+        using var provider = BuildProvider(null);
+
+        var options = provider.GetRequiredService<IOptions<AuthenticationOptions>>().Value;
+        var schemes = await provider.GetRequiredService<IAuthenticationSchemeProvider>().GetAllSchemesAsync();
+        var policy = await provider.GetRequiredService<IAuthorizationPolicyProvider>().GetPolicyAsync("SCOPE");
+
+        Assert.Equal("JwtBearer", options.DefaultAuthenticateScheme);
+        Assert.Equal("JwtBearer", options.DefaultChallengeScheme);
+        Assert.Equal("JwtBearer", options.DefaultForbidScheme);
+        Assert.Equal(["JwtBearer"], schemes.Select(scheme => scheme.Name).ToArray());
+        Assert.Equal(["JwtBearer"], policy!.AuthenticationSchemes);
+    }
+
+    [Fact]
     public async Task Policies_UseOnlyRegisteredJwtBearerSchemeAndKeepRoleContracts()
     {
         using var provider = BuildProvider("JwtBearer");
@@ -144,7 +160,7 @@ public sealed class AuthenticationPolicyTests
         Assert.Equal("configured-audience", options.Audience);
     }
 
-    private static ServiceProvider BuildProvider(string schemes)
+    private static ServiceProvider BuildProvider(string? schemes)
     {
         var services = new ServiceCollection();
         services.AddLogging();

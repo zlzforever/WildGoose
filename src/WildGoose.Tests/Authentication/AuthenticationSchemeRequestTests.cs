@@ -214,6 +214,40 @@ public sealed class AuthenticationSchemeRequestTests
         }
     }
 
+    [Fact]
+    public async Task JwtAndSecurityToken_MissingCredentialsReturnsBearerChallengeWithoutCredentials()
+    {
+        const string expectedToken = "security-token-test-value";
+        var previousToken = Environment.GetEnvironmentVariable("WildGooseSecurityToken");
+        Environment.SetEnvironmentVariable("WildGooseSecurityToken", expectedToken);
+        try
+        {
+            await using var application = await TestApplication.StartAsync(
+                "JwtBearer,SecurityToken",
+                new Dictionary<string, string?>
+                {
+                    ["JwtBearer:Authority"] = "https://issuer.example",
+                    ["JwtBearer:ValidateAudience"] = "true",
+                    ["JwtBearer:ValidateIssuer"] = "true",
+                    ["JwtBearer:ValidateLifetime"] = "true"
+                });
+
+            var response = await application.Client.GetAsync("/scope");
+            var challengeHeaders = response.Headers.WwwAuthenticate.ToArray();
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            var bearerChallenge = Assert.Single(
+                challengeHeaders,
+                header => string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase));
+            Assert.Equal("Bearer", bearerChallenge.Scheme);
+            Assert.DoesNotContain(expectedToken, string.Join("\n", challengeHeaders), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("WildGooseSecurityToken", previousToken);
+        }
+    }
+
     private static HttpRequestMessage CreateUserinfoRequest(
         string path,
         Dictionary<string, object?> profile,

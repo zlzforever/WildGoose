@@ -96,15 +96,31 @@ public sealed class GatewayJwtBearerHandlerTests
         var logText = string.Join('\n', loggerProvider.Messages);
 
         Assert.True(result.Succeeded);
-        Assert.Contains("trace-gateway-log-test", logText, StringComparison.Ordinal);
-        Assert.DoesNotContain(JsonSerializer.Serialize(profile), logText, StringComparison.Ordinal);
-        Assert.DoesNotContain("gateway-token-value", logText, StringComparison.Ordinal);
-        Assert.DoesNotContain("gateway-secret-value", logText, StringComparison.Ordinal);
-        Assert.DoesNotContain("gateway-private-key-value", logText, StringComparison.Ordinal);
-        Assert.DoesNotContain("gateway-password-value", logText, StringComparison.Ordinal);
-        Assert.DoesNotContain("access_token", logText, StringComparison.Ordinal);
-        Assert.DoesNotContain("client_secret", logText, StringComparison.Ordinal);
-        Assert.DoesNotContain("private-key", logText, StringComparison.Ordinal);
+        Assert.Equal(2, loggerProvider.Messages.Count);
+        Assert.Equal(
+            "Deserialize X-Userinfo value success for trace trace-gateway-log-test; claim count 8",
+            loggerProvider.Messages[0]);
+        Assert.StartsWith(
+            "AuthenticationScheme: GatewayBearer was ",
+            loggerProvider.Messages[1],
+            StringComparison.Ordinal);
+        Assert.All(
+            loggerProvider.Messages,
+            message => Assert.DoesNotContain("access_token", message, StringComparison.Ordinal));
+        foreach (var forbidden in new[]
+                 {
+                     "gateway-token-value",
+                     "gateway-secret-value",
+                     "gateway-private-key-value",
+                     "gateway-password-value",
+                     "access_token",
+                     "client_secret",
+                     "private-key",
+                     "password"
+                 })
+        {
+            Assert.DoesNotContain(forbidden, logText, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
@@ -155,6 +171,9 @@ public sealed class GatewayJwtBearerHandlerTests
         Assert.Contains(
             claims,
             claim => claim.Type == "jti" && claim.Value == "{\"source\":\"gateway\"}");
+        Assert.DoesNotContain(
+            claims,
+            claim => claim.Type is "access_token" or "client_secret" or "private-key" or "password");
     }
 
     [Fact]
@@ -256,6 +275,171 @@ public sealed class GatewayJwtBearerHandlerTests
             { Type: "nbf", Value: "0.5" });
         Assert.Contains(result.Ticket.Principal.Claims, claim => claim is
             { Type: "exp", Value: "4102444800.5" });
+    }
+
+    [Theory]
+    [InlineData("exp", "[4102444800,4102444801]")]
+    [InlineData("exp", "[4102444801,4102444800]")]
+    [InlineData("nbf", "[0,1]")]
+    [InlineData("nbf", "[1,0]")]
+    [InlineData("exp", "{\"seconds\":4102444800}")]
+    [InlineData("nbf", "{\"seconds\":0}")]
+    [InlineData("exp", "true")]
+    [InlineData("nbf", "false")]
+    [InlineData("exp", "null")]
+    [InlineData("nbf", "null")]
+    [InlineData("exp", "\"4102444800\"")]
+    [InlineData("nbf", "\"0\"")]
+    public async Task Handler_RejectsNonScalarNumericDateClaims(string claimName, string rawValue)
+    {
+        var options = new GatewayJwtBearerOptions
+        {
+            Name = "X-Userinfo",
+            Issuer = "https://issuer.example",
+            Audience = "wildgoose-api"
+        };
+        var handler = CreateHandler(
+            new NamedOptionsMonitor<GatewayJwtBearerOptions>(options, new Dictionary<string, GatewayJwtBearerOptions>()),
+            LoggerFactory.Create(logging => logging.ClearProviders()));
+        var context = CreateRawContext(
+            "X-Userinfo",
+            $"{{\"sub\":\"gateway-user\",\"iss\":\"https://issuer.example\",\"aud\":\"wildgoose-api\",\"scope\":\"wildgoose-api\",\"{claimName}\":{rawValue}}}");
+
+        await handler.InitializeAsync(
+            new AuthenticationScheme("GatewayBearer", null, typeof(GatewayJwtBearerHandler)),
+            context);
+        var result = await handler.AuthenticateAsync();
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Handle X-Userinfo value failed", result.Failure!.Message);
+    }
+
+    [Theory]
+    [InlineData("exp", "4102444800", "4102444801")]
+    [InlineData("nbf", "0", "1")]
+    public async Task Handler_RejectsDuplicateNumericDateClaims(
+        string claimName,
+        string firstValue,
+        string secondValue)
+    {
+        var options = new GatewayJwtBearerOptions
+        {
+            Name = "X-Userinfo",
+            Issuer = "https://issuer.example",
+            Audience = "wildgoose-api"
+        };
+        var handler = CreateHandler(
+            new NamedOptionsMonitor<GatewayJwtBearerOptions>(options, new Dictionary<string, GatewayJwtBearerOptions>()),
+            LoggerFactory.Create(logging => logging.ClearProviders()));
+        var context = CreateRawContext(
+            "X-Userinfo",
+            $"{{\"sub\":\"gateway-user\",\"iss\":\"https://issuer.example\",\"aud\":\"wildgoose-api\",\"scope\":\"wildgoose-api\",\"{claimName}\":{firstValue},\"{claimName}\":{secondValue}}}");
+
+        await handler.InitializeAsync(
+            new AuthenticationScheme("GatewayBearer", null, typeof(GatewayJwtBearerHandler)),
+            context);
+        var result = await handler.AuthenticateAsync();
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Handle X-Userinfo value failed", result.Failure!.Message);
+    }
+
+    [Theory]
+    [InlineData("exp", "79228162514264337593543950335")]
+    [InlineData("nbf", "-79228162514264337593543950335")]
+    [InlineData("exp", "\"not-a-number\"")]
+    [InlineData("nbf", "\"not-a-number\"")]
+    public async Task Handler_RejectsInvalidOrOutOfRangeNumericDateClaims(string claimName, string rawValue)
+    {
+        var options = new GatewayJwtBearerOptions
+        {
+            Name = "X-Userinfo",
+            Issuer = "https://issuer.example",
+            Audience = "wildgoose-api"
+        };
+        var handler = CreateHandler(
+            new NamedOptionsMonitor<GatewayJwtBearerOptions>(options, new Dictionary<string, GatewayJwtBearerOptions>()),
+            LoggerFactory.Create(logging => logging.ClearProviders()));
+        var context = CreateRawContext(
+            "X-Userinfo",
+            $"{{\"sub\":\"gateway-user\",\"iss\":\"https://issuer.example\",\"aud\":\"wildgoose-api\",\"scope\":\"wildgoose-api\",\"{claimName}\":{rawValue}}}");
+
+        await handler.InitializeAsync(
+            new AuthenticationScheme("GatewayBearer", null, typeof(GatewayJwtBearerHandler)),
+            context);
+        var result = await handler.AuthenticateAsync();
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Handle X-Userinfo value failed", result.Failure!.Message);
+    }
+
+    [Fact]
+    public async Task Handler_RejectsMissingIssuerAndWrongIssuer()
+    {
+        var options = new GatewayJwtBearerOptions
+        {
+            Name = "X-Userinfo",
+            Issuer = "https://issuer.example",
+            Audience = "wildgoose-api"
+        };
+
+        foreach (var json in new[]
+                 {
+                     "{\"sub\":\"gateway-user\",\"aud\":\"wildgoose-api\",\"scope\":\"wildgoose-api\"}",
+                     "{\"sub\":\"gateway-user\",\"iss\":\"https://wrong-issuer.example\",\"aud\":\"wildgoose-api\",\"scope\":\"wildgoose-api\"}"
+                 })
+        {
+            var handler = CreateHandler(
+                new NamedOptionsMonitor<GatewayJwtBearerOptions>(
+                    options,
+                    new Dictionary<string, GatewayJwtBearerOptions>()),
+                LoggerFactory.Create(logging => logging.ClearProviders()));
+            await handler.InitializeAsync(
+                new AuthenticationScheme("GatewayBearer", null, typeof(GatewayJwtBearerHandler)),
+                CreateRawContext("X-Userinfo", json));
+
+            var result = await handler.AuthenticateAsync();
+
+            Assert.False(result.Succeeded);
+            Assert.Equal("Issuer is invalid", result.Failure!.Message);
+        }
+    }
+
+    [Fact]
+    public async Task Handler_IgnoresNullAndMissingOptionalClaims()
+    {
+        var options = new GatewayJwtBearerOptions
+        {
+            Name = "X-Userinfo",
+            Issuer = "https://issuer.example",
+            Audience = "wildgoose-api"
+        };
+        var handler = CreateHandler(
+            new NamedOptionsMonitor<GatewayJwtBearerOptions>(options, new Dictionary<string, GatewayJwtBearerOptions>()),
+            LoggerFactory.Create(logging => logging.ClearProviders()));
+        var context = CreateRawContext(
+            "X-Userinfo",
+            "{\"sub\":\"gateway-user\",\"iss\":\"https://issuer.example\",\"aud\":\"wildgoose-api\",\"scope\":null,\"role\":null,\"name\":null}");
+
+        await handler.InitializeAsync(
+            new AuthenticationScheme("GatewayBearer", null, typeof(GatewayJwtBearerHandler)),
+            context);
+        var result = await handler.AuthenticateAsync();
+        var claims = result.Ticket!.Principal.Claims.ToArray();
+
+        Assert.True(result.Succeeded);
+        Assert.DoesNotContain(claims, claim => claim.Type is "scope" or "role" or ClaimTypes.Name);
+        Assert.DoesNotContain(claims, claim => claim.Value is null);
+    }
+
+    private static DefaultHttpContext CreateRawContext(string headerName, string json)
+    {
+        var context = new DefaultHttpContext
+        {
+            TraceIdentifier = "trace-gateway-test"
+        };
+        context.Request.Headers[headerName] = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+        return context;
     }
 
     private static GatewayJwtBearerHandler CreateHandler(

@@ -70,6 +70,9 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
         {
             var json = Convert.FromBase64String(base64);
 
+            using var profileDocument = JsonDocument.Parse(json);
+            ValidateNumericDateClaims(profileDocument.RootElement);
+
             using var memoryStream = new MemoryStream(json);
             var profile =
                 JsonSerializer.Deserialize<Dictionary<string, JsonElement?>>(memoryStream,
@@ -168,6 +171,41 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
         }
 
         return result;
+    }
+
+    private static void ValidateNumericDateClaims(JsonElement profile)
+    {
+        if (profile.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var property in profile.EnumerateObject())
+        {
+            if (property.Name is not ("exp" or "nbf"))
+            {
+                continue;
+            }
+
+            if (!seen.Add(property.Name))
+            {
+                throw new FormatException($"NumericDate claim '{property.Name}' must appear only once.");
+            }
+
+            if (property.Value.ValueKind != JsonValueKind.Number ||
+                !decimal.TryParse(
+                    property.Value.GetRawText(),
+                    NumberStyles.AllowLeadingSign |
+                    NumberStyles.AllowDecimalPoint |
+                    NumberStyles.AllowExponent,
+                    CultureInfo.InvariantCulture,
+                    out _))
+            {
+                throw new FormatException(
+                    $"NumericDate claim '{property.Name}' must be a single finite JSON number.");
+            }
+        }
     }
 
     private static DateTimeOffset ParseNumericDate(string value)
