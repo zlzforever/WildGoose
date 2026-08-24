@@ -52,6 +52,7 @@ public sealed class JwtBearerOptionsTests : IDisposable
         Assert.True(options.TokenValidationParameters.ValidateIssuer);
         Assert.True(options.TokenValidationParameters.ValidateAudience);
         Assert.True(options.TokenValidationParameters.ValidateLifetime);
+        Assert.False(options.IncludeErrorDetails);
         Assert.Equal("https://issuer.example", options.TokenValidationParameters.ValidIssuer);
         Assert.Equal("wildgoose-api", options.TokenValidationParameters.ValidAudience);
         Assert.Equal(ClaimTypes.Name, options.TokenValidationParameters.NameClaimType);

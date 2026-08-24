@@ -83,6 +83,7 @@ public static class JwtBearerAuthenticationExtensions
             options.Audience = validAudience;
             options.MapInboundClaims = false;
             options.SaveToken = false;
+            options.IncludeErrorDetails = false;
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,

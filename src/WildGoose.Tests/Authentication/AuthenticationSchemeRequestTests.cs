@@ -248,6 +248,101 @@ public sealed class AuthenticationSchemeRequestTests
         }
     }
 
+    [Fact]
+    public async Task BlankAuthenticationSchemes_UsesJwtOnlyAndDoesNotEnableXAuthToken()
+    {
+        const string expectedToken = "security-token-test-value";
+        var previousToken = Environment.GetEnvironmentVariable("WildGooseSecurityToken");
+        Environment.SetEnvironmentVariable("WildGooseSecurityToken", expectedToken);
+        try
+        {
+            await using var application = await TestApplication.StartAsync(
+                "   ",
+                new Dictionary<string, string?>
+                {
+                    ["JwtBearer:Authority"] = "https://issuer.example",
+                    ["JwtBearer:ValidateAudience"] = "true",
+                    ["JwtBearer:ValidateIssuer"] = "true",
+                    ["JwtBearer:ValidateLifetime"] = "true"
+                });
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/scope");
+            request.Headers.Add("X-AUTH-TOKEN", expectedToken);
+            var response = await application.Client.SendAsync(request);
+            var challengeHeaders = response.Headers.WwwAuthenticate.ToArray();
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Contains(
+                challengeHeaders,
+                header => string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("WildGooseSecurityToken", previousToken);
+        }
+    }
+
+    [Fact]
+    public async Task CommaOnlyAuthenticationSchemes_FailsConfiguration()
+    {
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            TestApplication.StartAsync(" , , "));
+
+        Assert.Contains("at least one", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task TrimmedDuplicateJwtAliases_KeepJwtAsTheDefaultScheme()
+    {
+        await using var application = await TestApplication.StartAsync(
+            " JwtBearer , Bearer , JWTBEARER ",
+            new Dictionary<string, string?>
+            {
+                ["JwtBearer:Authority"] = "https://issuer.example",
+                ["JwtBearer:ValidateAudience"] = "true",
+                ["JwtBearer:ValidateIssuer"] = "true",
+                ["JwtBearer:ValidateLifetime"] = "true"
+            });
+
+        var response = await application.Client.GetAsync("/scope");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Contains(
+            response.Headers.WwwAuthenticate,
+            header => string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task JwtDefaultWinsWhenExplicitSchemesAppearFirst()
+    {
+        const string expectedToken = "security-token-test-value";
+        var previousToken = Environment.GetEnvironmentVariable("WildGooseSecurityToken");
+        Environment.SetEnvironmentVariable("WildGooseSecurityToken", expectedToken);
+        try
+        {
+            await using var application = await TestApplication.StartAsync(
+                "SecurityToken, JwtBearer",
+                new Dictionary<string, string?>
+                {
+                    ["JwtBearer:Authority"] = "https://issuer.example",
+                    ["JwtBearer:ValidateAudience"] = "true",
+                    ["JwtBearer:ValidateIssuer"] = "true",
+                    ["JwtBearer:ValidateLifetime"] = "true"
+                });
+
+            var response = await application.Client.GetAsync("/scope");
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Contains(
+                response.Headers.WwwAuthenticate,
+                header => string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("WildGooseSecurityToken", previousToken);
+        }
+    }
+
     private static HttpRequestMessage CreateUserinfoRequest(
         string path,
         Dictionary<string, object?> profile,

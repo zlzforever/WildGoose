@@ -538,7 +538,11 @@ Docker 部署时，`docker-entrypoint.sh` 会自动替换 `${BASE_PATH}`、`${BA
 | 403 | token 已认证，但缺少 `ApiName` scope 或目标策略要求的角色 |
 | 2xx | 签名、issuer、audience、lifetime、scope 和 role 均满足端点策略 |
 
+JWT challenge 关闭详细错误回显。签名错误、过期或尚未生效的 token 仍返回 `401` 和正确的 `Bearer` challenge，但 `WWW-Authenticate` 不包含异常详情、token、密钥或内部路径。
+
 `GatewayBearer`（`X-Userinfo`）和 `SecurityToken`（`X-AUTH-TOKEN`）的 handler 与配置节保持兼容，但不会被默认注册。`AuthenticationSchemes` 中的历史名称 `GatewayJwtBearer` 会归一化为 `GatewayBearer`，并兼容 `GatewayJwtBearer` 配置节；未知的其他值会在启动配置阶段明确失败。
+
+`GatewayBearer` 的 `iss` 必须是单一字符串；`aud` 必须是单一字符串或纯字符串数组。混合类型、嵌套数组/对象、布尔值、`null` 和重复的 `iss`/`aud` claim 会直接拒绝，不会通过通用 claim 展平逻辑转为认证 claim。
 
 ### 5.2 X-AUTH-TOKEN 服务间认证
 

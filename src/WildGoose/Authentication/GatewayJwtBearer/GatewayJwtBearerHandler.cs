@@ -72,6 +72,7 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
 
             using var profileDocument = JsonDocument.Parse(json);
             ValidateNumericDateClaims(profileDocument.RootElement);
+            var (issuer, audiences) = ParseIssuerAndAudienceClaims(profileDocument.RootElement);
 
             using var memoryStream = new MemoryStream(json);
             var profile =
@@ -97,8 +98,16 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
             Add(claims, profile, ClaimTypes.Role, ClaimTypes.Role);
             Add(claims, profile, "name", ClaimTypes.Name);
             Add(claims, profile, ClaimTypes.Name, ClaimTypes.Name);
-            Add(claims, profile, "iss");
-            Add(claims, profile, "aud");
+            if (issuer != null)
+            {
+                claims.Add(new Claim("iss", issuer));
+            }
+
+            foreach (var audience in audiences)
+            {
+                claims.Add(new Claim("aud", audience));
+            }
+
             Add(claims, profile, "jti");
             Add(claims, profile, "exp");
             Add(claims, profile, "nbf");
@@ -206,6 +215,83 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
                     $"NumericDate claim '{property.Name}' must be a single finite JSON number.");
             }
         }
+    }
+
+    private static (string? Issuer, IReadOnlyList<string> Audiences) ParseIssuerAndAudienceClaims(
+        JsonElement profile)
+    {
+        if (profile.ValueKind != JsonValueKind.Object)
+        {
+            return (null, []);
+        }
+
+        string? issuer = null;
+        var audiences = new List<string>();
+        var seenClaims = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var property in profile.EnumerateObject())
+        {
+            if (property.Name is not ("iss" or "aud"))
+            {
+                continue;
+            }
+
+            if (!seenClaims.Add(property.Name))
+            {
+                throw new FormatException($"JWT claim '{property.Name}' must appear only once.");
+            }
+
+            if (property.Name == "iss")
+            {
+                if (property.Value.ValueKind != JsonValueKind.String)
+                {
+                    throw new FormatException("JWT issuer claim must be a single string.");
+                }
+
+                issuer = property.Value.GetString();
+                if (issuer == null)
+                {
+                    throw new FormatException("JWT issuer claim must be a single string.");
+                }
+
+                continue;
+            }
+
+            switch (property.Value.ValueKind)
+            {
+                case JsonValueKind.String:
+                    AddAudience(audiences, property.Value);
+                    break;
+                case JsonValueKind.Array:
+                    foreach (var item in property.Value.EnumerateArray())
+                    {
+                        if (item.ValueKind != JsonValueKind.String)
+                        {
+                            throw new FormatException(
+                                "JWT audience claim must be a string or an array of strings.");
+                        }
+
+                        AddAudience(audiences, item);
+                    }
+
+                    break;
+                default:
+                    throw new FormatException(
+                        "JWT audience claim must be a string or an array of strings.");
+            }
+        }
+
+        return (issuer, audiences);
+    }
+
+    private static void AddAudience(List<string> audiences, JsonElement element)
+    {
+        var audience = element.GetString();
+        if (audience == null)
+        {
+            throw new FormatException("JWT audience claim must be a string or an array of strings.");
+        }
+
+        audiences.Add(audience);
     }
 
     private static DateTimeOffset ParseNumericDate(string value)

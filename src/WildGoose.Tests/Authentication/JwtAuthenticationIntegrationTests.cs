@@ -78,7 +78,12 @@ public sealed class JwtAuthenticationIntegrationTests : IAsyncDisposable
         await StartApplicationAsync();
         using var wrongRsa = RSA.Create(2048);
         var token = CreateToken(
-            [new Claim("scope", "wildgoose-api")],
+            [
+                new Claim("scope", "wildgoose-api"),
+                new Claim("secret", "challenge-secret-value"),
+                new Claim("private-key", "challenge-private-key-value"),
+                new Claim("path", "/internal/jwt-secret/path")
+            ],
             signingRsa: wrongRsa);
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
@@ -88,6 +93,38 @@ public sealed class JwtAuthenticationIntegrationTests : IAsyncDisposable
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.DoesNotContain(token, body, StringComparison.Ordinal);
+        AssertSafeBearerChallenge(
+            response,
+            token,
+            "challenge-secret-value",
+            "challenge-private-key-value",
+            "/internal/jwt-secret/path");
+    }
+
+    [Fact]
+    public async Task ExpiredToken_Returns401WithoutDetailedChallenge()
+    {
+        await StartApplicationAsync();
+        var token = CreateToken(
+            [
+                new Claim("scope", "wildgoose-api"),
+                new Claim("secret", "expired-secret-value"),
+                new Claim("private-key", "expired-private-key-value"),
+                new Claim("path", "/internal/expired-jwt/path")
+            ],
+            expires: DateTime.UtcNow.AddMinutes(-5));
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _client!.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        AssertSafeBearerChallenge(
+            response,
+            token,
+            "expired-secret-value",
+            "expired-private-key-value",
+            "/internal/expired-jwt/path");
     }
 
     [Fact]
@@ -293,5 +330,26 @@ public sealed class JwtAuthenticationIntegrationTests : IAsyncDisposable
             effectiveExpiration,
             new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256));
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static void AssertSafeBearerChallenge(
+        HttpResponseMessage response,
+        string token,
+        params string[] forbiddenValues)
+    {
+        var challengeHeaders = response.Headers.WwwAuthenticate
+            .Select(header => header.ToString())
+            .ToArray();
+        var challenge = string.Join("\n", challengeHeaders);
+
+        Assert.Contains(
+            challengeHeaders,
+            header => header.StartsWith("Bearer", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain("error_description", challenge, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(token, challenge, StringComparison.Ordinal);
+        foreach (var forbiddenValue in forbiddenValues)
+        {
+            Assert.DoesNotContain(forbiddenValue, challenge, StringComparison.Ordinal);
+        }
     }
 }

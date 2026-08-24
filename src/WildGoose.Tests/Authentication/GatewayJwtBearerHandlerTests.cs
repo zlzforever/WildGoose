@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -281,6 +282,169 @@ public sealed class GatewayJwtBearerHandlerTests
             { Type: "exp", Value: "4102444800.5" });
     }
 
+    [Fact]
+    public async Task Handler_AcceptsAStringAudienceArray()
+    {
+        var options = new GatewayJwtBearerOptions
+        {
+            Name = "X-Userinfo",
+            Issuer = "https://issuer.example",
+            Audience = "wildgoose-api"
+        };
+        var handler = CreateHandler(
+            new NamedOptionsMonitor<GatewayJwtBearerOptions>(options, new Dictionary<string, GatewayJwtBearerOptions>()),
+            LoggerFactory.Create(logging => logging.ClearProviders()));
+        var context = CreateRawContext(
+            "X-Userinfo",
+            "{\"sub\":\"gateway-user\",\"iss\":\"https://issuer.example\",\"aud\":[\"other-audience\",\"wildgoose-api\"],\"scope\":\"wildgoose-api\"}");
+
+        await handler.InitializeAsync(
+            new AuthenticationScheme("GatewayBearer", null, typeof(GatewayJwtBearerHandler)),
+            context);
+        var result = await handler.AuthenticateAsync();
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(
+            ["other-audience", "wildgoose-api"],
+            result.Ticket!.Principal.FindAll("aud").Select(claim => claim.Value).ToArray());
+    }
+
+    [Theory]
+    [InlineData("iss", "[\"https://issuer.example\"]")]
+    [InlineData("iss", "{\"value\":\"https://issuer.example\"}")]
+    [InlineData("iss", "true")]
+    [InlineData("iss", "null")]
+    [InlineData("aud", "42")]
+    [InlineData("aud", "[\"wildgoose-api\",42]")]
+    [InlineData("aud", "[[\"wildgoose-api\"]]")]
+    [InlineData("aud", "{\"value\":\"wildgoose-api\"}")]
+    [InlineData("aud", "false")]
+    [InlineData("aud", "null")]
+    public async Task Handler_RejectsNonStringIssuerAndAudienceShapes(string claimName, string rawValue)
+    {
+        var options = new GatewayJwtBearerOptions
+        {
+            Name = "X-Userinfo",
+            Issuer = "https://issuer.example",
+            Audience = "wildgoose-api"
+        };
+        var handler = CreateHandler(
+            new NamedOptionsMonitor<GatewayJwtBearerOptions>(options, new Dictionary<string, GatewayJwtBearerOptions>()),
+            LoggerFactory.Create(logging => logging.ClearProviders()));
+        var supportingClaim = claimName == "iss"
+            ? "\"aud\":\"wildgoose-api\""
+            : "\"iss\":\"https://issuer.example\"";
+        var context = CreateRawContext(
+            "X-Userinfo",
+            $"{{\"sub\":\"gateway-user\",{supportingClaim},\"{claimName}\":{rawValue},\"scope\":\"wildgoose-api\"}}");
+
+        await handler.InitializeAsync(
+            new AuthenticationScheme("GatewayBearer", null, typeof(GatewayJwtBearerHandler)),
+            context);
+        var result = await handler.AuthenticateAsync();
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData("\"iss\":\"https://issuer.example\",\"iss\":\"https://issuer.example\"")]
+    [InlineData("\"aud\":\"wildgoose-api\",\"aud\":\"wildgoose-api\"")]
+    [InlineData("\"aud\":[\"wildgoose-api\"],\"aud\":\"wildgoose-api\"")]
+    public async Task Handler_RejectsDuplicateIssuerAndAudienceClaims(string duplicateClaims)
+    {
+        var options = new GatewayJwtBearerOptions
+        {
+            Name = "X-Userinfo",
+            Issuer = "https://issuer.example",
+            Audience = "wildgoose-api"
+        };
+        var handler = CreateHandler(
+            new NamedOptionsMonitor<GatewayJwtBearerOptions>(options, new Dictionary<string, GatewayJwtBearerOptions>()),
+            LoggerFactory.Create(logging => logging.ClearProviders()));
+        var supportingClaim = duplicateClaims.Contains("\"iss\"", StringComparison.Ordinal)
+            ? "\"aud\":\"wildgoose-api\""
+            : "\"iss\":\"https://issuer.example\"";
+        var context = CreateRawContext(
+            "X-Userinfo",
+            $"{{\"sub\":\"gateway-user\",{duplicateClaims},{supportingClaim},\"scope\":\"wildgoose-api\"}}");
+
+        await handler.InitializeAsync(
+            new AuthenticationScheme("GatewayBearer", null, typeof(GatewayJwtBearerHandler)),
+            context);
+        var result = await handler.AuthenticateAsync();
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Handle X-Userinfo value failed", result.Failure!.Message);
+    }
+
+    [Theory]
+    [InlineData("nbf", -1, true)]
+    [InlineData("nbf", 0, true)]
+    [InlineData("nbf", 1, false)]
+    [InlineData("exp", -1, false)]
+    [InlineData("exp", 0, false)]
+    [InlineData("exp", 1, true)]
+    public async Task Handler_UsesExactNumericDateTickBoundaries(
+        string claimName,
+        long deltaTicks,
+        bool shouldSucceed)
+    {
+        var now = new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero).AddTicks(1234567);
+        var options = new GatewayJwtBearerOptions
+        {
+            Name = "X-Userinfo",
+            Issuer = "https://issuer.example",
+            Audience = "wildgoose-api",
+            TimeProvider = new FixedTimeProvider(now)
+        };
+        var handler = CreateHandler(
+            new NamedOptionsMonitor<GatewayJwtBearerOptions>(options, new Dictionary<string, GatewayJwtBearerOptions>()),
+            LoggerFactory.Create(logging => logging.ClearProviders()));
+        var context = CreateRawContext(
+            "X-Userinfo",
+            $"{{\"sub\":\"gateway-user\",\"iss\":\"https://issuer.example\",\"aud\":\"wildgoose-api\",\"scope\":\"wildgoose-api\",\"{claimName}\":{FormatNumericDate(now.AddTicks(deltaTicks))}}}");
+
+        await handler.InitializeAsync(
+            new AuthenticationScheme("GatewayBearer", null, typeof(GatewayJwtBearerHandler)),
+            context);
+        var result = await handler.AuthenticateAsync();
+
+        Assert.Equal(shouldSucceed, result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData("nbf", "-62135596800", true)]
+    [InlineData("exp", "253402300799.9999999", true)]
+    [InlineData("nbf", "-62135596800.0000001", false)]
+    [InlineData("exp", "253402300799.99999991", false)]
+    public async Task Handler_UsesDecimalNumericDateRangeWithoutDoubleRounding(
+        string claimName,
+        string rawValue,
+        bool shouldSucceed)
+    {
+        var now = new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var options = new GatewayJwtBearerOptions
+        {
+            Name = "X-Userinfo",
+            Issuer = "https://issuer.example",
+            Audience = "wildgoose-api",
+            TimeProvider = new FixedTimeProvider(now)
+        };
+        var handler = CreateHandler(
+            new NamedOptionsMonitor<GatewayJwtBearerOptions>(options, new Dictionary<string, GatewayJwtBearerOptions>()),
+            LoggerFactory.Create(logging => logging.ClearProviders()));
+        var context = CreateRawContext(
+            "X-Userinfo",
+            $"{{\"sub\":\"gateway-user\",\"iss\":\"https://issuer.example\",\"aud\":\"wildgoose-api\",\"scope\":\"wildgoose-api\",\"{claimName}\":{rawValue}}}");
+
+        await handler.InitializeAsync(
+            new AuthenticationScheme("GatewayBearer", null, typeof(GatewayJwtBearerHandler)),
+            context);
+        var result = await handler.AuthenticateAsync();
+
+        Assert.Equal(shouldSucceed, result.Succeeded);
+    }
+
     [Theory]
     [InlineData("exp", "[4102444800,4102444801]")]
     [InlineData("exp", "[4102444801,4102444800]")]
@@ -488,6 +652,13 @@ public sealed class GatewayJwtBearerHandlerTests
             ["nbf"] = notBefore.ToUnixTimeSeconds(),
             ["exp"] = expires.ToUnixTimeSeconds()
         };
+    }
+
+    private static string FormatNumericDate(DateTimeOffset value)
+    {
+        var ticksSinceEpoch = value.UtcDateTime.Ticks - DateTimeOffset.UnixEpoch.Ticks;
+        return ((decimal)ticksSinceEpoch / TimeSpan.TicksPerSecond)
+            .ToString(CultureInfo.InvariantCulture);
     }
 
     private sealed class NamedOptionsMonitor<T>(
