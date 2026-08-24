@@ -195,6 +195,69 @@ public sealed class GatewayJwtBearerHandlerTests
         Assert.Contains("expired", expiredResult.Failure!.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Handler_RejectsProfileAtExactExpirationBoundary()
+    {
+        var expiration = new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var options = new GatewayJwtBearerOptions
+        {
+            Name = "X-Userinfo",
+            Issuer = "https://issuer.example",
+            Audience = "wildgoose-api",
+            TimeProvider = new FixedTimeProvider(expiration)
+        };
+        var handler = CreateHandler(
+            new NamedOptionsMonitor<GatewayJwtBearerOptions>(options, new Dictionary<string, GatewayJwtBearerOptions>()),
+            LoggerFactory.Create(logging => logging.ClearProviders()));
+        var context = CreateContext(
+            "X-Userinfo",
+            CreateProfile(expiration.AddMinutes(-5), expiration));
+
+        await handler.InitializeAsync(
+            new AuthenticationScheme("GatewayBearer", null, typeof(GatewayJwtBearerHandler)),
+            context);
+        var result = await handler.AuthenticateAsync();
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("expired", result.Failure!.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Handler_AcceptsFractionalNumericDateClaims()
+    {
+        var options = new GatewayJwtBearerOptions
+        {
+            Name = "X-Userinfo",
+            Issuer = "https://issuer.example",
+            Audience = "wildgoose-api"
+        };
+        var handler = CreateHandler(
+            new NamedOptionsMonitor<GatewayJwtBearerOptions>(options, new Dictionary<string, GatewayJwtBearerOptions>()),
+            LoggerFactory.Create(logging => logging.ClearProviders()));
+        var context = CreateContext(
+            "X-Userinfo",
+            new Dictionary<string, object?>
+            {
+                ["sub"] = "gateway-user",
+                ["iss"] = "https://issuer.example",
+                ["aud"] = "wildgoose-api",
+                ["scope"] = "wildgoose-api",
+                ["nbf"] = 0.5m,
+                ["exp"] = 4102444800.5m
+            });
+
+        await handler.InitializeAsync(
+            new AuthenticationScheme("GatewayBearer", null, typeof(GatewayJwtBearerHandler)),
+            context);
+        var result = await handler.AuthenticateAsync();
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(result.Ticket!.Principal.Claims, claim => claim is
+            { Type: "nbf", Value: "0.5" });
+        Assert.Contains(result.Ticket.Principal.Claims, claim => claim is
+            { Type: "exp", Value: "4102444800.5" });
+    }
+
     private static GatewayJwtBearerHandler CreateHandler(
         IOptionsMonitor<GatewayJwtBearerOptions> options,
         ILoggerFactory loggerFactory)
@@ -287,5 +350,10 @@ public sealed class GatewayJwtBearerHandlerTests
         public void Dispose()
         {
         }
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => utcNow;
     }
 }

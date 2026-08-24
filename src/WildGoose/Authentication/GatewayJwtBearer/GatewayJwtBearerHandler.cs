@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -131,11 +132,11 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
                 }
             }
 
-            var now = DateTimeOffset.UtcNow;
+            var now = TimeProvider.GetUtcNow();
             var nbf = claims.FirstOrDefault(x => x.Type == "nbf")?.Value;
             if (nbf != null)
             {
-                var notBefore = DateTimeOffset.FromUnixTimeSeconds(long.Parse(nbf));
+                var notBefore = ParseNumericDate(nbf);
                 if (now < notBefore)
                 {
                     return AuthenticateResult.Fail("Token is not available");
@@ -145,8 +146,8 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
             var exp = claims.FirstOrDefault(x => x.Type == "exp")?.Value;
             if (exp != null)
             {
-                var expired = DateTimeOffset.FromUnixTimeSeconds(long.Parse(exp));
-                if (now > expired)
+                var expired = ParseNumericDate(exp);
+                if (now >= expired)
                 {
                     return AuthenticateResult.Fail("Token is expired");
                 }
@@ -167,6 +168,23 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
         }
 
         return result;
+    }
+
+    private static DateTimeOffset ParseNumericDate(string value)
+    {
+        if (!decimal.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds))
+        {
+            throw new FormatException("NumericDate must be a finite decimal number.");
+        }
+
+        try
+        {
+            return DateTimeOffset.UnixEpoch.AddSeconds((double)seconds);
+        }
+        catch (ArgumentOutOfRangeException exception)
+        {
+            throw new FormatException("NumericDate is outside the supported date range.", exception);
+        }
     }
 
     private void Add(List<Claim> claims, Dictionary<string, JsonElement?> json, string key, string? name = null)
