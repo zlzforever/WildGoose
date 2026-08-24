@@ -63,6 +63,58 @@ public sealed class AuthenticationSchemeRequestTests
     }
 
     [Fact]
+    public async Task GatewayLegacyConfiguration_RejectsMissingOrWrongAudience()
+    {
+        await using var application = await TestApplication.StartAsync(
+            "GatewayJwtBearer",
+            new Dictionary<string, string?>
+            {
+                ["GatewayJwtBearer:Name"] = "X-Legacy-Userinfo",
+                ["GatewayJwtBearer:Issuer"] = "https://issuer.example",
+                ["GatewayJwtBearer:Audience"] = ""
+            });
+
+        using var missingAudienceRequest = CreateUserinfoRequest(
+            "/scope",
+            new Dictionary<string, object?>
+            {
+                ["sub"] = "gateway-user",
+                ["iss"] = "https://issuer.example",
+                ["scope"] = "wildgoose-api"
+            },
+            "X-Legacy-Userinfo");
+        var missingAudience = await application.Client.SendAsync(missingAudienceRequest);
+
+        using var wrongAudienceRequest = CreateUserinfoRequest(
+            "/scope",
+            new Dictionary<string, object?>
+            {
+                ["sub"] = "gateway-user",
+                ["iss"] = "https://issuer.example",
+                ["aud"] = "wrong-audience",
+                ["scope"] = "wildgoose-api"
+            },
+            "X-Legacy-Userinfo");
+        var wrongAudience = await application.Client.SendAsync(wrongAudienceRequest);
+
+        using var validRequest = CreateUserinfoRequest(
+            "/scope",
+            new Dictionary<string, object?>
+            {
+                ["sub"] = "gateway-user",
+                ["iss"] = "https://issuer.example",
+                ["aud"] = "wildgoose-api",
+                ["scope"] = "wildgoose-api"
+            },
+            "X-Legacy-Userinfo");
+        var valid = await application.Client.SendAsync(validRequest);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, missingAudience.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, wrongAudience.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, valid.StatusCode);
+    }
+
+    [Fact]
     public async Task SecurityToken_UsesXAuthTokenAndReturns401Or403AtRequestBoundary()
     {
         const string expectedToken = "security-token-test-value";
@@ -117,6 +169,7 @@ public sealed class AuthenticationSchemeRequestTests
                 new Dictionary<string, object?>
                 {
                     ["sub"] = "gateway-user",
+                    ["aud"] = "wildgoose-api",
                     ["scope"] = "wildgoose-api"
                 });
             gatewayRequest.Headers.Add("X-AUTH-TOKEN", "wrong-token");
@@ -134,11 +187,41 @@ public sealed class AuthenticationSchemeRequestTests
         }
     }
 
-    private static HttpRequestMessage CreateUserinfoRequest(string path, Dictionary<string, object?> profile)
+    [Fact]
+    public async Task MultipleSchemes_MissingCredentialsReturnsUnauthorizedChallenge()
+    {
+        const string expectedToken = "security-token-test-value";
+        var previousToken = Environment.GetEnvironmentVariable("WildGooseSecurityToken");
+        Environment.SetEnvironmentVariable("WildGooseSecurityToken", expectedToken);
+        try
+        {
+            await using var application = await TestApplication.StartAsync(
+                "GatewayBearer,SecurityToken",
+                new Dictionary<string, string?>
+                {
+                    ["GatewayBearer:Name"] = "X-Userinfo"
+                });
+
+            var response = await application.Client.GetAsync("/scope");
+            var challengeHeaders = string.Join("\n", response.Headers.WwwAuthenticate);
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.DoesNotContain(expectedToken, challengeHeaders, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("WildGooseSecurityToken", previousToken);
+        }
+    }
+
+    private static HttpRequestMessage CreateUserinfoRequest(
+        string path,
+        Dictionary<string, object?> profile,
+        string headerName = "X-Userinfo")
     {
         var request = new HttpRequestMessage(HttpMethod.Get, path);
         var json = JsonSerializer.Serialize(profile);
-        request.Headers.Add("X-Userinfo", Convert.ToBase64String(Encoding.UTF8.GetBytes(json)));
+        request.Headers.Add(headerName, Convert.ToBase64String(Encoding.UTF8.GetBytes(json)));
         return request;
     }
 

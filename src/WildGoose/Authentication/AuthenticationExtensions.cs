@@ -52,7 +52,10 @@ public static class AuthenticationExtensions
                 .AddScheme<GatewayJwtBearerOptions, GatewayJwtBearerHandler>("GatewayBearer",
                     options =>
                     {
-                        options.Audience = apiName;
+                        if (string.IsNullOrWhiteSpace(options.Audience))
+                        {
+                            options.Audience = apiName;
+                        }
                     });
         }
 

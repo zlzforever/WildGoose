@@ -51,7 +51,7 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         await Task.CompletedTask;
-        var options = OptionsMonitor.CurrentValue;
+        var options = Options;
         var headerName = options.Name;
         if (!Context.Request.Headers.ContainsKey(headerName))
         {
@@ -75,12 +75,16 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
                     _jsonOptions.JsonSerializerOptions);
             if (profile == null)
             {
-                Logger.LogInformation("Deserialize X-Userinfo value failed");
+                Logger.LogInformation(
+                    "Deserialize X-Userinfo value failed for trace {TraceId}",
+                    Context.TraceIdentifier);
                 return AuthenticateResult.NoResult();
             }
 
-            Logger.LogDebug("Deserialize X-Userinfo value success: {Profile}",
-                JsonSerializer.Serialize(profile, _jsonOptions.JsonSerializerOptions));
+            Logger.LogDebug(
+                "Deserialize X-Userinfo value success for trace {TraceId}; claim count {ClaimCount}",
+                Context.TraceIdentifier,
+                profile.Count);
 
             var claims = new List<Claim>();
             Add(claims, profile, "sub", ClaimTypes.NameIdentifier);
@@ -93,18 +97,20 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
             Add(claims, profile, "aud");
             Add(claims, profile, "jti");
             Add(claims, profile, "exp");
+            Add(claims, profile, "nbf");
             Add(claims, profile, "client_id");
             Add(claims, profile, "security-stamp");
             Add(claims, profile, "iat");
             Add(claims, profile, "sid");
 
-            var jsonElement = profile["scope"];
-            if (jsonElement != null)
+            if (profile.TryGetValue("scope", out var jsonElement) && jsonElement != null)
             {
-                var scope = jsonElement.Value.ToString();
-                foreach (var s in scope.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                foreach (var scope in GetValues(jsonElement.Value))
                 {
-                    claims.Add(new Claim("scope", s));
+                    foreach (var value in scope.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        claims.Add(new Claim("scope", value));
+                    }
                 }
             }
 
@@ -153,8 +159,11 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Handle X-Userinfo value failed");
-            result = AuthenticateResult.Fail("Handle X-Userinfo value failed: " + e.Message);
+            Logger.LogError(
+                "Handle X-Userinfo value failed for trace {TraceId} ({ExceptionType})",
+                Context.TraceIdentifier,
+                e.GetType().Name);
+            result = AuthenticateResult.Fail("Handle X-Userinfo value failed");
         }
 
         return result;
@@ -173,37 +182,44 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
         }
 
         var property = name ?? key;
-        if (jsonElement.Value.ValueKind == JsonValueKind.String)
+        foreach (var value in GetValues(jsonElement.Value))
         {
-            var v = jsonElement.Value.GetString();
-            if (!string.IsNullOrEmpty(v))
-            {
-                claims.Add(new Claim(property, v));
-            }
+            claims.Add(new Claim(property, value));
         }
-        else if (jsonElement.Value.ValueKind == JsonValueKind.Number)
+    }
+
+    private static IEnumerable<string> GetValues(JsonElement element)
+    {
+        switch (element.ValueKind)
         {
-            claims.Add(new Claim(property, jsonElement.Value.GetInt64().ToString()));
-        }
-        else if (jsonElement.Value.ValueKind == JsonValueKind.True ||
-                 jsonElement.Value.ValueKind == JsonValueKind.False)
-        {
-            claims.Add(new Claim(property, jsonElement.Value.GetBoolean().ToString()));
-        }
-        else if (jsonElement.Value.ValueKind == JsonValueKind.Array)
-        {
-            var v = jsonElement.Value.Deserialize<List<string>>();
-            if (v != null)
-            {
-                foreach (var p in v)
+            case JsonValueKind.String:
+                var stringValue = element.GetString();
+                if (!string.IsNullOrEmpty(stringValue))
                 {
-                    claims.Add(new Claim(property, p));
+                    yield return stringValue;
                 }
-            }
-        }
-        else
-        {
-            claims.Add(new Claim(property, jsonElement.Value.ToString()));
+
+                yield break;
+            case JsonValueKind.Number:
+                yield return element.GetRawText();
+                yield break;
+            case JsonValueKind.True:
+            case JsonValueKind.False:
+                yield return element.GetBoolean().ToString();
+                yield break;
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray())
+                {
+                    foreach (var value in GetValues(item))
+                    {
+                        yield return value;
+                    }
+                }
+
+                yield break;
+            case JsonValueKind.Object:
+                yield return element.GetRawText();
+                yield break;
         }
     }
 }

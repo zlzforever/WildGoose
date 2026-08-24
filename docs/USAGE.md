@@ -340,7 +340,7 @@ if (options.AddUserRoles.Length == 0 || !Session.Roles.Any(x => options.AddUserR
 }
 ```
 
-配置优先级遵循 ASP.NET Core provider 顺序：`appsettings.json` → `appsettings.{Environment}.json` → 环境变量/部署注入配置。生产配置应通过部署 secret 提供真实 issuer、audience 和公钥路径；基础样例不引用仓库中的 `jwt.jwk`。JWT-only 样例只启用 `JwtBearer`，生产 Docker 发布只发布 `src/WildGoose/WildGoose.csproj`，不会携带测试项目或测试 JWK。已提交的 `src/WildGoose.Tests/jwt.jwk` RSA 私钥本轮不改写，密钥轮换按 Q1 遗留另行排期；在轮换完成前禁止生产使用该文件。
+配置优先级遵循 ASP.NET Core provider 顺序：`appsettings.json` → `appsettings.{Environment}.json` → 环境变量/部署注入配置。生产配置应通过部署 secret 提供真实 issuer、audience 和公钥路径；基础样例不引用仓库中的测试密钥。JWT-only 样例只启用 `JwtBearer`，生产 Docker 发布只发布应用项目，不会携带测试项目或测试私钥。已提交的测试 RSA 私钥本轮不改写，密钥轮换按 Q1 遗留另行排期；在轮换完成前禁止生产使用该测试密钥。
 
 启动前会 fail-fast：
 

@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using WildGoose.Authentication;
+using WildGoose.Authentication.JwtBearer;
 using Xunit;
 
 namespace WildGoose.Tests.Authentication;
@@ -92,6 +93,111 @@ public sealed class JwtBearerOptionsTests : IDisposable
 
         Assert.Equal("https://metadata.example/configuration", options.MetadataAddress);
         Assert.Equal("https://issuer.example", options.Authority);
+    }
+
+    [Theory]
+    [InlineData("relative-metadata", "JwtBearer:MetadataAddress")]
+    [InlineData("ftp://issuer.example/configuration", "JwtBearer:MetadataAddress")]
+    [InlineData("https:///missing-host", "JwtBearer:MetadataAddress")]
+    [InlineData("relative-authority", "JwtBearer:Authority")]
+    public void OidcMode_RejectsInvalidAbsoluteHttpUris(string value, string configurationKey)
+    {
+        var configuration = CreateConfiguration(new Dictionary<string, string?>
+        {
+            [configurationKey] = value,
+            ["JwtBearer:MetadataAddress"] = configurationKey == "JwtBearer:Authority" ? null : value,
+            ["JwtBearer:Authority"] = configurationKey == "JwtBearer:Authority" ? value : null
+        });
+
+        var exception = Assert.Throws<InvalidOperationException>(() => BuildProvider(configuration, "Production"));
+
+        Assert.Contains(configurationKey, exception.Message, StringComparison.Ordinal);
+        Assert.Contains("absolute", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("JwtBearer:ValidateIssuer")]
+    [InlineData("JwtBearer:ValidateAudience")]
+    [InlineData("JwtBearer:ValidateLifetime")]
+    public void Production_RejectsDisabledJwtSecurityValidation(string configurationKey)
+    {
+        var configuration = CreateConfiguration(new Dictionary<string, string?>
+        {
+            ["JwtBearer:Authority"] = "https://issuer.example",
+            [configurationKey] = "false"
+        });
+
+        var exception = Assert.Throws<InvalidOperationException>(() => BuildProvider(configuration, "Production"));
+
+        Assert.Contains("Production JwtBearer configuration", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EmptyValidAudience_FallsBackToApiName()
+    {
+        using var provider = BuildProvider(CreateConfiguration(new Dictionary<string, string?>
+        {
+            ["JwtBearer:Authority"] = "https://issuer.example",
+            ["JwtBearer:ValidAudience"] = ""
+        }), "Production");
+
+        var options = provider.GetRequiredService<IOptionsMonitor<JwtBearerOptions>>().Get("JwtBearer");
+
+        Assert.Equal("wildgoose-api", options.TokenValidationParameters.ValidAudience);
+    }
+
+    [Fact]
+    public void EmptyValidAudienceAndApiName_FailsConfiguration()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        var configuration = CreateConfiguration(new Dictionary<string, string?>
+        {
+            ["JwtBearer:Authority"] = "https://issuer.example"
+        });
+        var builder = services.AddAuthentication();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            services.AddJwtBearerAuthentication(
+                builder,
+                configuration,
+                "",
+                new TestHostEnvironment(Environments.Production, _directory)));
+
+        Assert.Contains("ValidAudience", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RelativeKeyPath_FallsBackToApplicationBaseDirectory()
+    {
+        using var rsa = RSA.Create(2048);
+        var relativeName = $"wildgoose-relative-{Guid.NewGuid():N}.jwk";
+        var applicationBasePath = Path.Combine(AppContext.BaseDirectory, relativeName);
+        File.WriteAllText(applicationBasePath, JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            ["kty"] = "RSA",
+            ["kid"] = "relative-test-key",
+            ["n"] = Base64UrlEncoder.Encode(rsa.ExportParameters(false).Modulus),
+            ["e"] = Base64UrlEncoder.Encode(rsa.ExportParameters(false).Exponent)
+        }));
+
+        try
+        {
+            using var provider = BuildProvider(CreateConfiguration(new Dictionary<string, string?>
+            {
+                ["JwtBearer:KeyPath"] = relativeName,
+                ["JwtBearer:Authority"] = "https://issuer.example"
+            }), "Production");
+
+            var options = provider.GetRequiredService<IOptionsMonitor<JwtBearerOptions>>().Get("JwtBearer");
+
+            Assert.NotNull(options.TokenValidationParameters.IssuerSigningKey);
+            Assert.Equal("relative-test-key", options.TokenValidationParameters.IssuerSigningKey!.KeyId);
+        }
+        finally
+        {
+            File.Delete(applicationBasePath);
+        }
     }
 
     [Theory]

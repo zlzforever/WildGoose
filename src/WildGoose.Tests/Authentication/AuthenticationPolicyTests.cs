@@ -121,6 +121,29 @@ public sealed class AuthenticationPolicyTests
         Assert.Equal("wildgoose-api", currentOptions.Audience);
     }
 
+    [Fact]
+    public void GatewayBearerConfiguration_PreservesConfiguredAudience()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ApiName"] = "wildgoose-api",
+            ["AuthenticationSchemes"] = "GatewayBearer",
+            ["GatewayBearer:Name"] = "X-Userinfo",
+            ["GatewayBearer:Issuer"] = "https://issuer.example",
+            ["GatewayBearer:Audience"] = "configured-audience"
+        }).Build();
+
+        services.ConfigAuthenticationCore(configuration, new TestHostEnvironment());
+        using var provider = services.BuildServiceProvider(validateScopes: true);
+        var options = provider.GetRequiredService<IOptionsMonitor<GatewayJwtBearerOptions>>().Get("GatewayBearer");
+
+        Assert.Equal("X-Userinfo", options.Name);
+        Assert.Equal("https://issuer.example", options.Issuer);
+        Assert.Equal("configured-audience", options.Audience);
+    }
+
     private static ServiceProvider BuildProvider(string schemes)
     {
         var services = new ServiceCollection();
