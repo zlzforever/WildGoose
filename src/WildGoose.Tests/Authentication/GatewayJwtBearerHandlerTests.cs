@@ -150,7 +150,11 @@ public sealed class GatewayJwtBearerHandlerTests
                 ["client_id"] = 42,
                 ["security-stamp"] = true,
                 ["sid"] = new[] { "session-a", "session-b" },
-                ["jti"] = new { source = "gateway" }
+                ["jti"] = new { source = "gateway" },
+                ["access_token"] = "profile-token-value",
+                ["client_secret"] = "profile-secret-value",
+                ["private-key"] = "profile-private-key-value",
+                ["password"] = "profile-password-value"
             });
 
         await handler.InitializeAsync(
@@ -347,6 +351,10 @@ public sealed class GatewayJwtBearerHandlerTests
     [Theory]
     [InlineData("exp", "79228162514264337593543950335")]
     [InlineData("nbf", "-79228162514264337593543950335")]
+    [InlineData("exp", "-62135596800.0000001")]
+    [InlineData("nbf", "-62135596800.000001")]
+    [InlineData("exp", "253402300799.99999991")]
+    [InlineData("nbf", "253402300800")]
     [InlineData("exp", "\"not-a-number\"")]
     [InlineData("nbf", "\"not-a-number\"")]
     public async Task Handler_RejectsInvalidOrOutOfRangeNumericDateClaims(string claimName, string rawValue)

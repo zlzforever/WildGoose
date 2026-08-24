@@ -217,9 +217,19 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
 
         try
         {
-            return DateTimeOffset.UnixEpoch.AddSeconds((double)seconds);
+            var absoluteTicks = (decimal)DateTimeOffset.UnixEpoch.Ticks +
+                                seconds * TimeSpan.TicksPerSecond;
+            if (absoluteTicks < DateTimeOffset.MinValue.Ticks ||
+                absoluteTicks > DateTimeOffset.MaxValue.Ticks)
+            {
+                throw new FormatException("NumericDate is outside the supported date range.");
+            }
+
+            return new DateTimeOffset(
+                decimal.ToInt64(decimal.Truncate(absoluteTicks)),
+                TimeSpan.Zero);
         }
-        catch (ArgumentOutOfRangeException exception)
+        catch (OverflowException exception)
         {
             throw new FormatException("NumericDate is outside the supported date range.", exception);
         }
