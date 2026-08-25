@@ -543,6 +543,12 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
         Assert.DoesNotContain("error_description", text, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("exception", text, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("stack trace", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("IDX", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("detail", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("signature validation failed", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("lifetime validation failed", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("keys tried", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("ValidTo", text, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("secret", text, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("private", text, StringComparison.OrdinalIgnoreCase);
         foreach (var forbiddenValue in forbiddenValues)
