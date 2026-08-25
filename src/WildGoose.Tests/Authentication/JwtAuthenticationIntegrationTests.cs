@@ -20,6 +20,8 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
     private AuthenticationTestApplication? _application;
     private RsaSecurityKey? _signingKey;
     private RSA? _signingRsa;
+    private CryptoProviderFactory? _signingProviderFactory;
+    private InMemoryCryptoProviderCache? _signingProviderCache;
 
     private HttpClient _client => _application?.Client ??
                                   throw new InvalidOperationException("The test application has not started.");
@@ -44,17 +46,66 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
     }
 
     [Fact]
-    public void SigningWithSameJwkAfterPreviousRsaIsDisposed_RemainsUsable()
+    public void SigningWithCachedProviderAfterPreviousRsaIsDisposed_ReproducesObjectDisposedException()
     {
-        var firstSigningKey = LoadSigningKey(TestJwkPath);
-        var firstSecurityKey = CreateSigningKey(firstSigningKey.Rsa, firstSigningKey.KeyId);
-        _ = WriteSignedToken(firstSecurityKey);
-        firstSigningKey.Rsa.Dispose();
-
-        var secondSigningKey = LoadSigningKey(TestJwkPath);
+        var (factory, cache) = CreateTestCryptoProviderFactory(cacheSignatureProviders: true);
+        RSA? firstRsa = null;
+        RSA? secondRsa = null;
         try
         {
-            var secondSecurityKey = CreateSigningKey(secondSigningKey.Rsa, secondSigningKey.KeyId);
+            Assert.True(factory.CacheSignatureProviders);
+
+            var firstSigningKey = LoadSigningKey(TestJwkPath);
+            firstRsa = firstSigningKey.Rsa;
+            var firstSecurityKey = CreateSigningKey(firstRsa, firstSigningKey.KeyId, factory);
+            _ = WriteSignedToken(firstSecurityKey);
+            firstRsa.Dispose();
+
+            var secondSigningKey = LoadSigningKey(TestJwkPath);
+            secondRsa = secondSigningKey.Rsa;
+            var secondSecurityKey = CreateSigningKey(secondRsa, secondSigningKey.KeyId, factory);
+
+            Assert.Throws<ObjectDisposedException>(() => WriteSignedToken(secondSecurityKey));
+        }
+        finally
+        {
+            try
+            {
+                cache.Dispose();
+            }
+            finally
+            {
+                try
+                {
+                    secondRsa?.Dispose();
+                }
+                finally
+                {
+                    firstRsa?.Dispose();
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void SigningWithCacheDisabledAfterPreviousRsaIsDisposed_RemainsUsable()
+    {
+        var (factory, cache) = CreateTestCryptoProviderFactory(cacheSignatureProviders: false);
+        RSA? firstRsa = null;
+        RSA? secondRsa = null;
+        try
+        {
+            Assert.False(factory.CacheSignatureProviders);
+
+            var firstSigningKey = LoadSigningKey(TestJwkPath);
+            firstRsa = firstSigningKey.Rsa;
+            var firstSecurityKey = CreateSigningKey(firstRsa, firstSigningKey.KeyId, factory);
+            _ = WriteSignedToken(firstSecurityKey);
+            firstRsa.Dispose();
+
+            var secondSigningKey = LoadSigningKey(TestJwkPath);
+            secondRsa = secondSigningKey.Rsa;
+            var secondSecurityKey = CreateSigningKey(secondRsa, secondSigningKey.KeyId, factory);
 
             var token = WriteSignedToken(secondSecurityKey);
 
@@ -62,7 +113,21 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
         }
         finally
         {
-            secondSigningKey.Rsa.Dispose();
+            try
+            {
+                cache.Dispose();
+            }
+            finally
+            {
+                try
+                {
+                    secondRsa?.Dispose();
+                }
+                finally
+                {
+                    firstRsa?.Dispose();
+                }
+            }
         }
     }
 
@@ -95,29 +160,51 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
     public async Task WrongSignature_Returns401WithoutEchoingToken()
     {
         StartApplication();
-        using var wrongRsa = RSA.Create(2048);
-        var token = CreateToken(
-            [
-                new Claim("scope", "wildgoose-api"),
-                new Claim("secret", "challenge-secret-value"),
-                new Claim("private-key", "challenge-private-key-value"),
-                new Claim("path", "/internal/jwt-secret/path")
-            ],
-            signingKey: CreateSigningKey(wrongRsa, "wrong-signature-key"));
+        var (wrongFactory, wrongCache) = CreateTestCryptoProviderFactory(cacheSignatureProviders: false);
+        RSA? wrongRsa = null;
+        try
+        {
+            Assert.False(wrongFactory.CacheSignatureProviders);
+            wrongRsa = RSA.Create(2048);
+            var token = CreateToken(
+                [
+                    new Claim("scope", "wildgoose-api"),
+                    new Claim("secret", "challenge-secret-value"),
+                    new Claim("private-key", "challenge-private-key-value"),
+                    new Claim("path", "/internal/jwt-secret/path")
+                ],
+                signingKey: CreateSigningKey(wrongRsa, "wrong-signature-key", wrongFactory));
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        var response = await _client!.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _client!.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-        Assert.DoesNotContain(token, body, StringComparison.Ordinal);
-        AssertSafeBearerChallenge(
-            response,
-            token,
-            "challenge-secret-value",
-            "challenge-private-key-value",
-            "/internal/jwt-secret/path");
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            AssertNoSensitiveText(
+                body,
+                token,
+                "challenge-secret-value",
+                "challenge-private-key-value",
+                "/internal/jwt-secret/path");
+            AssertSafeBearerChallenge(
+                response,
+                token,
+                "challenge-secret-value",
+                "challenge-private-key-value",
+                "/internal/jwt-secret/path");
+        }
+        finally
+        {
+            try
+            {
+                wrongCache.Dispose();
+            }
+            finally
+            {
+                wrongRsa?.Dispose();
+            }
+        }
     }
 
     [Fact]
@@ -136,8 +223,15 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
         using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await _client!.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        AssertNoSensitiveText(
+            body,
+            token,
+            "expired-secret-value",
+            "expired-private-key-value",
+            "/internal/expired-jwt/path");
         AssertSafeBearerChallenge(
             response,
             token,
@@ -186,23 +280,35 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
     public async Task HmacSignedToken_Returns401()
     {
         StartApplication();
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes("not-a-rsa-signing-key-with-at-least-256-bits"));
-        var token = new JwtSecurityToken(
-            "https://issuer.example",
-            "wildgoose-api",
-            [new Claim("scope", "wildgoose-api")],
-            DateTime.UtcNow.AddMinutes(-1),
-            DateTime.UtcNow.AddMinutes(10),
-            new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
+        var (hmacFactory, hmacCache) = CreateTestCryptoProviderFactory(cacheSignatureProviders: false);
+        try
+        {
+            Assert.False(hmacFactory.CacheSignatureProviders);
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes("not-a-rsa-signing-key-with-at-least-256-bits"))
+            {
+                CryptoProviderFactory = hmacFactory
+            };
+            var token = new JwtSecurityToken(
+                "https://issuer.example",
+                "wildgoose-api",
+                [new Claim("scope", "wildgoose-api")],
+                DateTime.UtcNow.AddMinutes(-1),
+                DateTime.UtcNow.AddMinutes(10),
+                new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
-        request.Headers.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            new JwtSecurityTokenHandler().WriteToken(token));
-        var response = await _client!.SendAsync(request);
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
+            request.Headers.Authorization = new AuthenticationHeaderValue(
+                "Bearer",
+                new JwtSecurityTokenHandler().WriteToken(token));
+            var response = await _client!.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+        finally
+        {
+            hmacCache.Dispose();
+        }
     }
 
     [Theory]
@@ -271,15 +377,34 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
 
     public void Dispose()
     {
-        _application?.Dispose();
-        _signingRsa?.Dispose();
+        try
+        {
+            _application?.Dispose();
+        }
+        finally
+        {
+            try
+            {
+                _signingProviderCache?.Dispose();
+            }
+            finally
+            {
+                _signingRsa?.Dispose();
+                _signingProviderFactory = null;
+                _signingProviderCache = null;
+                _signingRsa = null;
+                _signingKey = null;
+            }
+        }
     }
 
     private void StartApplication()
     {
         var signingKey = LoadSigningKey(TestJwkPath);
         _signingRsa = signingKey.Rsa;
-        _signingKey = CreateSigningKey(_signingRsa, signingKey.KeyId);
+        (_signingProviderFactory, _signingProviderCache) =
+            CreateTestCryptoProviderFactory(cacheSignatureProviders: false);
+        _signingKey = CreateSigningKey(_signingRsa, signingKey.KeyId, _signingProviderFactory);
         _application = AuthenticationTestApplication.Create(
             fixture,
             "JwtBearer",
@@ -339,13 +464,25 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
         return Base64UrlEncoder.DecodeBytes(value);
     }
 
-    private static RsaSecurityKey CreateSigningKey(RSA rsa, string keyId)
+    private static (CryptoProviderFactory Factory, InMemoryCryptoProviderCache Cache)
+        CreateTestCryptoProviderFactory(bool cacheSignatureProviders)
+    {
+        // The dedicated cache owns cached signature providers and is disposed by each caller.
+        var cache = new InMemoryCryptoProviderCache();
+        var factory = new CryptoProviderFactory(cache)
+        {
+            CacheSignatureProviders = cacheSignatureProviders
+        };
+        return (factory, cache);
+    }
+
+    private static RsaSecurityKey CreateSigningKey(
+        RSA rsa,
+        string keyId,
+        CryptoProviderFactory factory)
     {
         var key = new RsaSecurityKey(rsa) { KeyId = keyId };
-        key.CryptoProviderFactory = new CryptoProviderFactory
-        {
-            CacheSignatureProviders = false
-        };
+        key.CryptoProviderFactory = factory;
         return key;
     }
 
@@ -391,19 +528,26 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
         string token,
         params string[] forbiddenValues)
     {
-        var challengeHeaders = response.Headers.WwwAuthenticate
-            .Select(header => header.ToString())
-            .ToArray();
-        var challenge = string.Join("\n", challengeHeaders);
+        var challengeHeaders = response.Headers.WwwAuthenticate.ToArray();
+        var bearerChallenge = Assert.Single(challengeHeaders);
 
-        Assert.Contains(
-            challengeHeaders,
-            header => header.StartsWith("Bearer", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain("error_description", challenge, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(token, challenge, StringComparison.Ordinal);
+        Assert.Equal("Bearer", bearerChallenge.Scheme);
+        Assert.Null(bearerChallenge.Parameter);
+        AssertNoSensitiveText(
+            string.Join("\n", challengeHeaders.Select(header => header.ToString())),
+            [token, ..forbiddenValues]);
+    }
+
+    private static void AssertNoSensitiveText(string text, params string[] forbiddenValues)
+    {
+        Assert.DoesNotContain("error_description", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("exception", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("stack trace", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("secret", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("private", text, StringComparison.OrdinalIgnoreCase);
         foreach (var forbiddenValue in forbiddenValues)
         {
-            Assert.DoesNotContain(forbiddenValue, challenge, StringComparison.Ordinal);
+            Assert.DoesNotContain(forbiddenValue, text, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
