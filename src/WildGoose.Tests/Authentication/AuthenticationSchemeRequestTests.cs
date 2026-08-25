@@ -32,7 +32,7 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
         Assert.Equal(HttpStatusCode.Unauthorized, malformed.StatusCode);
 
         using var insufficientRequest = CreateUserinfoRequest(
-            "/admin",
+            "/super",
             new Dictionary<string, object?>
             {
                 ["sub"] = "gateway-user",
@@ -128,12 +128,12 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
             var wrong = await application.Client.SendAsync(wrongRequest);
             Assert.Equal(HttpStatusCode.Unauthorized, wrong.StatusCode);
 
-            using var insufficientRequest = new HttpRequestMessage(HttpMethod.Get, "/admin");
+            using var insufficientRequest = new HttpRequestMessage(HttpMethod.Get, "/super");
             insufficientRequest.Headers.Add("X-AUTH-TOKEN", expectedToken);
             var insufficient = await application.Client.SendAsync(insufficientRequest);
             Assert.Equal(HttpStatusCode.Forbidden, insufficient.StatusCode);
 
-            using var validRequest = new HttpRequestMessage(HttpMethod.Get, "/admin");
+            using var validRequest = new HttpRequestMessage(HttpMethod.Get, "/super");
             validRequest.Headers.Add("X-AUTH-TOKEN", expectedToken);
             validRequest.Headers.Add("X-AUTH-ROLE", Defaults.AdminRole);
             var valid = await application.Client.SendAsync(validRequest);
