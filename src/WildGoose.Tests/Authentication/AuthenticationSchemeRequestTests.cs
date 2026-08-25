@@ -51,13 +51,14 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
         Assert.Equal(HttpStatusCode.Forbidden, insufficient.StatusCode);
 
         using var validRequest = CreateUserinfoRequest(
-            "/scope",
+            "/super",
             new Dictionary<string, object?>
             {
                 ["sub"] = "gateway-user",
                 ["iss"] = "https://issuer.example",
                 ["aud"] = "wildgoose-api",
-                ["scope"] = "wildgoose-api"
+                ["scope"] = "wildgoose-api",
+                ["role"] = Defaults.AdminRole
             });
         var valid = await application.Client.SendAsync(validRequest);
         Assert.Equal(HttpStatusCode.OK, valid.StatusCode);
