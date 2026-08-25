@@ -13,7 +13,8 @@ using Xunit;
 
 namespace WildGoose.Tests.Authentication;
 
-public sealed class GatewayJwtBearerHandlerTests
+[Collection("WebApplication collection")]
+public sealed class GatewayJwtBearerHandlerTests : BaseTests
 {
     [Fact]
     public async Task Handler_UsesNamedOptionsForHeaderIssuerAndAudience()

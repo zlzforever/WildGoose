@@ -6,7 +6,8 @@ using Xunit;
 
 namespace WildGoose.Tests.Authentication;
 
-public sealed class RsaSecurityKeyHelperTests : IDisposable
+[Collection("WebApplication collection")]
+public sealed class RsaSecurityKeyHelperTests : BaseTests, IDisposable
 {
     private readonly string _directory = Path.Combine(
         Path.GetTempPath(),

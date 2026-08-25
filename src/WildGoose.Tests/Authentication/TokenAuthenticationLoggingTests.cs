@@ -9,7 +9,8 @@ using Xunit;
 
 namespace WildGoose.Tests.Authentication;
 
-public sealed class TokenAuthenticationLoggingTests
+[Collection("WebApplication collection")]
+public sealed class TokenAuthenticationLoggingTests : BaseTests
 {
     [Fact]
     public async Task InvalidSecurityToken_DoesNotWriteCredentialsToLogs()

@@ -13,7 +13,8 @@ using Xunit;
 
 namespace WildGoose.Tests.Authentication;
 
-public sealed class MetadataRequestTests
+[Collection("WebApplication collection")]
+public sealed class MetadataRequestTests : BaseTests
 {
     [Fact]
     public async Task ProductionHttpMetadataRejectedBeforeMetadataRequest()

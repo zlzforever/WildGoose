@@ -3,7 +3,8 @@ using Xunit;
 
 namespace WildGoose.Tests.Authentication;
 
-public sealed class ProductionPublishBoundaryTests
+[Collection("WebApplication collection")]
+public sealed class ProductionPublishBoundaryTests : BaseTests
 {
     [Fact]
     public void ApiDockerfile_PublishesOnlyTheWildGooseApplication()

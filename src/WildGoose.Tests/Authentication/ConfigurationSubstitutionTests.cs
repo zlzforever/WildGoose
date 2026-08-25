@@ -6,7 +6,8 @@ using Xunit;
 
 namespace WildGoose.Tests.Authentication;
 
-public sealed class ConfigurationSubstitutionTests
+[Collection("WebApplication collection")]
+public sealed class ConfigurationSubstitutionTests : BaseTests
 {
     [Fact]
     public void AddSubstitution_LoadsDevelopmentConfigurationWithoutDisposedStream()

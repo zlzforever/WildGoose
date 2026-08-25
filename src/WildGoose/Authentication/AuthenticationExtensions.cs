@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using WildGoose.Authentication.GatewayJwtBearer;
@@ -77,6 +78,9 @@ public static class AuthenticationExtensions
 
         services.AddAuthorization(options =>
         {
+            options.DefaultPolicy = new AuthorizationPolicyBuilder(authenticationSchemes)
+                .RequireAuthenticatedUser()
+                .Build();
             options.AddPolicy("SCOPE", policy =>
             {
                 policy.AddAuthenticationSchemes(authenticationSchemes);

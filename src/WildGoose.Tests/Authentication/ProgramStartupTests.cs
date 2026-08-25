@@ -12,7 +12,8 @@ using Xunit;
 
 namespace WildGoose.Tests.Authentication;
 
-public sealed class ProgramStartupTests : IDisposable
+[Collection("WebApplication collection")]
+public sealed class ProgramStartupTests : BaseTests, IDisposable
 {
     private readonly string _directory = Path.Combine(
         Path.GetTempPath(),

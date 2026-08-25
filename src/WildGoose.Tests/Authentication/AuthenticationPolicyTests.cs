@@ -12,7 +12,8 @@ using Xunit;
 
 namespace WildGoose.Tests.Authentication;
 
-public sealed class AuthenticationPolicyTests
+[Collection("WebApplication collection")]
+public sealed class AuthenticationPolicyTests : BaseTests
 {
     [Fact]
     public void JwtOnlyConfiguration_SetsJwtBearerAsEveryDefaultScheme()
@@ -72,6 +73,18 @@ public sealed class AuthenticationPolicyTests
                                Defaults.UserAdminRole,
                                Defaults.OrganizationAdminRole
                            ]));
+    }
+
+    [Fact]
+    public async Task ExplicitSchemes_AreCopiedToDefaultPolicy()
+    {
+        using var provider = BuildProvider("JwtBearer,SecurityToken");
+
+        var options = provider.GetRequiredService<IOptions<AuthorizationOptions>>().Value;
+        var policy = await provider.GetRequiredService<IAuthorizationPolicyProvider>().GetDefaultPolicyAsync();
+
+        Assert.Equal(["JwtBearer", "SecurityToken"], options.DefaultPolicy.AuthenticationSchemes);
+        Assert.Equal(["JwtBearer", "SecurityToken"], policy.AuthenticationSchemes);
     }
 
     [Fact]

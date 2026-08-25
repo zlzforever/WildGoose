@@ -1,25 +1,20 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using WildGoose.Authentication;
 using WildGoose.Domain;
 using Xunit;
 
 namespace WildGoose.Tests.Authentication;
 
-[Collection("Authentication configuration")]
-public sealed class AuthenticationSchemeRequestTests
+[Collection("WebApplication collection")]
+public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixture fixture) : BaseTests
 {
     [Fact]
     public async Task GatewayJwtBearerAlias_UsesXUserinfoAndReturns401Or403AtRequestBoundary()
     {
-        await using var application = await TestApplication.StartAsync(
+        await using var application = AuthenticationTestApplication.Create(
+            fixture,
             "GatewayJwtBearer",
             new Dictionary<string, string?>
             {
@@ -65,7 +60,8 @@ public sealed class AuthenticationSchemeRequestTests
     [Fact]
     public async Task GatewayLegacyConfiguration_RejectsMissingOrWrongAudience()
     {
-        await using var application = await TestApplication.StartAsync(
+        await using var application = AuthenticationTestApplication.Create(
+            fixture,
             "GatewayJwtBearer",
             new Dictionary<string, string?>
             {
@@ -122,7 +118,7 @@ public sealed class AuthenticationSchemeRequestTests
         Environment.SetEnvironmentVariable("WildGooseSecurityToken", expectedToken);
         try
         {
-            await using var application = await TestApplication.StartAsync("SecurityToken");
+            await using var application = AuthenticationTestApplication.Create(fixture, "SecurityToken");
 
             var missing = await application.Client.GetAsync("/scope");
             Assert.Equal(HttpStatusCode.Unauthorized, missing.StatusCode);
@@ -157,7 +153,8 @@ public sealed class AuthenticationSchemeRequestTests
         Environment.SetEnvironmentVariable("WildGooseSecurityToken", expectedToken);
         try
         {
-            await using var application = await TestApplication.StartAsync(
+            await using var application = AuthenticationTestApplication.Create(
+                fixture,
                 "GatewayBearer,SecurityToken",
                 new Dictionary<string, string?>
                 {
@@ -165,7 +162,7 @@ public sealed class AuthenticationSchemeRequestTests
                 });
 
             using var gatewayRequest = CreateUserinfoRequest(
-                "/scope",
+                "/bare",
                 new Dictionary<string, object?>
                 {
                     ["sub"] = "gateway-user",
@@ -176,10 +173,41 @@ public sealed class AuthenticationSchemeRequestTests
             var gatewaySuccess = await application.Client.SendAsync(gatewayRequest);
             Assert.Equal(HttpStatusCode.OK, gatewaySuccess.StatusCode);
 
-            using var tokenRequest = new HttpRequestMessage(HttpMethod.Get, "/scope");
+            using var tokenRequest = new HttpRequestMessage(HttpMethod.Get, "/bare");
             tokenRequest.Headers.Add("X-AUTH-TOKEN", expectedToken);
             var tokenSuccess = await application.Client.SendAsync(tokenRequest);
             Assert.Equal(HttpStatusCode.OK, tokenSuccess.StatusCode);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("WildGooseSecurityToken", previousToken);
+        }
+    }
+
+    [Fact]
+    public async Task MultipleSchemes_DefaultAuthorizeEndpointAcceptsSecurityToken()
+    {
+        const string expectedToken = "security-token-test-value";
+        var previousToken = Environment.GetEnvironmentVariable("WildGooseSecurityToken");
+        Environment.SetEnvironmentVariable("WildGooseSecurityToken", expectedToken);
+        try
+        {
+            await using var application = AuthenticationTestApplication.Create(
+                fixture,
+                "JwtBearer,SecurityToken",
+                new Dictionary<string, string?>
+                {
+                    ["JwtBearer:Authority"] = "https://issuer.example",
+                    ["JwtBearer:ValidateAudience"] = "true",
+                    ["JwtBearer:ValidateIssuer"] = "true",
+                    ["JwtBearer:ValidateLifetime"] = "true"
+                });
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
+            request.Headers.Add("X-AUTH-TOKEN", expectedToken);
+            var response = await application.Client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
         finally
         {
@@ -195,14 +223,15 @@ public sealed class AuthenticationSchemeRequestTests
         Environment.SetEnvironmentVariable("WildGooseSecurityToken", expectedToken);
         try
         {
-            await using var application = await TestApplication.StartAsync(
+            await using var application = AuthenticationTestApplication.Create(
+                fixture,
                 "GatewayBearer,SecurityToken",
                 new Dictionary<string, string?>
                 {
                     ["GatewayBearer:Name"] = "X-Userinfo"
                 });
 
-            var response = await application.Client.GetAsync("/scope");
+            var response = await application.Client.GetAsync("/bare");
             var challengeHeaders = string.Join("\n", response.Headers.WwwAuthenticate);
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -222,7 +251,8 @@ public sealed class AuthenticationSchemeRequestTests
         Environment.SetEnvironmentVariable("WildGooseSecurityToken", expectedToken);
         try
         {
-            await using var application = await TestApplication.StartAsync(
+            await using var application = AuthenticationTestApplication.Create(
+                fixture,
                 "JwtBearer,SecurityToken",
                 new Dictionary<string, string?>
                 {
@@ -232,7 +262,7 @@ public sealed class AuthenticationSchemeRequestTests
                     ["JwtBearer:ValidateLifetime"] = "true"
                 });
 
-            var response = await application.Client.GetAsync("/scope");
+            var response = await application.Client.GetAsync("/bare");
             var challengeHeaders = response.Headers.WwwAuthenticate.ToArray();
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -256,7 +286,8 @@ public sealed class AuthenticationSchemeRequestTests
         Environment.SetEnvironmentVariable("WildGooseSecurityToken", expectedToken);
         try
         {
-            await using var application = await TestApplication.StartAsync(
+            await using var application = AuthenticationTestApplication.Create(
+                fixture,
                 "   ",
                 new Dictionary<string, string?>
                 {
@@ -266,7 +297,7 @@ public sealed class AuthenticationSchemeRequestTests
                     ["JwtBearer:ValidateLifetime"] = "true"
                 });
 
-            using var request = new HttpRequestMessage(HttpMethod.Get, "/scope");
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
             request.Headers.Add("X-AUTH-TOKEN", expectedToken);
             var response = await application.Client.SendAsync(request);
             var challengeHeaders = response.Headers.WwwAuthenticate.ToArray();
@@ -283,10 +314,46 @@ public sealed class AuthenticationSchemeRequestTests
     }
 
     [Fact]
-    public async Task CommaOnlyAuthenticationSchemes_FailsConfiguration()
+    public async Task MissingAuthenticationSchemes_UsesJwtOnlyAndDoesNotEnableXAuthToken()
     {
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            TestApplication.StartAsync(" , , "));
+        const string expectedToken = "security-token-test-value";
+        var previousToken = Environment.GetEnvironmentVariable("WildGooseSecurityToken");
+        Environment.SetEnvironmentVariable("WildGooseSecurityToken", expectedToken);
+        try
+        {
+            await using var application = AuthenticationTestApplication.Create(
+                fixture,
+                null,
+                new Dictionary<string, string?>
+                {
+                    ["JwtBearer:Authority"] = "https://issuer.example",
+                    ["JwtBearer:ValidateAudience"] = "true",
+                    ["JwtBearer:ValidateIssuer"] = "true",
+                    ["JwtBearer:ValidateLifetime"] = "true"
+                });
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
+            request.Headers.Add("X-AUTH-TOKEN", expectedToken);
+            var response = await application.Client.SendAsync(request);
+            var challengeHeaders = response.Headers.WwwAuthenticate.ToArray();
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Contains(
+                challengeHeaders,
+                header => string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(expectedToken, string.Join("\n", challengeHeaders), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("WildGooseSecurityToken", previousToken);
+        }
+    }
+
+    [Fact]
+    public void CommaOnlyAuthenticationSchemes_FailsConfiguration()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            AuthenticationTestApplication.Create(fixture, " , , "));
 
         Assert.Contains("at least one", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -294,7 +361,8 @@ public sealed class AuthenticationSchemeRequestTests
     [Fact]
     public async Task TrimmedDuplicateJwtAliases_KeepJwtAsTheDefaultScheme()
     {
-        await using var application = await TestApplication.StartAsync(
+        await using var application = AuthenticationTestApplication.Create(
+            fixture,
             " JwtBearer , Bearer , JWTBEARER ",
             new Dictionary<string, string?>
             {
@@ -304,7 +372,7 @@ public sealed class AuthenticationSchemeRequestTests
                 ["JwtBearer:ValidateLifetime"] = "true"
             });
 
-        var response = await application.Client.GetAsync("/scope");
+        var response = await application.Client.GetAsync("/bare");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Contains(
@@ -320,7 +388,8 @@ public sealed class AuthenticationSchemeRequestTests
         Environment.SetEnvironmentVariable("WildGooseSecurityToken", expectedToken);
         try
         {
-            await using var application = await TestApplication.StartAsync(
+            await using var application = AuthenticationTestApplication.Create(
+                fixture,
                 "SecurityToken, JwtBearer",
                 new Dictionary<string, string?>
                 {
@@ -330,7 +399,7 @@ public sealed class AuthenticationSchemeRequestTests
                     ["JwtBearer:ValidateLifetime"] = "true"
                 });
 
-            var response = await application.Client.GetAsync("/scope");
+            var response = await application.Client.GetAsync("/bare");
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             Assert.Contains(
@@ -354,61 +423,4 @@ public sealed class AuthenticationSchemeRequestTests
         return request;
     }
 
-    [CollectionDefinition("Authentication configuration", DisableParallelization = true)]
-    public sealed class AuthenticationConfigurationCollection;
-
-    private sealed class TestApplication : IAsyncDisposable
-    {
-        private readonly WebApplication _app;
-
-        private TestApplication(WebApplication app)
-        {
-            _app = app;
-            Client = app.GetTestClient();
-        }
-
-        public HttpClient Client { get; }
-
-        public static async Task<TestApplication> StartAsync(
-            string schemes,
-            IReadOnlyDictionary<string, string?>? overrides = null)
-        {
-            var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-            {
-                ApplicationName = typeof(Program).Assembly.GetName().Name,
-                Args = [],
-                EnvironmentName = Environments.Production
-            });
-            builder.WebHost.UseTestServer();
-
-            var values = new Dictionary<string, string?>
-            {
-                ["ApiName"] = "wildgoose-api",
-                ["AuthenticationSchemes"] = schemes
-            };
-            if (overrides != null)
-            {
-                foreach (var pair in overrides)
-                {
-                    values[pair.Key] = pair.Value;
-                }
-            }
-
-            builder.Configuration.AddInMemoryCollection(values);
-            builder.Services.ConfigAuthenticationCore(builder.Configuration, builder.Environment);
-            var app = builder.Build();
-            app.UseAuthentication();
-            app.UseAuthorization();
-            app.MapGet("/scope", () => Results.Ok("ok")).RequireAuthorization("SCOPE");
-            app.MapGet("/admin", () => Results.Ok("ok")).RequireAuthorization(Defaults.SuperPolicy);
-            await app.StartAsync();
-            return new TestApplication(app);
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            Client.Dispose();
-            await _app.DisposeAsync();
-        }
-    }
 }
