@@ -146,6 +146,30 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
     }
 
     [Fact]
+    public async Task UnknownAdminPath_WithValidSecurityToken_ReturnsNotFound()
+    {
+        const string expectedToken = "security-token-test-value";
+        var previousToken = Environment.GetEnvironmentVariable("WildGooseSecurityToken");
+        Environment.SetEnvironmentVariable("WildGooseSecurityToken", expectedToken);
+        try
+        {
+            await using var application = AuthenticationTestApplication.Create(fixture, "SecurityToken");
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/admin");
+            request.Headers.Add("X-AUTH-TOKEN", expectedToken);
+            request.Headers.Add("X-AUTH-ROLE", Defaults.AdminRole);
+            var response = await application.Client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.Empty(response.Headers.WwwAuthenticate);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("WildGooseSecurityToken", previousToken);
+        }
+    }
+
+    [Fact]
     public async Task MultipleSchemes_OneFailedAuthenticationDoesNotPolluteSuccessfulChallenge()
     {
         const string expectedToken = "security-token-test-value";
@@ -172,11 +196,25 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
             gatewayRequest.Headers.Add("X-AUTH-TOKEN", "wrong-token");
             var gatewaySuccess = await application.Client.SendAsync(gatewayRequest);
             Assert.Equal(HttpStatusCode.OK, gatewaySuccess.StatusCode);
+            Assert.Empty(gatewaySuccess.Headers.WwwAuthenticate);
+            AssertNoSensitiveChallenge(
+                gatewaySuccess,
+                "wrong-token",
+                "challenge-secret-value",
+                "challenge-private-key-value",
+                "internal exception");
 
             using var tokenRequest = new HttpRequestMessage(HttpMethod.Get, "/bare");
             tokenRequest.Headers.Add("X-AUTH-TOKEN", expectedToken);
             var tokenSuccess = await application.Client.SendAsync(tokenRequest);
             Assert.Equal(HttpStatusCode.OK, tokenSuccess.StatusCode);
+            Assert.Empty(tokenSuccess.Headers.WwwAuthenticate);
+            AssertNoSensitiveChallenge(
+                tokenSuccess,
+                expectedToken,
+                "challenge-secret-value",
+                "challenge-private-key-value",
+                "internal exception");
         }
         finally
         {
@@ -232,10 +270,21 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
                 });
 
             var response = await application.Client.GetAsync("/bare");
-            var challengeHeaders = string.Join("\n", response.Headers.WwwAuthenticate);
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-            Assert.DoesNotContain(expectedToken, challengeHeaders, StringComparison.Ordinal);
+            AssertNoSensitiveChallenge(
+                response,
+                expectedToken,
+                "challenge-secret-value",
+                "challenge-private-key-value",
+                "internal exception");
+            Assert.All(
+                response.Headers.WwwAuthenticate,
+                header =>
+                {
+                    Assert.False(string.IsNullOrWhiteSpace(header.Scheme));
+                    Assert.Null(header.Parameter);
+                });
         }
         finally
         {
@@ -263,14 +312,14 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
                 });
 
             var response = await application.Client.GetAsync("/bare");
-            var challengeHeaders = response.Headers.WwwAuthenticate.ToArray();
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-            var bearerChallenge = Assert.Single(
-                challengeHeaders,
-                header => string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase));
-            Assert.Equal("Bearer", bearerChallenge.Scheme);
-            Assert.DoesNotContain(expectedToken, string.Join("\n", challengeHeaders), StringComparison.Ordinal);
+            AssertSafeBearerChallenge(
+                response,
+                expectedToken,
+                "challenge-secret-value",
+                "challenge-private-key-value",
+                "internal exception");
         }
         finally
         {
@@ -300,12 +349,14 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
             using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
             request.Headers.Add("X-AUTH-TOKEN", expectedToken);
             var response = await application.Client.SendAsync(request);
-            var challengeHeaders = response.Headers.WwwAuthenticate.ToArray();
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-            Assert.Contains(
-                challengeHeaders,
-                header => string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase));
+            AssertSafeBearerChallenge(
+                response,
+                expectedToken,
+                "challenge-secret-value",
+                "challenge-private-key-value",
+                "internal exception");
         }
         finally
         {
@@ -335,13 +386,14 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
             using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
             request.Headers.Add("X-AUTH-TOKEN", expectedToken);
             var response = await application.Client.SendAsync(request);
-            var challengeHeaders = response.Headers.WwwAuthenticate.ToArray();
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-            Assert.Contains(
-                challengeHeaders,
-                header => string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase));
-            Assert.DoesNotContain(expectedToken, string.Join("\n", challengeHeaders), StringComparison.Ordinal);
+            AssertSafeBearerChallenge(
+                response,
+                expectedToken,
+                "challenge-secret-value",
+                "challenge-private-key-value",
+                "internal exception");
         }
         finally
         {
@@ -375,9 +427,11 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
         var response = await application.Client.GetAsync("/bare");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-        Assert.Contains(
-            response.Headers.WwwAuthenticate,
-            header => string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase));
+        AssertSafeBearerChallenge(
+            response,
+            "challenge-secret-value",
+            "challenge-private-key-value",
+            "internal exception");
     }
 
     [Fact]
@@ -402,9 +456,12 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
             var response = await application.Client.GetAsync("/bare");
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-            Assert.Contains(
-                response.Headers.WwwAuthenticate,
-                header => string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase));
+            AssertSafeBearerChallenge(
+                response,
+                expectedToken,
+                "challenge-secret-value",
+                "challenge-private-key-value",
+                "internal exception");
         }
         finally
         {
@@ -421,6 +478,39 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
         var json = JsonSerializer.Serialize(profile);
         request.Headers.Add(headerName, Convert.ToBase64String(Encoding.UTF8.GetBytes(json)));
         return request;
+    }
+
+    private static void AssertSafeBearerChallenge(
+        HttpResponseMessage response,
+        params string[] forbiddenValues)
+    {
+        var challengeHeaders = response.Headers.WwwAuthenticate.ToArray();
+        var bearerChallenge = Assert.Single(
+            challengeHeaders,
+            header => string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase));
+
+        Assert.Equal("Bearer", bearerChallenge.Scheme);
+        Assert.Null(bearerChallenge.Parameter);
+        AssertNoSensitiveChallenge(response, forbiddenValues);
+    }
+
+    private static void AssertNoSensitiveChallenge(
+        HttpResponseMessage response,
+        params string[] forbiddenValues)
+    {
+        var challenge = string.Join(
+            "\n",
+            response.Headers.WwwAuthenticate.Select(header => header.ToString()));
+
+        Assert.DoesNotContain("error_description", challenge, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("exception", challenge, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("stack trace", challenge, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("secret", challenge, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("private", challenge, StringComparison.OrdinalIgnoreCase);
+        foreach (var forbiddenValue in forbiddenValues)
+        {
+            Assert.DoesNotContain(forbiddenValue, challenge, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
 }
