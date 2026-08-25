@@ -1,4 +1,7 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Net.Http.Headers;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using WildGoose.Authentication;
@@ -10,6 +13,9 @@ namespace WildGoose.Tests.Authentication;
 [Collection("WebApplication collection")]
 public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixture fixture) : BaseTests
 {
+    private static string TestJwkPath => Path.GetFullPath(
+        Path.Combine(AppContext.BaseDirectory, "../../../jwt.jwk"));
+
     [Fact]
     public async Task GatewayJwtBearerAlias_UsesXUserinfoAndReturns401Or403AtRequestBoundary()
     {
@@ -278,13 +284,7 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
                 "challenge-secret-value",
                 "challenge-private-key-value",
                 "internal exception");
-            Assert.All(
-                response.Headers.WwwAuthenticate,
-                header =>
-                {
-                    Assert.False(string.IsNullOrWhiteSpace(header.Scheme));
-                    Assert.Null(header.Parameter);
-                });
+            Assert.Empty(response.Headers.WwwAuthenticate);
         }
         finally
         {
@@ -325,6 +325,49 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
         {
             Environment.SetEnvironmentVariable("WildGooseSecurityToken", previousToken);
         }
+    }
+
+    [Fact]
+    public async Task InvalidJwtChallenge_DoesNotExposeSensitiveTokenClaims()
+    {
+        const string secret = "challenge-secret-value";
+        const string privateKey = "challenge-private-key-value";
+        const string exceptionDetails = "challenge-internal-exception-value";
+
+        await using var application = AuthenticationTestApplication.Create(
+            fixture,
+            "JwtBearer",
+            new Dictionary<string, string?>
+            {
+                ["JwtBearer:KeyPath"] = TestJwkPath,
+                ["JwtBearer:ValidIssuer"] = "https://issuer.example",
+                ["JwtBearer:ValidAudience"] = "wildgoose-api",
+                ["JwtBearer:ValidateAudience"] = "true",
+                ["JwtBearer:ValidateIssuer"] = "true",
+                ["JwtBearer:ValidateLifetime"] = "true"
+            });
+
+        var invalidToken = new JwtSecurityToken(
+            "https://issuer.example",
+            "wildgoose-api",
+            [
+                new Claim("scope", "wildgoose-api"),
+                new Claim("secret", secret),
+                new Claim("private-key", privateKey),
+                new Claim("internal-exception", exceptionDetails)
+            ],
+            DateTime.UtcNow.AddMinutes(-1),
+            DateTime.UtcNow.AddMinutes(5));
+        var tokenValue = new JwtSecurityTokenHandler().WriteToken(invalidToken);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokenValue);
+        var response = await application.Client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        AssertSafeBearerChallenge(response, tokenValue, secret, privateKey, exceptionDetails);
+        AssertNoSensitiveText(body, tokenValue, secret, privateKey, exceptionDetails);
     }
 
     [Fact]
@@ -485,9 +528,7 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
         params string[] forbiddenValues)
     {
         var challengeHeaders = response.Headers.WwwAuthenticate.ToArray();
-        var bearerChallenge = Assert.Single(
-            challengeHeaders,
-            header => string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase));
+        var bearerChallenge = Assert.Single(challengeHeaders);
 
         Assert.Equal("Bearer", bearerChallenge.Scheme);
         Assert.Null(bearerChallenge.Parameter);
@@ -510,6 +551,18 @@ public sealed class AuthenticationSchemeRequestTests(WebApplicationFactoryFixtur
         foreach (var forbiddenValue in forbiddenValues)
         {
             Assert.DoesNotContain(forbiddenValue, challenge, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private static void AssertNoSensitiveText(string text, params string[] forbiddenValues)
+    {
+        Assert.DoesNotContain("exception", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("stack trace", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("secret", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("private", text, StringComparison.OrdinalIgnoreCase);
+        foreach (var forbiddenValue in forbiddenValues)
+        {
+            Assert.DoesNotContain(forbiddenValue, text, StringComparison.OrdinalIgnoreCase);
         }
     }
 
