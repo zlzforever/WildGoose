@@ -110,6 +110,36 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
             var token = WriteSignedToken(secondSecurityKey);
 
             Assert.False(string.IsNullOrWhiteSpace(token));
+
+            var validationKey = new RsaSecurityKey(secondRsa.ExportParameters(includePrivateParameters: false))
+            {
+                KeyId = secondSigningKey.KeyId
+            };
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = validationKey,
+                ValidIssuer = "https://issuer.example",
+                ValidateIssuer = true,
+                ValidAudience = "wildgoose-api",
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero,
+                ValidAlgorithms = [SecurityAlgorithms.RsaSha256]
+            };
+            var principal = new JwtSecurityTokenHandler().ValidateToken(
+                token,
+                validationParameters,
+                out var validatedToken);
+
+            var validatedJwt = Assert.IsType<JwtSecurityToken>(validatedToken);
+            Assert.Equal(SecurityAlgorithms.RsaSha256, validatedJwt.Header.Alg);
+            Assert.Equal(secondSigningKey.KeyId, validatedJwt.Header.Kid);
+            Assert.Equal("https://issuer.example", validatedJwt.Issuer);
+            Assert.Contains("wildgoose-api", validatedJwt.Audiences);
+            Assert.Contains(
+                principal.Claims,
+                claim => claim.Type == "scope" && claim.Value == "wildgoose-api");
         }
         finally
         {
