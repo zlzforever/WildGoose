@@ -16,7 +16,7 @@ public sealed class AuthenticationTestController : ControllerBase
     [Authorize(Policy = "SCOPE")]
     public IActionResult Scope() => Ok("ok");
 
-    [HttpGet("admin")]
+    [HttpGet("super")]
     [Authorize(Policy = Defaults.SuperPolicy)]
     public IActionResult Admin() => Ok("ok");
 }

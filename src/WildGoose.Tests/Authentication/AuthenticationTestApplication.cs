@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace WildGoose.Tests.Authentication;
 
@@ -49,6 +51,7 @@ internal sealed class AuthenticationTestApplication : IAsyncDisposable
 
         var factory = fixture.Instance.WithWebHostBuilder(builder =>
         {
+            builder.UseSetting(WebHostDefaults.EnvironmentKey, Environments.Production);
             builder.ConfigureTestServices(services =>
             {
                 services.AddControllers()

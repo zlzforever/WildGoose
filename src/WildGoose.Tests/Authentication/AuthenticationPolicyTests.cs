@@ -88,6 +88,16 @@ public sealed class AuthenticationPolicyTests : BaseTests
     }
 
     [Fact]
+    public async Task SchemeNames_AreCanonicalizedBeforeBuildingDefaultPolicy()
+    {
+        using var provider = BuildProvider(" jwtbearer , securitytoken ");
+
+        var policy = await provider.GetRequiredService<IAuthorizationPolicyProvider>().GetDefaultPolicyAsync();
+
+        Assert.Equal(["JwtBearer", "SecurityToken"], policy.AuthenticationSchemes);
+    }
+
+    [Fact]
     public async Task HistoricalBearerAlias_MapsToRegisteredJwtBearerScheme()
     {
         using var provider = BuildProvider("Bearer");

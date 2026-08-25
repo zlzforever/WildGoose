@@ -155,6 +155,21 @@ public static class AuthenticationExtensions
             return "GatewayBearer";
         }
 
+        if (string.Equals(scheme, "GatewayBearer", StringComparison.OrdinalIgnoreCase))
+        {
+            return "GatewayBearer";
+        }
+
+        if (string.Equals(scheme, "JwtBearer", StringComparison.OrdinalIgnoreCase))
+        {
+            return "JwtBearer";
+        }
+
+        if (string.Equals(scheme, "SecurityToken", StringComparison.OrdinalIgnoreCase))
+        {
+            return "SecurityToken";
+        }
+
         return scheme;
     }
 

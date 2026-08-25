@@ -4,8 +4,8 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.IdentityModel.Tokens;
-using WildGoose.Authentication;
 using WildGoose.Domain;
 using Xunit;
 
@@ -19,6 +19,7 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
 
     private AuthenticationTestApplication? _application;
     private RsaSecurityKey? _signingKey;
+    private RSA? _signingRsa;
 
     private HttpClient _client => _application?.Client ??
                                   throw new InvalidOperationException("The test application has not started.");
@@ -248,12 +249,14 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
     public void Dispose()
     {
         _application?.Dispose();
+        _signingRsa?.Dispose();
     }
 
     private void StartApplication()
     {
-        _signingKey = RsaSecurityKeyHelper.GetRsaSecurityKey(TestJwkPath) ??
-                      throw new InvalidOperationException($"Unable to load test JWK from '{TestJwkPath}'.");
+        var signingKey = LoadSigningKey(TestJwkPath);
+        _signingRsa = signingKey.Rsa;
+        _signingKey = new RsaSecurityKey(_signingRsa) { KeyId = signingKey.KeyId };
         _application = AuthenticationTestApplication.Create(
             fixture,
             "JwtBearer",
@@ -266,6 +269,51 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
                 ["JwtBearer:ValidateIssuer"] = "true",
                 ["JwtBearer:ValidateLifetime"] = "true"
             });
+    }
+
+    private static (RSA Rsa, string KeyId) LoadSigningKey(string path)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var root = document.RootElement;
+        var rsa = RSA.Create();
+        try
+        {
+            rsa.ImportParameters(new RSAParameters
+            {
+                Modulus = ReadKeyParameter(root, "n"),
+                Exponent = ReadKeyParameter(root, "e"),
+                D = ReadKeyParameter(root, "d"),
+                P = ReadKeyParameter(root, "p"),
+                Q = ReadKeyParameter(root, "q"),
+                DP = ReadKeyParameter(root, "dp"),
+                DQ = ReadKeyParameter(root, "dq"),
+                InverseQ = ReadKeyParameter(root, "qi")
+            });
+
+            var keyId = root.GetProperty("kid").GetString();
+            if (string.IsNullOrWhiteSpace(keyId))
+            {
+                throw new InvalidOperationException($"Test JWK '{path}' does not define a key id.");
+            }
+
+            return (rsa, keyId);
+        }
+        catch
+        {
+            rsa.Dispose();
+            throw;
+        }
+    }
+
+    private static byte[] ReadKeyParameter(JsonElement root, string name)
+    {
+        var value = root.GetProperty(name).GetString();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidOperationException($"Test JWK is missing RSA parameter '{name}'.");
+        }
+
+        return Base64UrlEncoder.DecodeBytes(value);
     }
 
     private string CreateToken(
