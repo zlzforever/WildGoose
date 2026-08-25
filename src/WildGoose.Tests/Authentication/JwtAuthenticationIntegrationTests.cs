@@ -44,6 +44,29 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
     }
 
     [Fact]
+    public void SigningWithSameJwkAfterPreviousRsaIsDisposed_RemainsUsable()
+    {
+        var firstSigningKey = LoadSigningKey(TestJwkPath);
+        var firstSecurityKey = CreateSigningKey(firstSigningKey.Rsa, firstSigningKey.KeyId);
+        _ = WriteSignedToken(firstSecurityKey);
+        firstSigningKey.Rsa.Dispose();
+
+        var secondSigningKey = LoadSigningKey(TestJwkPath);
+        try
+        {
+            var secondSecurityKey = CreateSigningKey(secondSigningKey.Rsa, secondSigningKey.KeyId);
+
+            var token = WriteSignedToken(secondSecurityKey);
+
+            Assert.False(string.IsNullOrWhiteSpace(token));
+        }
+        finally
+        {
+            secondSigningKey.Rsa.Dispose();
+        }
+    }
+
+    [Fact]
     public async Task ValidBearerToken_AllowsBareAuthorizeEndpoint()
     {
         StartApplication();
@@ -80,7 +103,7 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
                 new Claim("private-key", "challenge-private-key-value"),
                 new Claim("path", "/internal/jwt-secret/path")
             ],
-            signingKey: new RsaSecurityKey(wrongRsa));
+            signingKey: CreateSigningKey(wrongRsa, "wrong-signature-key"));
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/bare");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -256,7 +279,7 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
     {
         var signingKey = LoadSigningKey(TestJwkPath);
         _signingRsa = signingKey.Rsa;
-        _signingKey = new RsaSecurityKey(_signingRsa) { KeyId = signingKey.KeyId };
+        _signingKey = CreateSigningKey(_signingRsa, signingKey.KeyId);
         _application = AuthenticationTestApplication.Create(
             fixture,
             "JwtBearer",
@@ -316,6 +339,16 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
         return Base64UrlEncoder.DecodeBytes(value);
     }
 
+    private static RsaSecurityKey CreateSigningKey(RSA rsa, string keyId)
+    {
+        var key = new RsaSecurityKey(rsa) { KeyId = keyId };
+        key.CryptoProviderFactory = new CryptoProviderFactory
+        {
+            CacheSignatureProviders = false
+        };
+        return key;
+    }
+
     private string CreateToken(
         IEnumerable<Claim> claims,
         string issuer = "https://issuer.example",
@@ -337,6 +370,19 @@ public sealed class JwtAuthenticationIntegrationTests(WebApplicationFactoryFixtu
             effectiveNotBefore,
             effectiveExpiration,
             new SigningCredentials(effectiveSigningKey, SecurityAlgorithms.RsaSha256));
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static string WriteSignedToken(SecurityKey signingKey)
+    {
+        var token = new JwtSecurityToken(
+            "https://issuer.example",
+            "wildgoose-api",
+            [new Claim("scope", "wildgoose-api")],
+            DateTime.UtcNow.AddMinutes(-1),
+            DateTime.UtcNow.AddMinutes(10),
+            new SigningCredentials(signingKey, SecurityAlgorithms.RsaSha256));
+
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
