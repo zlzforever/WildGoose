@@ -209,3 +209,37 @@ GET api/admin/v1.0/organizations/subList?parentId=
     Identity.Password.RequireDigit = false;
 ```
 
+### JWT 配置模板
+
+#### 自建 JWT、静态密钥离线验签
+
+```
+KeyPath:
+ValidateIssuer: true
+ValidIssuer: "https://self‑issuer"
+ValidateAudience: true
+ValidAudience || ApiName: "xxx-api"
+ValidateLifetime: true
+// 不要设置 Authority / MetadataAddress / RequireHttpsMetadata
+```
+
+#### 公网 OIDC IdP 标准生产配置
+
+```
+ValidAudience: "https://auth.mycompany.com"
+RequireHttpsMetadata: true
+ValidAudience || ApiName: "xxx-api"
+ValidateIssuer: true
+ValidateLifetime: true
+```
+
+#### 内网反向代理 IdP（iss 公网域名、元数据内网地址）
+
+``` 
+ValidAudience: "https://auth.mycompany.com"
+MetadataAddress = "http://10.0.0.5:5000/.well-known/openid-configuration";
+RequireHttpsMetadata: false
+ValidAudience || ApiName: "xxx-api"
+ValidateIssuer: true
+ValidateLifetime: true
+```

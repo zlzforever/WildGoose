@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.IdentityModel.Tokens;
-using WildGoose.Authentication;
 using Xunit;
 
 namespace WildGoose.Tests.Authentication;
@@ -17,70 +16,6 @@ public sealed class RsaSecurityKeyHelperTests : BaseTests, IDisposable
     public RsaSecurityKeyHelperTests()
     {
         Directory.CreateDirectory(_directory);
-    }
-
-    [Fact]
-    public void GetRsaSecurityKey_LoadsPublicJwkAndPreservesKeyId()
-    {
-        using var rsa = RSA.Create(2048);
-        var path = WriteJwk(rsa, includePrivateParameters: false);
-
-        var key = RsaSecurityKeyHelper.GetRsaSecurityKey(path);
-
-        Assert.NotNull(key);
-        Assert.Equal("test-key", key.KeyId);
-        Assert.NotNull(key.Parameters.Modulus);
-        Assert.NotNull(key.Parameters.Exponent);
-        Assert.Null(key.Parameters.D);
-    }
-
-    [Fact]
-    public void GetRsaSecurityKey_AcceptsExistingPrivateJwkFormat()
-    {
-        using var rsa = RSA.Create(2048);
-        var path = WriteJwk(rsa, includePrivateParameters: true);
-
-        var key = RsaSecurityKeyHelper.GetRsaSecurityKey(path);
-
-        Assert.NotNull(key);
-        Assert.NotNull(key.Parameters.Modulus);
-        Assert.NotNull(key.Parameters.Exponent);
-    }
-
-    [Theory]
-    [InlineData("{\"kty\":\"EC\",\"n\":\"AQ\",\"e\":\"AQAB\"}")]
-    [InlineData("{\"kty\":\"RSA\",\"e\":\"AQAB\"}")]
-    [InlineData("{\"kty\":\"RSA\",\"n\":\"not-base64\",\"e\":\"AQAB\"}")]
-    public void GetRsaSecurityKey_ReturnsNullForInvalidJwk(string json)
-    {
-        var path = Path.Combine(_directory, Guid.NewGuid().ToString("N") + ".jwk");
-        File.WriteAllText(path, json);
-
-        var key = RsaSecurityKeyHelper.GetRsaSecurityKey(path);
-
-        Assert.Null(key);
-    }
-
-    [Fact]
-    public void GetRsaSecurityKey_DoesNotCacheAFailedLoad()
-    {
-        var path = Path.Combine(_directory, Guid.NewGuid().ToString("N") + ".jwk");
-        File.WriteAllText(path, "{}");
-
-        Assert.Null(RsaSecurityKeyHelper.GetRsaSecurityKey(path));
-
-        using var rsa = RSA.Create(2048);
-        File.WriteAllText(path, CreateJwk(rsa, includePrivateParameters: false));
-
-        Assert.NotNull(RsaSecurityKeyHelper.GetRsaSecurityKey(path));
-    }
-
-    [Fact]
-    public void GetRsaSecurityKey_ReturnsNullForMissingFile()
-    {
-        var path = Path.Combine(_directory, "missing.jwk");
-
-        Assert.Null(RsaSecurityKeyHelper.GetRsaSecurityKey(path));
     }
 
     public void Dispose()

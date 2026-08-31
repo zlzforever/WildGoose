@@ -1,24 +1,15 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using WildGoose.Domain;
 
 namespace WildGoose.Authentication.JwtBearer;
 
 public static class JwtBearerAuthenticationExtensions
 {
-    public static AuthenticationBuilder AddJwtBearerAuthentication(this IServiceCollection services,
-        AuthenticationBuilder builder,
-        IConfiguration configuration, string apiName)
-    {
-        return services.AddJwtBearerAuthentication(
-            builder,
-            configuration,
-            apiName,
-            new DefaultHostEnvironment());
-    }
-
     internal static AuthenticationBuilder AddJwtBearerAuthentication(this IServiceCollection services,
         AuthenticationBuilder builder,
         IConfiguration configuration,
@@ -31,10 +22,6 @@ public static class JwtBearerAuthenticationExtensions
             throw new ArgumentException("JwtBearer options not found in the configuration file.");
         }
 
-        var localKey = LoadLocalKey(jwtBearerSettings, environment);
-        var metadataAddress = localKey == null
-            ? ResolveAndValidateMetadataAddress(jwtBearerSettings, environment)
-            : null;
         var validAudience = string.IsNullOrWhiteSpace(jwtBearerSettings.ValidAudience)
             ? apiName
             : jwtBearerSettings.ValidAudience;
@@ -44,13 +31,14 @@ public static class JwtBearerAuthenticationExtensions
             throw new InvalidOperationException("JwtBearer:ValidAudience and ApiName cannot both be empty.");
         }
 
-        if (localKey != null && jwtBearerSettings.ValidateIssuer &&
+        if (jwtBearerSettings.ValidateIssuer &&
             string.IsNullOrWhiteSpace(jwtBearerSettings.ValidIssuer))
         {
             throw new InvalidOperationException(
-                "JwtBearer:ValidIssuer is required when JwtBearer:KeyPath selects local JWK validation.");
+                "JwtBearer:ValidIssuer is required when JwtBearer:ValidateIssuer is true.");
         }
 
+        // 生产环境 issuer/audience/lifetime 必填
         if (!environment.IsDevelopment() &&
             (!jwtBearerSettings.ValidateIssuer ||
              !jwtBearerSettings.ValidateAudience ||
@@ -60,13 +48,17 @@ public static class JwtBearerAuthenticationExtensions
                 "Production JwtBearer configuration must enable issuer, audience, and lifetime validation.");
         }
 
+        var localKey = LoadLocalKey(jwtBearerSettings);
         if (localKey != null)
         {
+            // 用于自己构造 Claims
             services.AddKeyedSingleton("JwtBearerRsaSecurityKey", localKey);
         }
 
         builder.AddJwtBearer("JwtBearer", options =>
         {
+            // 自建 JWT（无 OIDC IdP，静态密钥）
+            // 不要设置 Authority，MetadataAddress，RequireHttpsMetadata
             if (localKey != null)
             {
                 options.Authority = null;
@@ -75,18 +67,30 @@ public static class JwtBearerAuthenticationExtensions
             }
             else
             {
+                // 冲突：如果你手动设置了 `ConfigurationManager`，Authority **失效**。
                 options.Authority = jwtBearerSettings.Authority?.TrimEnd('/');
-                options.MetadataAddress = metadataAddress!;
+                // 仅设置 MetadataAddress，**不设置 Authority → 不会自动填充 ValidIssuer，iss 校验失败**。
+                if (jwtBearerSettings.MetadataAddress != null)
+                {
+                    options.MetadataAddress = jwtBearerSettings.MetadataAddress;
+                }
+
+                // 是否强制**发现文档 (metadata) 端点必须为 HTTPS**
+                // 仅管控 `.well-known/openid-configuration` 的下载地址协议；**不会管控 jwks_uri**
                 options.RequireHttpsMetadata = jwtBearerSettings.RequireHttpsMetadata;
             }
 
             options.Audience = validAudience;
+            // 控制 **JWT payload 字段 → .NET Claim 类型名称 的自动映射转换开关**
+            // sub -> ClaimTypes.NameIdentifier: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier
+            // 关闭是现在 WebApi / OIDC 项目**最推荐的现代配置**。
             options.MapInboundClaims = false;
+            // 关闭后 HttpContext.GetTokenAsync("access_token") 返回 null，但可节省内存
             options.SaveToken = false;
-            options.IncludeErrorDetails = false;
+            options.IncludeErrorDetails = !environment.IsProduction();
             options.TokenValidationParameters = new TokenValidationParameters
             {
-                ValidateIssuerSigningKey = true,
+                ValidateIssuerSigningKey = jwtBearerSettings.ValidateIssuerSigningKey,
                 IssuerSigningKey = localKey,
                 ValidateIssuer = jwtBearerSettings.ValidateIssuer,
                 ValidIssuer = jwtBearerSettings.ValidIssuer,
@@ -94,18 +98,40 @@ public static class JwtBearerAuthenticationExtensions
                 ValidAudience = validAudience,
                 ValidateLifetime = jwtBearerSettings.ValidateLifetime,
                 RequireSignedTokens = true,
-                NameClaimType = ClaimTypes.Name,
-                RoleClaimType = ClaimTypes.Role,
-                IssuerValidator = string.IsNullOrWhiteSpace(jwtBearerSettings.ValidIssuer)
-                    ? null
-                    : CreateExactIssuerValidator(jwtBearerSettings.ValidIssuer)
+                NameClaimType = JwtClaimTypes.Subject,
+                RoleClaimType = JwtClaimTypes.Role
             };
-
             options.Events = new JwtBearerEvents
             {
+                OnAuthenticationFailed = context =>
+                {
+                    context.Response.StatusCode = 401;
+                    return Task.CompletedTask;
+                },
                 OnTokenValidated = ctx =>
                 {
-                    NormalizeClaims(ctx.Principal);
+                    if (ctx.Principal == null)
+                    {
+                        return Task.CompletedTask;
+                    }
+
+                    var scopeClaim = ctx.Principal.FindFirst("scope");
+                    if (scopeClaim != null && !string.IsNullOrWhiteSpace(scopeClaim.Value))
+                    {
+                        var scopes = scopeClaim.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        if (ctx.Principal.Identity is not ClaimsIdentity identity)
+                        {
+                            return Task.CompletedTask;
+                        }
+
+                        // 删除原始单条scope，插入多条独立scope claim
+                        identity.RemoveClaim(scopeClaim);
+                        foreach (var s in scopes)
+                        {
+                            identity.AddClaim(new Claim("scope", s));
+                        }
+                    }
+
                     return Task.CompletedTask;
                 }
             };
@@ -114,170 +140,68 @@ public static class JwtBearerAuthenticationExtensions
         return builder;
     }
 
-    private static RsaSecurityKey? LoadLocalKey(JwtBearerSettings settings, IHostEnvironment environment)
+    private static RsaSecurityKey? LoadLocalKey(JwtBearerSettings settings)
     {
         if (string.IsNullOrWhiteSpace(settings.KeyPath))
         {
             return null;
         }
 
-        var path = settings.ResolveKeyPath(environment);
-        var key = RsaSecurityKeyHelper.GetRsaSecurityKey(path);
-        if (key == null)
+        var path = Path.GetFullPath(settings.KeyPath);
+        if (!File.Exists(path))
         {
+            return null;
+        }
+
+        try
+        {
+            var key = LoadKey(path);
+            return key;
+        }
+        catch (Exception ex)
+        {
+            Defaults.Logger.LogError(ex, "Error loading RSA key from {KeyPath}", path);
             throw new InvalidOperationException(
                 $"Unable to load RSA JWK from JwtBearer:KeyPath '{path}'. The application will not fall back to OIDC metadata.");
         }
+    }
+
+    private static RsaSecurityKey? LoadKey(string path)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("kty", out var keyType) ||
+            !string.Equals(keyType.GetString(), "RSA", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        if (!root.TryGetProperty("n", out var modulusElement) ||
+            !root.TryGetProperty("e", out var exponentElement))
+        {
+            return null;
+        }
+
+        var modulus = modulusElement.GetString();
+        var exponent = exponentElement.GetString();
+        if (string.IsNullOrWhiteSpace(modulus) || string.IsNullOrWhiteSpace(exponent))
+        {
+            return null;
+        }
+
+        var key = new RsaSecurityKey(new RSAParameters
+        {
+            Modulus = Base64UrlEncoder.DecodeBytes(modulus),
+            Exponent = Base64UrlEncoder.DecodeBytes(exponent)
+        });
+
+        if (root.TryGetProperty("kid", out var keyIdElement) &&
+            keyIdElement.ValueKind == JsonValueKind.String)
+        {
+            key.KeyId = keyIdElement.GetString();
+        }
 
         return key;
-    }
-
-    private static string ResolveAndValidateMetadataAddress(
-        JwtBearerSettings settings,
-        IHostEnvironment environment)
-    {
-        if (string.IsNullOrWhiteSpace(settings.MetadataAddress) &&
-            string.IsNullOrWhiteSpace(settings.Authority))
-        {
-            throw new InvalidOperationException(
-                "JwtBearer requires either JwtBearer:Authority or JwtBearer:MetadataAddress when JwtBearer:KeyPath is empty.");
-        }
-
-        var metadataAddress = string.IsNullOrWhiteSpace(settings.MetadataAddress)
-            ? BuildMetadataAddress(settings.Authority)
-            : ParseAbsoluteHttpUri(settings.MetadataAddress, "JwtBearer:MetadataAddress");
-
-        if (!string.Equals(metadataAddress.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(metadataAddress.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException(
-                "JwtBearer metadata address must use the http or https scheme.");
-        }
-
-        if (metadataAddress.Scheme == Uri.UriSchemeHttp && settings.RequireHttpsMetadata)
-        {
-            throw new InvalidOperationException(
-                "JwtBearer:RequireHttpsMetadata=true is incompatible with an http metadata address.");
-        }
-
-        if (environment.IsDevelopment() &&
-            metadataAddress.Scheme == Uri.UriSchemeHttps &&
-            !settings.RequireHttpsMetadata)
-        {
-            throw new InvalidOperationException(
-                "Development JwtBearer metadata may disable RequireHttpsMetadata only for an explicit http endpoint.");
-        }
-
-        if (!environment.IsDevelopment() &&
-            (metadataAddress.Scheme != Uri.UriSchemeHttps || !settings.RequireHttpsMetadata))
-        {
-            throw new InvalidOperationException(
-                "Production JwtBearer metadata must use https and JwtBearer:RequireHttpsMetadata=true.");
-        }
-
-        return metadataAddress.AbsoluteUri;
-    }
-
-    private static Uri BuildMetadataAddress(string? authority)
-    {
-        var authorityUri = ParseAbsoluteHttpUri(authority, "JwtBearer:Authority");
-        var builder = new UriBuilder(authorityUri)
-        {
-            Query = string.Empty,
-            Fragment = string.Empty,
-            Path = $"{authorityUri.AbsolutePath.TrimEnd('/')}/.well-known/openid-configuration"
-        };
-        return builder.Uri;
-    }
-
-    private static Uri ParseAbsoluteHttpUri(string? value, string configurationKey)
-    {
-        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
-            (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
-             !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) ||
-            string.IsNullOrWhiteSpace(uri.Host))
-        {
-            throw new InvalidOperationException(
-                $"{configurationKey} must be an absolute http(s) URL.");
-        }
-
-        return uri;
-    }
-
-    private static IssuerValidator CreateExactIssuerValidator(string expectedIssuer)
-    {
-        return (issuer, _, _) =>
-        {
-            if (!string.Equals(issuer, expectedIssuer, StringComparison.Ordinal))
-            {
-                throw new SecurityTokenInvalidIssuerException(
-                    "The JwtBearer token issuer does not match the configured issuer.");
-            }
-
-            return issuer!;
-        };
-    }
-
-    private static void NormalizeClaims(ClaimsPrincipal? principal)
-    {
-        if (principal == null)
-        {
-            return;
-        }
-
-        foreach (var identity in principal.Identities)
-        {
-            NormalizeScopeClaims(identity);
-            NormalizeRoleClaims(identity);
-            NormalizeNameClaims(identity);
-        }
-    }
-
-    private static void NormalizeScopeClaims(ClaimsIdentity identity)
-    {
-        var claims = identity.FindAll("scope").ToList();
-        foreach (var claim in claims)
-        {
-            identity.RemoveClaim(claim);
-        }
-
-        foreach (var value in claims.SelectMany(claim =>
-                     claim.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries)))
-        {
-            identity.AddClaim(new Claim("scope", value));
-        }
-    }
-
-    private static void NormalizeRoleClaims(ClaimsIdentity identity)
-    {
-        var claims = identity.FindAll("role").ToList();
-        foreach (var claim in claims)
-        {
-            identity.RemoveClaim(claim);
-            identity.AddClaim(new Claim(ClaimTypes.Role, claim.Value));
-        }
-    }
-
-    private static void NormalizeNameClaims(ClaimsIdentity identity)
-    {
-        var claims = identity.FindAll("name").ToList();
-        foreach (var claim in claims)
-        {
-            identity.RemoveClaim(claim);
-            identity.AddClaim(new Claim(ClaimTypes.Name, claim.Value));
-        }
-    }
-
-    private sealed class DefaultHostEnvironment : IHostEnvironment
-    {
-        public string EnvironmentName { get; set; } =
-            Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ??
-            Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ??
-            Environments.Production;
-
-        public string ApplicationName { get; set; } = typeof(Program).Assembly.GetName().Name!;
-        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
-        public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } =
-            new Microsoft.Extensions.FileProviders.NullFileProvider();
     }
 }

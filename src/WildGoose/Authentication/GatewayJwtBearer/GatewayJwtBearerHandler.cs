@@ -51,7 +51,6 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
     /// <returns></returns>
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        await Task.CompletedTask;
         var options = Options;
         var headerName = options.Name;
         if (!Context.Request.Headers.ContainsKey(headerName))
@@ -179,6 +178,7 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
             result = AuthenticateResult.Fail("Handle X-Userinfo value failed");
         }
 
+        await Task.CompletedTask;
         return result;
     }
 
@@ -303,7 +303,7 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
 
         try
         {
-            var absoluteTicks = (decimal)DateTimeOffset.UnixEpoch.Ticks +
+            var absoluteTicks = DateTimeOffset.UnixEpoch.Ticks +
                                 seconds * TimeSpan.TicksPerSecond;
             if (absoluteTicks < DateTimeOffset.MinValue.Ticks ||
                 absoluteTicks > DateTimeOffset.MaxValue.Ticks)
