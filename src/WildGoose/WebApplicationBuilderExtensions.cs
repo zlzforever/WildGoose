@@ -2,7 +2,9 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Microsoft.Extensions.Configuration.Json;
+using System.Text.Json;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Serilog;
 using Serilog.Events;
@@ -66,17 +68,81 @@ public static class WebApplicationBuilderExtensions
 
             void ReplaceSource(ConfigurationManager configurationManager, int index, string path)
             {
-                if (!File.Exists(path))
+                var fullPath = Path.IsPathRooted(path)
+                    ? path
+                    : Path.GetFullPath(path, env.ContentRootPath);
+                if (!File.Exists(fullPath))
                 {
                     return;
                 }
 
-                using var stream =
-                    new MemoryStream(System.Text.Encoding.UTF8.GetBytes(SubstituteEnv(File.ReadAllText(path))));
-                configurationManager.Sources[index] = new JsonStreamConfigurationSource
+                var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+                using var document = JsonDocument.Parse(
+                    SubstituteEnv(File.ReadAllText(fullPath)),
+                    new JsonDocumentOptions
+                    {
+                        AllowTrailingCommas = true,
+                        CommentHandling = JsonCommentHandling.Skip
+                    });
+                AddJsonValues(document.RootElement, null, values);
+                configurationManager.Sources[index] = new MemoryConfigurationSource
                 {
-                    Stream = stream
+                    InitialData = values
                 };
+            }
+
+            void AddJsonValues(JsonElement element, string? prefix, IDictionary<string, string?> values)
+            {
+                switch (element.ValueKind)
+                {
+                    case JsonValueKind.Object:
+                        var hasProperties = false;
+                        foreach (var property in element.EnumerateObject())
+                        {
+                            hasProperties = true;
+                            var key = string.IsNullOrEmpty(prefix)
+                                ? property.Name
+                                : $"{prefix}:{property.Name}";
+                            AddJsonValues(property.Value, key, values);
+                        }
+
+                        if (!hasProperties && !string.IsNullOrEmpty(prefix))
+                        {
+                            values[prefix] = null;
+                        }
+
+                        break;
+                    case JsonValueKind.Array:
+                        var index = 0;
+                        foreach (var item in element.EnumerateArray())
+                        {
+                            AddJsonValues(item, $"{prefix}:{index}", values);
+                            index++;
+                        }
+
+                        if (index == 0 && !string.IsNullOrEmpty(prefix))
+                        {
+                            values[prefix] = null;
+                        }
+
+                        break;
+                    case JsonValueKind.Null:
+                        if (!string.IsNullOrEmpty(prefix))
+                        {
+                            values[prefix] = null;
+                        }
+
+                        break;
+                    default:
+                        if (!string.IsNullOrEmpty(prefix))
+                        {
+                            values[prefix] = element.ValueKind == JsonValueKind.String
+                                ? element.GetString()
+                                : element.GetRawText();
+                        }
+
+                        break;
+                }
             }
 
             foreach (var kv in replaceFiles)

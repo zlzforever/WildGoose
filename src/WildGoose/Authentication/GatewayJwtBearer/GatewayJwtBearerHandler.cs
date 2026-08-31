@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -50,8 +51,7 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
     /// <returns></returns>
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        await Task.CompletedTask;
-        var options = OptionsMonitor.CurrentValue;
+        var options = Options;
         var headerName = options.Name;
         if (!Context.Request.Headers.ContainsKey(headerName))
         {
@@ -69,18 +69,26 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
         {
             var json = Convert.FromBase64String(base64);
 
+            using var profileDocument = JsonDocument.Parse(json);
+            ValidateNumericDateClaims(profileDocument.RootElement);
+            var (issuer, audiences) = ParseIssuerAndAudienceClaims(profileDocument.RootElement);
+
             using var memoryStream = new MemoryStream(json);
             var profile =
                 JsonSerializer.Deserialize<Dictionary<string, JsonElement?>>(memoryStream,
                     _jsonOptions.JsonSerializerOptions);
             if (profile == null)
             {
-                Logger.LogInformation("Deserialize X-Userinfo value failed");
+                Logger.LogInformation(
+                    "Deserialize X-Userinfo value failed for trace {TraceId}",
+                    Context.TraceIdentifier);
                 return AuthenticateResult.NoResult();
             }
 
-            Logger.LogDebug("Deserialize X-Userinfo value success: {Profile}",
-                JsonSerializer.Serialize(profile, _jsonOptions.JsonSerializerOptions));
+            Logger.LogDebug(
+                "Deserialize X-Userinfo value success for trace {TraceId}; claim count {ClaimCount}",
+                Context.TraceIdentifier,
+                profile.Count);
 
             var claims = new List<Claim>();
             Add(claims, profile, "sub", ClaimTypes.NameIdentifier);
@@ -89,22 +97,32 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
             Add(claims, profile, ClaimTypes.Role, ClaimTypes.Role);
             Add(claims, profile, "name", ClaimTypes.Name);
             Add(claims, profile, ClaimTypes.Name, ClaimTypes.Name);
-            Add(claims, profile, "iss");
-            Add(claims, profile, "aud");
+            if (issuer != null)
+            {
+                claims.Add(new Claim("iss", issuer));
+            }
+
+            foreach (var audience in audiences)
+            {
+                claims.Add(new Claim("aud", audience));
+            }
+
             Add(claims, profile, "jti");
             Add(claims, profile, "exp");
+            Add(claims, profile, "nbf");
             Add(claims, profile, "client_id");
             Add(claims, profile, "security-stamp");
             Add(claims, profile, "iat");
             Add(claims, profile, "sid");
 
-            var jsonElement = profile["scope"];
-            if (jsonElement != null)
+            if (profile.TryGetValue("scope", out var jsonElement) && jsonElement != null)
             {
-                var scope = jsonElement.Value.ToString();
-                foreach (var s in scope.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                foreach (var scope in GetValues(jsonElement.Value))
                 {
-                    claims.Add(new Claim("scope", s));
+                    foreach (var value in scope.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        claims.Add(new Claim("scope", value));
+                    }
                 }
             }
 
@@ -125,11 +143,11 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
                 }
             }
 
-            var now = DateTimeOffset.UtcNow;
+            var now = TimeProvider.GetUtcNow();
             var nbf = claims.FirstOrDefault(x => x.Type == "nbf")?.Value;
             if (nbf != null)
             {
-                var notBefore = DateTimeOffset.FromUnixTimeSeconds(long.Parse(nbf));
+                var notBefore = ParseNumericDate(nbf);
                 if (now < notBefore)
                 {
                     return AuthenticateResult.Fail("Token is not available");
@@ -139,8 +157,8 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
             var exp = claims.FirstOrDefault(x => x.Type == "exp")?.Value;
             if (exp != null)
             {
-                var expired = DateTimeOffset.FromUnixTimeSeconds(long.Parse(exp));
-                if (now > expired)
+                var expired = ParseNumericDate(exp);
+                if (now >= expired)
                 {
                     return AuthenticateResult.Fail("Token is expired");
                 }
@@ -153,11 +171,154 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Handle X-Userinfo value failed");
-            result = AuthenticateResult.Fail("Handle X-Userinfo value failed: " + e.Message);
+            Logger.LogError(
+                "Handle X-Userinfo value failed for trace {TraceId} ({ExceptionType})",
+                Context.TraceIdentifier,
+                e.GetType().Name);
+            result = AuthenticateResult.Fail("Handle X-Userinfo value failed");
         }
 
+        await Task.CompletedTask;
         return result;
+    }
+
+    private static void ValidateNumericDateClaims(JsonElement profile)
+    {
+        if (profile.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var property in profile.EnumerateObject())
+        {
+            if (property.Name is not ("exp" or "nbf"))
+            {
+                continue;
+            }
+
+            if (!seen.Add(property.Name))
+            {
+                throw new FormatException($"NumericDate claim '{property.Name}' must appear only once.");
+            }
+
+            if (property.Value.ValueKind != JsonValueKind.Number ||
+                !decimal.TryParse(
+                    property.Value.GetRawText(),
+                    NumberStyles.AllowLeadingSign |
+                    NumberStyles.AllowDecimalPoint |
+                    NumberStyles.AllowExponent,
+                    CultureInfo.InvariantCulture,
+                    out _))
+            {
+                throw new FormatException(
+                    $"NumericDate claim '{property.Name}' must be a single finite JSON number.");
+            }
+        }
+    }
+
+    private static (string? Issuer, IReadOnlyList<string> Audiences) ParseIssuerAndAudienceClaims(
+        JsonElement profile)
+    {
+        if (profile.ValueKind != JsonValueKind.Object)
+        {
+            return (null, []);
+        }
+
+        string? issuer = null;
+        var audiences = new List<string>();
+        var seenClaims = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var property in profile.EnumerateObject())
+        {
+            if (property.Name is not ("iss" or "aud"))
+            {
+                continue;
+            }
+
+            if (!seenClaims.Add(property.Name))
+            {
+                throw new FormatException($"JWT claim '{property.Name}' must appear only once.");
+            }
+
+            if (property.Name == "iss")
+            {
+                if (property.Value.ValueKind != JsonValueKind.String)
+                {
+                    throw new FormatException("JWT issuer claim must be a single string.");
+                }
+
+                issuer = property.Value.GetString();
+                if (issuer == null)
+                {
+                    throw new FormatException("JWT issuer claim must be a single string.");
+                }
+
+                continue;
+            }
+
+            switch (property.Value.ValueKind)
+            {
+                case JsonValueKind.String:
+                    AddAudience(audiences, property.Value);
+                    break;
+                case JsonValueKind.Array:
+                    foreach (var item in property.Value.EnumerateArray())
+                    {
+                        if (item.ValueKind != JsonValueKind.String)
+                        {
+                            throw new FormatException(
+                                "JWT audience claim must be a string or an array of strings.");
+                        }
+
+                        AddAudience(audiences, item);
+                    }
+
+                    break;
+                default:
+                    throw new FormatException(
+                        "JWT audience claim must be a string or an array of strings.");
+            }
+        }
+
+        return (issuer, audiences);
+    }
+
+    private static void AddAudience(List<string> audiences, JsonElement element)
+    {
+        var audience = element.GetString();
+        if (audience == null)
+        {
+            throw new FormatException("JWT audience claim must be a string or an array of strings.");
+        }
+
+        audiences.Add(audience);
+    }
+
+    private static DateTimeOffset ParseNumericDate(string value)
+    {
+        if (!decimal.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds))
+        {
+            throw new FormatException("NumericDate must be a finite decimal number.");
+        }
+
+        try
+        {
+            var absoluteTicks = DateTimeOffset.UnixEpoch.Ticks +
+                                seconds * TimeSpan.TicksPerSecond;
+            if (absoluteTicks < DateTimeOffset.MinValue.Ticks ||
+                absoluteTicks > DateTimeOffset.MaxValue.Ticks)
+            {
+                throw new FormatException("NumericDate is outside the supported date range.");
+            }
+
+            return new DateTimeOffset(
+                decimal.ToInt64(decimal.Truncate(absoluteTicks)),
+                TimeSpan.Zero);
+        }
+        catch (OverflowException exception)
+        {
+            throw new FormatException("NumericDate is outside the supported date range.", exception);
+        }
     }
 
     private void Add(List<Claim> claims, Dictionary<string, JsonElement?> json, string key, string? name = null)
@@ -173,37 +334,44 @@ public class GatewayJwtBearerHandler : AuthenticationHandler<GatewayJwtBearerOpt
         }
 
         var property = name ?? key;
-        if (jsonElement.Value.ValueKind == JsonValueKind.String)
+        foreach (var value in GetValues(jsonElement.Value))
         {
-            var v = jsonElement.Value.GetString();
-            if (!string.IsNullOrEmpty(v))
-            {
-                claims.Add(new Claim(property, v));
-            }
+            claims.Add(new Claim(property, value));
         }
-        else if (jsonElement.Value.ValueKind == JsonValueKind.Number)
+    }
+
+    private static IEnumerable<string> GetValues(JsonElement element)
+    {
+        switch (element.ValueKind)
         {
-            claims.Add(new Claim(property, jsonElement.Value.GetInt64().ToString()));
-        }
-        else if (jsonElement.Value.ValueKind == JsonValueKind.True ||
-                 jsonElement.Value.ValueKind == JsonValueKind.False)
-        {
-            claims.Add(new Claim(property, jsonElement.Value.GetBoolean().ToString()));
-        }
-        else if (jsonElement.Value.ValueKind == JsonValueKind.Array)
-        {
-            var v = jsonElement.Value.Deserialize<List<string>>();
-            if (v != null)
-            {
-                foreach (var p in v)
+            case JsonValueKind.String:
+                var stringValue = element.GetString();
+                if (!string.IsNullOrEmpty(stringValue))
                 {
-                    claims.Add(new Claim(property, p));
+                    yield return stringValue;
                 }
-            }
-        }
-        else
-        {
-            claims.Add(new Claim(property, jsonElement.Value.ToString()));
+
+                yield break;
+            case JsonValueKind.Number:
+                yield return element.GetRawText();
+                yield break;
+            case JsonValueKind.True:
+            case JsonValueKind.False:
+                yield return element.GetBoolean().ToString();
+                yield break;
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray())
+                {
+                    foreach (var value in GetValues(item))
+                    {
+                        yield return value;
+                    }
+                }
+
+                yield break;
+            case JsonValueKind.Object:
+                yield return element.GetRawText();
+                yield break;
         }
     }
 }

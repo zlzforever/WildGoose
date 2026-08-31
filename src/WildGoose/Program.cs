@@ -26,105 +26,13 @@ namespace WildGoose;
 
 public class Program
 {
+    private const string CorsPolicyName = "___AllowSpecificOrigin";
+
     public static async Task Main(string[] args)
     {
-        DefaultTypeMap.MatchNamesWithUnderscores = true;
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
-        var builder = WebApplication.CreateBuilder(args);
-        builder.AddSubstitution();
-
-        builder.AddSerilog();
-        var mvcBuilder = builder.Services.AddControllers(x =>
-        {
-            x.Filters.Add<ResponseWrapperFilter>();
-            x.Filters.Add<GlobalExceptionFilter>();
-        }).AddJsonOptions(options =>
-        {
-            options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowReadingFromString;
-            options.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
-            options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        });
-        mvcBuilder.ConfigureApiBehaviorOptions(x =>
-        {
-            x.InvalidModelStateResponseFactory = InvalidModelStateResponseFactory.Instance;
-        });
-
-        mvcBuilder.AddDapr(_ => { });
-
-        builder.Services.AddOptions();
-
-        if (builder.Environment.IsDevelopment())
-        {
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-        }
-
-        builder.Services.AddResponseCaching();
-        var identity = builder.Configuration.GetSection("Identity");
-        builder.Services.Configure<IdentityOptions>(identity);
-        builder.Services.Configure<DbOptions>(builder.Configuration.GetSection("DbContext"));
-        builder.Services.Configure<IdentityExtensionOptions>(builder.Configuration.GetSection("Identity"));
-        builder.Services.Configure<WildGooseOptions>(builder.Configuration.GetSection("WildGoose"));
-        builder.Services.Configure<DaprOptions>(builder.Configuration.GetSection("Dapr"));
-
-        builder.Services.AddHttpContextAccessor();
-        var dbOptions = builder.AddEfCore();
-        builder.RegisterServices();
-        builder.Services.ConfigAuthentication(builder.Configuration);
-        builder.AddCache(dbOptions);
-        builder.Services.AddHealthChecks();
-        var identityBuilder = builder.Services.AddIdentityCore<User>(o =>
-            {
-                o.Stores.MaxLengthForKeys = 128;
-                o.SignIn.RequireConfirmedAccount = true;
-            })
-            .AddRoles<Role>()
-            .AddErrorDescriber<ChineseIdentityErrorDescriber>()
-            .AddDefaultTokenProviders()
-            .AddUserConfirmation<DefaultUserConfirmation<User>>()
-            .AddUserValidator<ExtendedUserValidator<User>>()
-            .AddEntityFrameworkStores<WildGooseDbContext>();
-        Defaults.DisablePasswordLogin = "true".Equals(builder.Configuration["DISABLE_PASSWORD_LOGIN"]);
-        if (Defaults.DisablePasswordLogin)
-        {
-            identityBuilder.AddPasswordValidator<NoopPasswordValidator<User>>();
-            identityBuilder.AddUserStore<NoPasswordStore>();
-        }
-
-        if (bool.TryParse(builder.Configuration["ENABLE_SM3_PASSWORD_HASHER"],
-                out var enable) &&
-            enable)
-        {
-            builder.Services.AddSm3PasswordHasher<User>();
-        }
-
-        var serviceCollection = (ServiceCollection)builder.Services;
-
-        var items = serviceCollection.Where(x => x.ServiceType == typeof(IUserValidator<User>) &&
-                                                 x.ImplementationType != typeof(ExtendedUserValidator<User>)).ToList();
-        foreach (var descriptor in items)
-        {
-            serviceCollection.Remove(descriptor);
-        }
-
-        // 全开放，应该在网关上统一处理
-        var corsPolicyName = "___AllowSpecificOrigin";
-        builder.Services.AddCors(options =>
-        {
-            options.AddPolicy(name: corsPolicyName,
-                policy =>
-                {
-                    var origins = builder.Configuration.GetSection("AllowedCorsOrigins").Get<string[]>();
-                    origins = origins == null || origins.Length == 0 ? ["http://localhost:5173"] : origins;
-                    policy.WithOrigins(origins)
-                        .SetIsOriginAllowed(_ => true)
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials()
-                        .SetPreflightMaxAge(TimeSpan.FromDays(7));
-                });
-        });
+        var builder = CreateBuilder(args);
+        var dbOptions = builder.Configuration.GetSection("DbContext").Get<DbOptions>()
+                        ?? throw new InvalidOperationException("DbContext configuration is required.");
 
         var app = builder.Build();
 
@@ -170,14 +78,122 @@ public class Program
         app.UseRouting();
         var healthCheckPath = Environment.GetEnvironmentVariable("HEALTH_CHECK_PATH") ?? "/healthz";
         app.UseHealthChecks(healthCheckPath);
-        app.UseCors(corsPolicyName);
+        app.UseCors(CorsPolicyName);
         app.UseResponseCaching();
+        app.UseAuthentication();
         app.UseAuthorization();
         app.UseCloudEvents();
         app.MapSubscribeHandler();
-        app.MapControllers().RequireCors(corsPolicyName);
+        app.MapControllers().RequireCors(CorsPolicyName);
         await app.RunAsync();
 
         Console.WriteLine("Bye");
+    }
+
+    internal static WebApplicationBuilder CreateBuilder(WebApplicationOptions options)
+    {
+        DefaultTypeMap.MatchNamesWithUnderscores = true;
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+        var builder = WebApplication.CreateBuilder(options);
+        builder.AddSubstitution();
+
+        builder.AddSerilog();
+        var mvcBuilder = builder.Services.AddControllers(x =>
+        {
+            x.Filters.Add<ResponseWrapperFilter>();
+            x.Filters.Add<GlobalExceptionFilter>();
+        }).AddJsonOptions(jsonOptions =>
+        {
+            jsonOptions.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowReadingFromString;
+            jsonOptions.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+            jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        });
+        mvcBuilder.ConfigureApiBehaviorOptions(x =>
+        {
+            x.InvalidModelStateResponseFactory = InvalidModelStateResponseFactory.Instance;
+        });
+
+        mvcBuilder.AddDapr(_ => { });
+
+        builder.Services.AddOptions();
+
+        if (builder.Environment.IsDevelopment())
+        {
+            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            builder.Services.AddEndpointsApiExplorer();
+        }
+
+        builder.Services.AddResponseCaching();
+        var identity = builder.Configuration.GetSection("Identity");
+        builder.Services.Configure<IdentityOptions>(identity);
+        builder.Services.Configure<DbOptions>(builder.Configuration.GetSection("DbContext"));
+        builder.Services.Configure<IdentityExtensionOptions>(builder.Configuration.GetSection("Identity"));
+        builder.Services.Configure<WildGooseOptions>(builder.Configuration.GetSection("WildGoose"));
+        builder.Services.Configure<DaprOptions>(builder.Configuration.GetSection("Dapr"));
+
+        builder.Services.AddHttpContextAccessor();
+        var dbOptions = builder.AddEfCore();
+        builder.RegisterServices();
+        builder.Services.ConfigAuthenticationCore(builder.Configuration, builder.Environment);
+        builder.AddCache(dbOptions);
+        builder.Services.AddHealthChecks();
+        var identityBuilder = builder.Services.AddIdentityCore<User>(o =>
+            {
+                o.Stores.MaxLengthForKeys = 128;
+                o.SignIn.RequireConfirmedAccount = true;
+            })
+            .AddRoles<Role>()
+            .AddErrorDescriber<ChineseIdentityErrorDescriber>()
+            .AddDefaultTokenProviders()
+            .AddUserConfirmation<DefaultUserConfirmation<User>>()
+            .AddUserValidator<ExtendedUserValidator<User>>()
+            .AddEntityFrameworkStores<WildGooseDbContext>();
+        Defaults.DisablePasswordLogin = "true".Equals(builder.Configuration["DISABLE_PASSWORD_LOGIN"]);
+        if (Defaults.DisablePasswordLogin)
+        {
+            identityBuilder.AddPasswordValidator<NoopPasswordValidator<User>>();
+            identityBuilder.AddUserStore<NoPasswordStore>();
+        }
+
+        if (bool.TryParse(builder.Configuration["ENABLE_SM3_PASSWORD_HASHER"],
+                out var enable) &&
+            enable)
+        {
+            builder.Services.AddSm3PasswordHasher<User>();
+        }
+
+        var serviceCollection = (ServiceCollection)builder.Services;
+
+        var items = serviceCollection.Where(x => x.ServiceType == typeof(IUserValidator<User>) &&
+                                                 x.ImplementationType != typeof(ExtendedUserValidator<User>)).ToList();
+        foreach (var descriptor in items)
+        {
+            serviceCollection.Remove(descriptor);
+        }
+
+        // 全开放，应该在网关上统一处理
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy(name: CorsPolicyName,
+                policy =>
+                {
+                    var origins = builder.Configuration.GetSection("AllowedCorsOrigins").Get<string[]>();
+                    origins = origins == null || origins.Length == 0 ? ["http://localhost:5173"] : origins;
+                    policy.WithOrigins(origins)
+                        .SetIsOriginAllowed(_ => true)
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials()
+                        .SetPreflightMaxAge(TimeSpan.FromDays(7));
+                });
+        });
+
+        return builder;
+    }
+
+    private static WebApplicationBuilder CreateBuilder(string[] args)
+    {
+        return CreateBuilder(new WebApplicationOptions { Args = args });
     }
 }

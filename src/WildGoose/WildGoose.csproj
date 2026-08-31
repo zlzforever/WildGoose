@@ -34,6 +34,12 @@
     </ItemGroup>
 
     <ItemGroup>
+      <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+        <_Parameter1>WildGoose.Tests</_Parameter1>
+      </AssemblyAttribute>
+    </ItemGroup>
+
+    <ItemGroup>
       <None Update="Sqls\**">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>

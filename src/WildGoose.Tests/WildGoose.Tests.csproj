@@ -49,10 +49,4 @@
         </Content>
     </ItemGroup>
 
-    <ItemGroup>
-      <None Update="jwt.jwk">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-    </ItemGroup>
-
 </Project>
