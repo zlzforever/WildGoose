@@ -116,6 +116,8 @@ const UserModal: React.FC<UserModalProps> = (props) => {
         organizations.push(node)
       }
 
+      // 同步清空掩码缓存，避免重新打开弹窗时聚焦输入框带出上一次的数据
+      rawValuesRef.current = {}
       form.resetFields()
 
       // 创建
